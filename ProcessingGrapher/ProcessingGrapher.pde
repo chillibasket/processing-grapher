@@ -114,7 +114,6 @@ void setup() {
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth, tabTop, tabBottom));
-	tabObjects.add(new Filters("Filters", 0, tabWidth, tabTop, tabBottom));
 	
 	delay(20);
 }
