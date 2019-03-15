@@ -64,7 +64,14 @@ class FileGraph implements TabAPI {
     void setOutput(String newoutput) {
         outputfile = newoutput;
         if (outputfile != "No File Set") {
-            dataTable = loadTable(outputfile, "csv, header");
+            // Check whether file is of type *.csv
+            if (outputfile.contains(".csv")) {
+                dataTable = loadTable(outputfile, "csv, header");
+            } else {
+                alertHeading = "Invalid file type; it must be *.csv";
+                outputfile = "No File Set";
+                redrawAlert = true;
+            }
         }
         redrawContent = true;
     }

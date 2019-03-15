@@ -69,6 +69,10 @@ class LiveGraph implements TabAPI {
      * Change output file location
      **********************************/
     void setOutput(String newoutput) {
+        // Ensure file type is *.csv
+        int dotPos = newoutput.lastIndexOf(".");
+        if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
+        newoutput = newoutput + ".csv";
         outputfile = newoutput;
     }
 
