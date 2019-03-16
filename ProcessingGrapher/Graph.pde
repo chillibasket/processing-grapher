@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * *
+ * GRAPH CLASS
+ *
+ * Code by: Simon B.
+ * Email:   hello@chillibasket.com
+ * * * * * * * * * * * * * * * * * * * * * * */
+
 class Graph {
 
     int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
@@ -237,6 +244,7 @@ class Graph {
         int xTextHeight = int(12 * uimult) + padding;
 
         textSize(12 * uimult);
+        textFont(base_font);
 
         // Find largest width, and use that as our width value
         for (int i = 1; i < yScale; i++) {
@@ -263,6 +271,7 @@ class Graph {
         strokeWeight(1 * uimult);
         fill(c_lightgrey);
         textAlign(RIGHT, CENTER);
+        textFont(base_font);
 
 
         // ---------- Y-AXIS ----------
@@ -310,6 +319,7 @@ class Graph {
 
         // ---------- X-AXIS ----------
         textAlign(CENTER, CENTER);
+        textFont(base_font);
         int labelsWidth = xScale * xTextWidth;
 
         // Draw each of the division markings

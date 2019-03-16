@@ -2,9 +2,8 @@
  * SERIAL MONITOR CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon BLuett
+ * Code by: Simon B.
  * Email:   hello@chillibasket.com
- * Date: 	13/03/19
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class SerialMonitor implements TabAPI {
@@ -77,6 +76,7 @@ class SerialMonitor implements TabAPI {
 		int msgBtnSize = int(textWidth(msgBtnText)); 
 		textAlign(LEFT, TOP);
 		textSize(12 * uimult);
+		textFont(base_font);
 		fill(c_terminal_text);
 		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + int(9 * uimult));
 		fill(c_background);
@@ -88,6 +88,7 @@ class SerialMonitor implements TabAPI {
 		rectMode(CORNERS);
 		textAlign(LEFT, TOP);
 		textSize(12 * uimult);
+		textFont(base_font);
 		fill(c_white);
 		stroke(c_message_text);
 		strokeWeight(1 * uimult);
@@ -139,6 +140,7 @@ class SerialMonitor implements TabAPI {
 
 		textAlign(LEFT, TOP);
 		textSize(12 * uimult);
+		textFont(mono_font);
 		totalHeight -= yTextHeight;
 
 		// Now print the text
@@ -161,6 +163,8 @@ class SerialMonitor implements TabAPI {
 			text(textRow, cL + 2*border, msgB + totalHeight, cR - cL - 3*border, yTextHeight);
 			totalHeight -= yTextHeight;
 		}
+
+		textFont(base_font);
 	}
 	
 
@@ -319,6 +323,7 @@ class SerialMonitor implements TabAPI {
 		}
 
 		textAlign(LEFT, CENTER);
+		textFont(base_font);
 		fill(c_lightgrey);
 		text("Output File: " + outputfile, (5 * uimult), height - (bottombarHeight * uimult), width - sW, (bottombarHeight * uimult) - (5 * uimult));
 	}

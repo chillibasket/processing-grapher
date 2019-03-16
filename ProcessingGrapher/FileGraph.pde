@@ -1,3 +1,11 @@
+/* * * * * * * * * * * * * * * * * * * * * * *
+ * FILE GRAPH PLOTTER CLASS
+ * implements TabAPI for Processing Grapher
+ *
+ * Code by: Simon B.
+ * Email:   hello@chillibasket.com
+ * * * * * * * * * * * * * * * * * * * * * * */
+
 class FileGraph implements TabAPI {
 
     int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
@@ -256,6 +264,7 @@ class FileGraph implements TabAPI {
         }
 
         textAlign(LEFT, CENTER);
+        textFont(base_font);
         fill(c_lightgrey);
         text("Input File: " + outputfile, (5 * uimult), height - (bottombarHeight * uimult), width - sW, bottombarHeight - (5 * uimult));
     }

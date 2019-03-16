@@ -1,72 +1,31 @@
+/* * * * * * * * * * * * * * * * * * * * * * *
+ * PROCESSING GRAPHER
+ *
+ * Code by: Simon B.
+ * Email:   hello@chillibasket.com
+ * Date: 	16/03/19
+ * * * * * * * * * * * * * * * * * * * * * * */
+
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
-import java.io.File;
-import javax.swing.JFrame;
-import java.awt.Dimension;
-// Processing imports
-import processing.awt.PSurfaceAWT.SmoothCanvas;
 import processing.serial.*;
 
-
-// Serial Port Variables
-// - - - - - - - - - - - - - - - - -
-Serial myPort;
-int portNumber = 0;
-int baudRate = 115200;
-boolean serialConnected = false;
+// Legacy imports - if no bugs pop up, then remove
+//import java.io.File;
+//import javax.swing.JFrame;
+//import java.awt.Dimension;
+//import processing.awt.PSurfaceAWT.SmoothCanvas;
 
 
-// Drawing Booleans
-// - - - - - - - - - - - - - - - - -
-boolean redrawUI = true;
-boolean redrawAlert = false;
-boolean redrawContent = true;
-boolean drawNewData = false;
-
-
-// Background Size
-// - - - - - - - - - - - - - - - - -
-int lastWidth = 1000;
-int lastHeight = 700;
-
-
-// UI Options
-// - - - - - - - - - - - - - - - - -
+// -------- UI APPEARANCE SETTINGS ---------------------------------------------
+// UI Scaling Options (eg. 0.8 = smaller, 1.0 = normal, 1.2 = larger)
 float uimult = 1.0;
 
-
-// Tab Bar
-// - - - - - - - - - - - - - - - - -
-ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
-int currentTab = 0;
-
-
-// Size Values
-// - - - - - - - - - - - - - - - - -
-int tabWidth = 90;
-int tabHeight = 30;
-int sidebarWidth = 150;
-int sideItemHeight = 30;
-int bottombarHeight = 20;
-
-
-// Alert Messages
-// - - - - - - - - - - - - - - - - -
-int alertWidth = 300;
-int alertHeight = 150;
-String alertHeading = "";
-boolean alertActive = false;
-
-
-// Interaction Booleans
-// - - - - - - - - - - - - - - - - -
-boolean contentClick = false;
-boolean textInput = false;
-
+// Fonts
+String programFont = "Lucida Sans";
+String terminalFont = "Monaco";
 
 // Predefined colors
-// - - - - - - - - - - - - - - - - -
-// c_ prefix implies color, _h postfix implies highlight
 color c_white = color(255, 255, 255);
 color c_blue = color(96, 200, 220);
 color c_purple = color(147, 111, 212);
@@ -77,6 +36,7 @@ color c_orange = color(230, 85, 37);
 color c_lightgrey = color(134, 134, 138);
 color c_grey = color(111, 108, 90);
 color c_darkgrey = color(49, 50, 44);
+
 // UI colors
 color c_background = color(39, 40, 34);
 color c_tabbar = color(23, 24, 20);
@@ -90,8 +50,51 @@ color c_sidebar_text = c_white;
 color c_sidebar_button = c_lightgrey;
 color c_terminal_text = c_lightgrey;
 color c_message_text = c_white;
+
 // Graph color list
 color[] c_colorlist = {c_blue, c_purple, c_red, c_yellow, c_green, c_orange};
+
+// Default Window Size
+int lastWidth = 1000;
+int lastHeight = 700;
+
+// Size Values
+int tabWidth = 90;
+int tabHeight = 30;
+int sidebarWidth = 150;
+int sideItemHeight = 30;
+int bottombarHeight = 20;
+// -----------------------------------------------------------------------------
+
+// Serial Port Variables
+Serial myPort;
+int portNumber = 0;
+int baudRate = 115200;
+boolean serialConnected = false;
+
+// Drawing Booleans
+boolean redrawUI = true;
+boolean redrawAlert = false;
+boolean redrawContent = true;
+boolean drawNewData = false;
+
+// Interaction Booleans
+boolean contentClick = false;
+boolean textInput = false;
+
+// Tab Bar
+ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
+int currentTab = 0;
+
+// Fonts
+PFont base_font;
+PFont mono_font;
+
+// Alert Messages
+int alertWidth = 300;
+int alertHeight = 150;
+String alertHeading = "";
+boolean alertActive = false;
 
 
 /*********************************************
@@ -99,13 +102,19 @@ color[] c_colorlist = {c_blue, c_purple, c_red, c_yellow, c_green, c_orange};
  *********************************************/
 void setup() {
 	size(1000, 700);
-	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
-	JFrame jf = (JFrame) sc.getFrame();
-	Dimension d = new Dimension(500, 500);
-	jf.setMinimumSize(d);
+
+	// Remove these if no bugs are found
+	//SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
+	//JFrame jf = (JFrame) sc.getFrame();
+	//Dimension d = new Dimension(500, 500);
+	//jf.setMinimumSize(d);
+	
 	surface.setResizable(true);
 	background(c_background);
 	frameRate(60);
+
+	base_font = createFont(programFont, 12*uimult);
+	mono_font = createFont(terminalFont, 12*uimult);
 	
 	int tabWidth = int(width - (sidebarWidth * uimult));
 	int tabTop = int(tabHeight * uimult);
@@ -241,6 +250,7 @@ void drawSidebar () {
 void drawHeading(String text, float lS, float tS, float iW, float tH){
 	textAlign(CENTER, CENTER);
 	textSize(12 * uimult);
+	textFont(base_font);
 	fill(c_sidebar_heading);
 	text(text, lS, tS, iW, tH);
 }
@@ -251,6 +261,7 @@ void drawButton(String text, color boxcolor, float lS, float tS, float iW, float
 	noStroke();
 	textAlign(CENTER, CENTER);
 	textSize(12 * uimult);
+	textFont(base_font);
 	fill(boxcolor);
 	rect(lS, tS, iW, iH);
 	fill(c_sidebar_text);
@@ -263,6 +274,7 @@ void drawDatabox(String text, float lS, float tS, float iW, float iH, float tH){
 	noStroke();
 	textAlign(CENTER, CENTER);
 	textSize(12 * uimult);
+	textFont(base_font);
 	fill(c_sidebar_button);
 	rect(lS, tS, iW, iH);
 	fill(c_sidebar);
@@ -283,6 +295,7 @@ void drawAlert () {
 	noStroke();
 	textAlign(CENTER, CENTER);
 	textSize(12 * uimult);
+	textFont(base_font);
 
 	// Slightly lighten the background content
 	fill(c_white, 50);

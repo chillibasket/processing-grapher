@@ -1,3 +1,11 @@
+/* * * * * * * * * * * * * * * * * * * * * * *
+ * LIVE GRAPH PLOTTER CLASS
+ * implements TabAPI for Processing Grapher
+ *
+ * Code by: Simon B.
+ * Email:   hello@chillibasket.com
+ * * * * * * * * * * * * * * * * * * * * * * */
+
 class LiveGraph implements TabAPI {
 
 
@@ -235,6 +243,7 @@ class LiveGraph implements TabAPI {
         }
 
         textAlign(LEFT, CENTER);
+        textFont(base_font);
         fill(c_lightgrey);
         text("Output File: " + outputfile, (5 * uimult), height - (bottombarHeight * uimult), width - sW, (bottombarHeight * uimult) - (5 * uimult));
     }
