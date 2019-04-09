@@ -1,12 +1,12 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
- * LIVE GRAPH PLOTTER CLASS
+ * LIVE MAP PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
  * Code by: Simon B.
  * Email:   hello@chillibasket.com
  * * * * * * * * * * * * * * * * * * * * * * */
 
-class LiveGraph implements TabAPI {
+class LiveMap implements TabAPI {
 
 
     int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
@@ -14,20 +14,17 @@ class LiveGraph implements TabAPI {
 
     String name;
     String outputfile;
-    String[] dataColumns = {"Input1"};
+    String[] dataColumns = {"Path","RFID Tags","Obstacles","Lines"};
     Table dataTable;
+    Table obstacles;
     boolean recordData;
     int recordCounter;
-    int autoSave;
-    int xRate;
-    boolean autoAxis;
-    float[] dataPoints = {0};
 
 
     /**********************************
      * Constructor
      **********************************/
-    LiveGraph(String setname, int left, int right, int top, int bottom) {
+    LiveMap(String setname, int left, int right, int top, int bottom) {
         name = setname;
         
         cL = left;
@@ -35,13 +32,12 @@ class LiveGraph implements TabAPI {
         cT = top;
         cB = bottom;
 
-        graph = new Graph(cL, cR, cT, cB, 0, 20, 0, 10);
+        graph = new Graph(cL, cR, cT, cB, 0, 1800, 0, 1800);
+        graph.changeGraphDiv(25, 25);
+        graph.setSquareGrid(true);
         outputfile = "No File Set";
         recordData = false;
-        recordCounter = 0;
-        autoSave = 10;
-        xRate = 100;
-        autoAxis = true;
+        startRecording();
     }
 
     String getName() {
@@ -50,13 +46,51 @@ class LiveGraph implements TabAPI {
     
     void drawContent() {
         graph.drawGrid();
+        graph.resetGraph();
+        plotExistingData();
     }
 
+    void plotExistingData() {
+        for (TableRow row : obstacles.rows()) {
+            try {
+                int type = row.getInt(0);
+                float dataX = row.getFloat(1);
+                float dataY = row.getFloat(2);
+                float x1 = dataX;
+                float x2 = dataX;
+                float y1 = dataY;
+                float y2 = dataY;
+                for (int i = 0; i < 1800; i += 72) {
+                    if (dataX > i && dataX < i + 72) {
+                        x1 = i + 4;
+                        x2 = i + 68;
+                    }
+                    if (dataY > i && dataY < i + 72) {
+                        y1 = i + 4;
+                        y2 = i + 68;
+                    }
+                }
+                graph.plotRectangle(y1, y2, x1, x2, type);
+            } catch (Exception e) {
+                println("Error trying to plot file data.");
+                println(e);
+            }
+        }
+
+        for (TableRow row : dataTable.rows()) {
+            try {
+                float dataX = row.getFloat(0);
+                float dataPoint = row.getFloat(1);
+                graph.plotData(dataPoint, dataX, 0);
+            } catch (Exception e) {
+                println("Error trying to plot file data.");
+                println(e);
+            }
+        }
+    }
 
     void drawNewData() {
-        for(int i = 0; i < dataPoints.length; i++) {
-            graph.plotData(dataPoints[i], -99999999, i);
-        }
+        drawContent();
     }
     
     /**********************************
@@ -69,7 +103,7 @@ class LiveGraph implements TabAPI {
         cB = newB;
 
         graph.changeSize(cL, cR, cT, cB);
-        //drawContent();
+        drawContent();
     }
 
 
@@ -91,19 +125,24 @@ class LiveGraph implements TabAPI {
     void startRecording() {
         // Ensure table is empty
         dataTable = new Table();
+        obstacles = new Table();
 
         // Add columns to the table
-        while(dataTable.getColumnCount() < dataColumns.length) dataTable.addColumn(dataColumns[dataTable.getColumnCount()]);
+        dataTable.addColumn("X");
+        dataTable.addColumn("Y");
+        dataTable.addColumn("Heading");
+        obstacles.addColumn("Type");
+        obstacles.addColumn("X");
+        obstacles.addColumn("Y");
 
-        recordCounter = 0;
         recordData = true;
-        redrawUI = true;
+        redrawContent = true;
     }
 
-    void stopRecording(){
+    void saveRecording(){
         recordData = false;
         saveTable(dataTable, outputfile, "csv");
-        redrawUI = true;
+        startRecording();
     }
 
 
@@ -111,16 +150,10 @@ class LiveGraph implements TabAPI {
      * Parse data from port and plot on graph
      **********************************/
     void parsePortData(String inputData){
-        if (charIsNum(inputData.charAt(0))) {
+        // New XYT coordinates
+        if (inputData.charAt(0) == '%') {
+            inputData = inputData.substring(1);
             String[] dataArray = split(inputData,',');
-            
-            // If data column does not exist, add it to the list
-            while(dataColumns.length < dataArray.length){
-                dataColumns = append(dataColumns, "Untitled" + dataColumns.length);
-                dataPoints = append(dataPoints, 0);
-                dataTable.addColumn("Untitled" + dataColumns.length);
-                redrawUI = true;
-            }
     
             // --- Data Recording ---
             if(recordData) {
@@ -134,36 +167,29 @@ class LiveGraph implements TabAPI {
                         print(e);
                     }
                 }
-                // Auto-save recording at set intervals to prevent loss of data
-                recordCounter++;
-                if(recordCounter >= autoSave * xRate){
-                    recordCounter = 0;
-                    saveTable(dataTable, outputfile, "csv");
-                }
             }
+
+            drawNewData = true;
+
+        // New Obstacle or object of interest
+        } else if (inputData.charAt(0) == '$') {
+            inputData = inputData.substring(1);
+            String[] dataArray = split(inputData,',');
     
-            // -- Data Graphing ---
-            // Go through each data column, and try to parse and plot it
-            for(int i = 0; i < dataArray.length; i++){
-                try {
-                    dataPoints[i] = Float.parseFloat(dataArray[i]);
-
-                    // If data exceeds graph size, resize the graph
-                    if (autoAxis) {
-                        if (dataPoints[i] < graph.getMinMax(2)) {
-                          graph.setMinMax(decrement(dataPoints[i],false), 2);
-                          redrawContent = true;
-                        }
-                        if (dataPoints[i] > graph.getMinMax(3)) {
-                          graph.setMinMax(increment(dataPoints[i]), 3);
-                          redrawContent = true;
-                        }
+            // --- Data Recording ---
+            if(recordData) {
+                TableRow newRow = obstacles.addRow();
+                // Go through each data column, and try to parse and add to file
+                for(int i = 0; i < dataArray.length; i++){
+                    try {
+                        float dataPoint = Float.parseFloat(dataArray[i]);
+                        newRow.setFloat(i, dataPoint);
+                    } catch (Exception e) {
+                        print(e);
                     }
-
-                } catch (Exception e) {
-                    print(e);
                 }
             }
+
             drawNewData = true;
         }
     }
@@ -200,14 +226,14 @@ class LiveGraph implements TabAPI {
         // Save to File
         drawHeading("Save to File", iL, sT + (uH * 4.5), iW, tH);
         drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-        if(recordData) drawButton("Stop Recording", c_red, iL, sT + (uH * 6.5), iW, iH, tH);
-        else drawButton("Start Recording", c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
+        if(outputfile != "" && outputfile != "No File Set") drawButton("Save & Reset Map", c_red, iL, sT + (uH * 6.5), iW, iH, tH);
+        else drawButton("Reset Map", c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
 
         // Input Data Columns
         drawHeading("Graph Scale", iL, sT + (uH * 8), iW, tH);
         textAlign(LEFT, CENTER);
-        drawDatabox("xAxis: " + str(graph.getMinMax(1)), iL, sT + (uH * 9), iW - (40 * uimult), iH, tH);
-        drawDatabox("yAxis: " + str(graph.getMinMax(3)), iL, sT + (uH * 10), iW - (40 * uimult), iH, tH);
+        drawDatabox("xAxis: " + str(graph.getXscale()), iL, sT + (uH * 9), iW - (40 * uimult), iH, tH);
+        drawDatabox("yAxis: " + str(graph.getYscale()), iL, sT + (uH * 10), iW - (40 * uimult), iH, tH);
 
         // +- Buttons
         drawButton("-", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 9), 20 * uimult, iH, tH);
@@ -220,25 +246,29 @@ class LiveGraph implements TabAPI {
 
         // Input Data Columns
         drawHeading("Data Format", iL, sT + (uH * 11.5), iW, tH);
-        drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 12.5), iW, iH, tH);
-        drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
+        //drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 12.5), iW, iH, tH);
+        //drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 
-        float tHnow = 14.5;
+        float tHnow = 12.5;
 
         // List of Data Columns
         for(int i = 0; i < dataColumns.length; i++){
             // Column name
-            drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
+            drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (20 * uimult), iH, tH);
 
             // Remove column button
-            drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+            //drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
             // Swap column with one being listed above button
-            color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
-            drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+            //color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
+            //drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-            fill(c_grey);
-            rect(iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+            // Hide or Show data series
+            color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
+            drawButton("", buttonColor, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+
+            //fill(c_grey);
+            //rect(iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
             tHnow++;
         }
 
@@ -330,9 +360,9 @@ class LiveGraph implements TabAPI {
         // Start recording data and saving it to a file
         else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
             if(recordData){
-                stopRecording();
-            } else if(outputfile != "" && outputfile != "No File Set"){
                 startRecording();
+            } else if(outputfile != "" && outputfile != "No File Set"){
+                saveRecording();
             } else {
                 alertHeading = "Error - Please set an output file path";
                 redrawAlert = true;
@@ -343,15 +373,13 @@ class LiveGraph implements TabAPI {
         else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
             // Decrease x-Axis scale
             if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-                //graph.changeGraphDiv(-1, 0);
-                graph.setMinMax(decrement(graph.getMinMax(1),true), 1);
+                graph.changeGraphDiv(graph.getXscale()-1, graph.getYscale());
                 redrawContent = redrawUI = true;
             }
 
             // Increase x-Axis scale
             else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-                //graph.changeGraphDiv(1, 0);
-                graph.setMinMax(increment(graph.getMinMax(1)), 1);
+                graph.changeGraphDiv(graph.getXscale()+1, graph.getYscale());
                 redrawContent = redrawUI = true;
             }
         }
@@ -359,77 +387,14 @@ class LiveGraph implements TabAPI {
         else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
             // Decrease y-Axis scale
             if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-                //graph.changeGraphDiv(0, -1);
-                graph.setMinMax(decrement(graph.getMinMax(3),true), 3);
+                graph.changeGraphDiv(graph.getXscale(), graph.getYscale()-1);
                 redrawContent = redrawUI = true;
             }
 
             // Increase y-Axis scale
             else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-                //graph.changeGraphDiv(0, 1);
-                graph.setMinMax(increment(graph.getMinMax(3)), 3);
+                graph.changeGraphDiv(graph.getXscale(), graph.getYscale()+1);
                 redrawContent = redrawUI = true;
-            }
-        }
-
-        // Change the input data rate
-        else if ((mouseY > sT + (uH * 12.5)) && (mouseY < sT + (uH * 12.5) + iH)){
-            final String newrate = showInputDialog("Set new data rate:");
-            if (newrate != null){
-                try {
-                    int newXrate = Integer.parseInt(newrate);
-                    xRate = newXrate;
-                    if (newXrate < 60) graph.setXrate(newXrate);
-                    else graph.setXrate(60);
-                    redrawUI = true;
-                } catch (Exception e) {}
-            }
-        }
-
-        // Add a new input data column
-        else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
-            final String colname = showInputDialog("Column Name:");
-            if (colname != null){
-                dataColumns = append(dataColumns, colname);
-                redrawUI = true;
-            }
-        }
-        
-        else {
-            float tHnow = 14.5;
-
-            // List of Data Columns
-            for(int i = 0; i < dataColumns.length; i++){
-
-                if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
-
-                    // Remove column
-                    if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-                        dataColumns = remove(dataColumns, i);
-                        redrawUI = true;
-                    }
-
-                    // Move column up one space
-                    else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-                        if (i - 1 >= 0) {
-                            String temp = dataColumns[i - 1];
-                            dataColumns[i - 1] = dataColumns[i];
-                            dataColumns[i] = temp;
-                        }
-                        redrawUI = true;
-                    }
-
-                    // Change name of column
-                    else {
-                        final String colname = showInputDialog("New Column Name:");
-                        if (colname != null){
-                            dataColumns[i] = colname;
-                            redrawUI = true;
-                        }
-                    }
-                }
-                
-                tHnow++;
             }
         }
     }

@@ -11,14 +11,14 @@ import static javax.swing.JOptionPane.*;
 import processing.serial.*;
 
 // Legacy imports - if no bugs pop up, then remove
-//import java.io.File;
-//import javax.swing.JFrame;
-//import java.awt.Dimension;
-//import processing.awt.PSurfaceAWT.SmoothCanvas;
+import java.io.File;
+import javax.swing.JFrame;
+import java.awt.Dimension;
+import processing.awt.PSurfaceAWT.SmoothCanvas;
 
 
 // -------- UI APPEARANCE SETTINGS ---------------------------------------------
-// UI Scaling Options (eg. 0.8 = smaller, 1.0 = normal, 1.2 = larger)
+// UI Scaling Options (eg. 0.6 = tiny, 1.0 = normal, 1.4 = huge)
 float uimult = 1.0;
 
 // Fonts
@@ -104,10 +104,10 @@ void setup() {
 	size(1000, 700);
 
 	// Remove these if no bugs are found
-	//SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
-	//JFrame jf = (JFrame) sc.getFrame();
-	//Dimension d = new Dimension(500, 500);
-	//jf.setMinimumSize(d);
+	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
+	JFrame jf = (JFrame) sc.getFrame();
+	Dimension d = new Dimension(500, 500);
+	jf.setMinimumSize(d);
 	
 	surface.setResizable(true);
 	background(c_background);
@@ -116,12 +116,13 @@ void setup() {
 	base_font = createFont(programFont, 12*uimult);
 	mono_font = createFont(terminalFont, 12*uimult);
 	
-	int tabWidth = int(width - (sidebarWidth * uimult));
-	int tabTop = int(tabHeight * uimult);
-	int tabBottom = int(height - (bottombarHeight * uimult));
+	int tabWidth = round(width - (sidebarWidth * uimult));
+	int tabTop = round(tabHeight * uimult);
+	int tabBottom = round(height - (bottombarHeight * uimult));
 
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth, tabTop, tabBottom));
+	tabObjects.add(new LiveMap("Live Map", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth, tabTop, tabBottom));
 	
 	delay(20);
@@ -166,7 +167,7 @@ void draw() {
 		lastWidth = width;
 		lastHeight = height;
 		for (TabAPI curTab : tabObjects) {
-			curTab.changeSize(0, int(width - (sidebarWidth * uimult)), int(tabHeight * uimult), int(height - (bottombarHeight * uimult)));
+			curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 		}
 	}
 }
@@ -220,9 +221,9 @@ void drawSidebar () {
 	textSize(12 * uimult);
 
 	// Calculate sizing of sidebar
-	int sT = int(tabHeight * uimult);
-	int sL = int(width - ((sidebarWidth - 1) * uimult));
-	int sW = int((sidebarWidth - 1) * uimult);
+	int sT = round(tabHeight * uimult);
+	int sL = round(width - ((sidebarWidth - 1) * uimult));
+	int sW = round((sidebarWidth - 1) * uimult);
 	int sH = height - sT;
 
 	// Bottom info area
@@ -357,7 +358,7 @@ void mouseWheel(MouseEvent event) {
 	float e = event.getCount();
 	
 	// If mouse is hovering over the content area
-	if ((mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) && (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult)))){
+	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.scrollWheel(e);
 	}

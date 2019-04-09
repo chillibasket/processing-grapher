@@ -11,8 +11,8 @@ class SerialMonitor implements TabAPI {
 	int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
 	int msgB;
 
-	int msgBorder = int(15 * uimult);
-	int msgSize = int((2*(msgBorder) + 30) * uimult);
+	int msgBorder;
+	int msgSize;
 
 	String name;
 	String outputfile;
@@ -39,7 +39,10 @@ class SerialMonitor implements TabAPI {
 		cT = top;
 		cB = bottom;
 
-		msgB = cT + int(msgSize * uimult);
+    msgBorder = round(15 * uimult);
+    msgSize = round(2*(msgBorder) + (30 * uimult));
+  
+		msgB = cT + msgSize;
 		outputfile = "No File Set";
 		recordData = false;
 		recordCounter = 0;
@@ -78,7 +81,7 @@ class SerialMonitor implements TabAPI {
 		textSize(12 * uimult);
 		textFont(base_font);
 		fill(c_terminal_text);
-		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + int(9 * uimult));
+		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + round(9 * uimult));
 		fill(c_background);
 		stroke(c_background);
 		strokeWeight(1 * uimult);
@@ -92,7 +95,7 @@ class SerialMonitor implements TabAPI {
 		fill(c_white);
 		stroke(c_message_text);
 		strokeWeight(1 * uimult);
-		text(msgText, cL + 4*msgBorder + msgBtnSize, cT + msgBorder + int(9 * uimult), cR - 2*msgBorder, msgB - msgBorder);
+		text(msgText, cL + 4*msgBorder + msgBtnSize, cT + msgBorder + round(9 * uimult), cR - 2*msgBorder, msgB - msgBorder);
 
 
 		// Draw the terminal
@@ -106,9 +109,9 @@ class SerialMonitor implements TabAPI {
 	 */
 	void drawNewData() {
 		// Figure out some measurements
-		int border = int(15 * uimult);
-		int padding = int(5 * uimult);
-		int yTextHeight = int(12 * uimult) + padding;
+		int border = round(15 * uimult);
+		int padding = round(5 * uimult);
+		int yTextHeight = round(12 * uimult) + padding;
 		int totalHeight = 0;
 		displayRows = 0;
 
@@ -132,9 +135,9 @@ class SerialMonitor implements TabAPI {
 		rect(cL, msgB, border/2, totalHeight);
 
 		// Figure out size and position of scroll bar indicator
-		int scrollbarSize = int(totalHeight * displayRows / float(serialBuffer.length));
+		int scrollbarSize = round(totalHeight * displayRows / float(serialBuffer.length));
 		if (scrollbarSize < yTextHeight) scrollbarSize = yTextHeight;
-		int scrollbarOffset = int((totalHeight - scrollbarSize) * (1 - (scrollUp / float(serialBuffer.length - displayRows))));
+		int scrollbarOffset = round((totalHeight - scrollbarSize) * (1 - (scrollUp / float(serialBuffer.length - displayRows))));
 		fill(c_terminal_text);
 		rect(cL, msgB + scrollbarOffset, border/2, scrollbarSize);
 
@@ -176,7 +179,7 @@ class SerialMonitor implements TabAPI {
 		cR = newR;
 		cT = newT;
 		cB = newB;
-		msgB = cT + int(msgSize * uimult);
+		msgB = cT + msgSize;
 		drawContent();
 	}
 
@@ -264,11 +267,11 @@ class SerialMonitor implements TabAPI {
 		int sW = width - cR;
 		int sH = height - sT;
 
-		int uH = int(sideItemHeight * uimult);
-		int tH = int((sideItemHeight - 8) * uimult);
-		int iH = int((sideItemHeight - 5) * uimult);
-		int iL = int(sL + (10 * uimult));
-		int iW = int(sW - (20 * uimult));
+		int uH = round(sideItemHeight * uimult);
+		int tH = round((sideItemHeight - 8) * uimult);
+		int iH = round((sideItemHeight - 5) * uimult);
+		int iL = round(sL + (10 * uimult));
+		int iW = round(sW - (20 * uimult));
 
 		// Connect or Disconnect to COM Port
 		drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
@@ -322,10 +325,10 @@ class SerialMonitor implements TabAPI {
 			tHnow++;
 		}
 
-		textAlign(LEFT, CENTER);
+		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_lightgrey);
-		text("Output File: " + outputfile, (5 * uimult), height - (bottombarHeight * uimult), width - sW, (bottombarHeight * uimult) - (5 * uimult));
+		text("Output File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
 	}
 
 
@@ -372,11 +375,11 @@ class SerialMonitor implements TabAPI {
 		int sW = width - cR;
 		int sH = height - sT;
 
-		int uH = int(sideItemHeight * uimult);
-		int tH = int((sideItemHeight - 8) * uimult);
-		int iH = int((sideItemHeight - 5) * uimult);
-		int iL = int(sL + (10 * uimult));
-		int iW = int(sW - (20 * uimult));
+		int uH = round(sideItemHeight * uimult);
+		int tH = round((sideItemHeight - 8) * uimult);
+		int iH = round((sideItemHeight - 5) * uimult);
+		int iL = round(sL + (10 * uimult));
+		int iW = round(sW - (20 * uimult));
 
 		// COM Port Number
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){

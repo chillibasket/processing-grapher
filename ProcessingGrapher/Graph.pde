@@ -23,6 +23,7 @@ class Graph {
     int border;
     boolean redrawGraph;
     boolean gridLines;
+    boolean squareGrid;
 
 
     /**********************************
@@ -46,11 +47,12 @@ class Graph {
         yScale = 40;
         xRate = 60;
 
-        graphMark = int(8 * uimult);
-        border = int(30 * uimult);
+        graphMark = round(8 * uimult);
+        border = round(30 * uimult);
 
         plotType = "linechart";
         redrawGraph = gridLines = true;
+        squareGrid = false;
     }
     
 
@@ -71,9 +73,9 @@ class Graph {
     /**********************************
      * Change number of divisions on axis
      **********************************/
-    void changeGraphDiv(int deltax, int deltay) {
-        xScale += deltax;
-        yScale += deltay;
+    void changeGraphDiv(int newx, int newy) {
+        xScale = newx;
+        yScale = newy;
         for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
         drawGrid();
     }
@@ -93,6 +95,10 @@ class Graph {
 
     void setXrate(int newrate) {
         xRate = newrate;
+    }
+
+    void setSquareGrid(boolean value) {
+        squareGrid = value;
     }
 
     // Change the minimum and maximum bounds of the graph
@@ -158,6 +164,10 @@ class Graph {
         if (dataY > maxY && dataY != 99999999 && dataY != -99999999) dataY = maxY;
         if (dataY < minY && dataY != 99999999 && dataY != -99999999) dataY = minY;
 
+        // Bound the X-axis
+        if (dataX > maxX && dataX != 99999999 && dataX != -99999999) dataX = maxX;
+        if (dataX < minX && dataX != 99999999 && dataX != -99999999) dataX = minX;
+
         // Only plot data if it is within bounds
         if(dataY >= minY && dataY <= maxY && dataY != 99999999) {
 
@@ -211,11 +221,38 @@ class Graph {
         } else lastX[type] = 0;
         lastY[type] = dataY;
 
-        if(x2 >= gR) {
+        if(x2 > gR) {
             if (type == lastX.length - 1) {
               for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
             } else lastX[type] = 0;
             redrawGraph = true;
+        }
+    }
+
+
+    /**********************************
+     * Plot a Rectangle on the Graph
+     **********************************/
+    void plotRectangle(float dataY1, float dataY2, float dataX1, float dataX2, int type) {
+
+        // Only plot data if it is within bounds
+        if (dataY1 >= minY && dataY1 <= maxY && dataY2 >= minY && dataY2 <= maxY) {
+            if (dataX1 >= minX && dataX1 <= maxX && dataX2 >= minX && dataX2 <= maxX) {
+
+                // Get relevant color from list
+                fill(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
+                stroke(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
+                strokeWeight(1 * uimult);
+
+                // Determine x and y coordinates
+                int x1 = round(map(dataX1, minX, maxX, gL, gR));
+                int x2 = round(map(dataX2, minX, maxX, gL, gR));
+                int y1 = round(map(dataY1, minY, maxY, gB, gT));
+                int y2 = round(map(dataY2, minY, maxY, gB, gT));
+                
+                rectMode(CORNERS);
+                rect(x1, y1, x2, y2);
+            }
         }
     }
 
@@ -240,18 +277,18 @@ class Graph {
         int padding = int(4 * uimult);
         int yTextWidth = 0;
         int xTextWidth = 0;
-        int yTextHeight = int(12 * uimult) + padding;
-        int xTextHeight = int(12 * uimult) + padding;
+        int yTextHeight = round(12 * uimult) + padding;
+        int xTextHeight = round(12 * uimult) + padding;
 
         textSize(12 * uimult);
         textFont(base_font);
 
         // Find largest width, and use that as our width value
         for (int i = 1; i < yScale; i++) {
-            if (textWidth(nfs(int(i * yDivUnit * 100) / 100.0,0,0)) + padding > yTextWidth) yTextWidth = int(textWidth(nfs(int(i * yDivUnit * 100) / 100.0,0,0)) + padding);
+            if (textWidth(nfs(round(i * yDivUnit * 100) / 100.0,0,0)) + padding > yTextWidth) yTextWidth = round(textWidth(nfs(round(i * yDivUnit * 100) / 100.0,0,0)) + padding);
         }
         for (int i = 1; i < xScale; i++) {
-            if (textWidth(nfs(int(i * xDivUnit * 100) / 100.0,0,0)) + padding > xTextWidth) xTextWidth = int(textWidth(nfs(int(i * xDivUnit * 100) / 100.0,0,0)) + padding);
+            if (textWidth(nfs(round(i * xDivUnit * 100) / 100.0,0,0)) + padding > xTextWidth) xTextWidth = round(textWidth(nfs(round(i * xDivUnit * 100) / 100.0,0,0)) + padding);
         }
 
         // Calculate graph area bounds
@@ -259,6 +296,11 @@ class Graph {
         gT = cT + border;
         gR = cR - border;
         gB = cB - border - xTextHeight - graphMark;
+
+        if (squareGrid) {
+            if (gR - gL > gB - gT) gR -= ((gR - gL) - (gB - gT));
+            else gB -= ((gB - gT) - (gR - gL));
+        }
 
         // Clear the content area
         rectMode(CORNER);
@@ -289,7 +331,12 @@ class Graph {
             if (currentYpixel >= gT && currentYpixel <= gB) {
                 // Small inbetween mark
                 stroke(c_lightgrey);
-                line(gL - (graphMark * 0.6), currentYpixel, gL - int(1 * uimult), currentYpixel);
+                line(gL - (graphMark * 0.6), currentYpixel, gL - round(1 * uimult), currentYpixel);
+
+                if (squareGrid && gridLines) {
+                    stroke(c_darkgrey);
+                    line(gL, currentYpixel, gR, currentYpixel);
+                }
 
                 // Only show labels if there is enough room on screen
                 for (float j = 1; j <= yScale; j*=2){
@@ -309,7 +356,7 @@ class Graph {
                         // Draw axis labelling
                         stroke(c_lightgrey);
                         text(label, cL + border, currentYpixel - ((yTextHeight + padding) / 2), yTextWidth, yTextHeight);
-                        line(gL - graphMark, currentYpixel, gL - int(1 * uimult), currentYpixel);
+                        line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
                         break;
                     }
                 }
@@ -336,6 +383,11 @@ class Graph {
             stroke(c_lightgrey);
             line(currentXpixel, gB, currentXpixel, gB + (graphMark * 0.6));
 
+            if (squareGrid && gridLines) {
+                stroke(c_darkgrey);
+                line(currentXpixel, gT, currentXpixel, gB);
+            }
+
             // Only show labels if there is enough room on screen
             for (int j = 1; j <= xScale; j*=2){
 
@@ -348,7 +400,7 @@ class Graph {
                     }
 
                     // Limit to 2 decimal places, but only show decimals if needed
-                    String label = nf(int(currentX * 100) / 100.0,0,0);
+                    String label = nf(round(currentX * 100) / 100.0,0,0);
 
                     // Draw axis labelling
                     stroke(c_lightgrey);

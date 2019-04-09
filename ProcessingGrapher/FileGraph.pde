@@ -206,11 +206,11 @@ class FileGraph implements TabAPI {
         int sW = width - cR;
         int sH = height - sT;
 
-        int uH = int(sideItemHeight * uimult);
-        int tH = int((sideItemHeight - 8) * uimult);
-        int iH = int((sideItemHeight - 5) * uimult);
-        int iL = int(sL + (10 * uimult));
-        int iW = int(sW - (20 * uimult));
+        int uH = round(sideItemHeight * uimult);
+        int tH = round((sideItemHeight - 8) * uimult);
+        int iH = round((sideItemHeight - 5) * uimult);
+        int iL = round(sL + (10 * uimult));
+        int iW = round(sW - (20 * uimult));
 
         // Open, close and save files
         drawHeading("Content File", iL, sT + (uH * 0), iW, tH);
@@ -263,10 +263,10 @@ class FileGraph implements TabAPI {
             }
         }
 
-        textAlign(LEFT, CENTER);
+        textAlign(LEFT, TOP);
         textFont(base_font);
         fill(c_lightgrey);
-        text("Input File: " + outputfile, (5 * uimult), height - (bottombarHeight * uimult), width - sW, bottombarHeight - (5 * uimult));
+        text("Input File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
     }
 
     void keyboardInput(char key) {
@@ -301,11 +301,11 @@ class FileGraph implements TabAPI {
         int sW = width - cR;
         int sH = height - sT;
 
-        int uH = int(sideItemHeight * uimult);
-        int tH = int((sideItemHeight - 8) * uimult);
-        int iH = int((sideItemHeight - 5) * uimult);
-        int iL = int(sL + (10 * uimult));
-        int iW = int(sW - (20 * uimult));
+        int uH = round(sideItemHeight * uimult);
+        int tH = round((sideItemHeight - 8) * uimult);
+        int iH = round((sideItemHeight - 5) * uimult);
+        int iL = round(sL + (10 * uimult));
+        int iW = round(sW - (20 * uimult));
 
         // Open data
         if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
