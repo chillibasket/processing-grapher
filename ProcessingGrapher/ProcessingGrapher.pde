@@ -1,7 +1,7 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * PROCESSING GRAPHER
  *
- * Code by: Simon B.
+ * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
  * Date: 	16/03/19
  * * * * * * * * * * * * * * * * * * * * * * */
@@ -103,26 +103,29 @@ boolean alertActive = false;
 void setup() {
 	size(1000, 700);
 
-	// Remove these if no bugs are found
+	// These lines implement a minimum window size
 	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
 	JFrame jf = (JFrame) sc.getFrame();
 	Dimension d = new Dimension(500, 500);
 	jf.setMinimumSize(d);
 	
+	// Set up the canvas
 	surface.setResizable(true);
 	background(c_background);
 	frameRate(60);
 
+	// Initialise the fonts
 	base_font = createFont(programFont, 12*uimult);
 	mono_font = createFont(terminalFont, 12*uimult);
 	
+	// Calculate screen size of the tab content area
 	int tabWidth = round(width - (sidebarWidth * uimult));
 	int tabTop = round(tabHeight * uimult);
 	int tabBottom = round(height - (bottombarHeight * uimult));
 
+	// Define all the tabs here
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth, tabTop, tabBottom));
-	tabObjects.add(new LiveMap("Live Map", 0, tabWidth, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth, tabTop, tabBottom));
 	
 	delay(20);
@@ -355,19 +358,22 @@ void mousePressed(){
  * Mouse Wheel Scroll Handler
  *********************************************/
 void mouseWheel(MouseEvent event) {
-	float e = event.getCount();
-	
-	// If mouse is hovering over the content area
-	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollWheel(e);
-	}
-
-	// If mouse is hovering over the side bar
-	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollWheel(e);
-	}
+  float e = event.getCount();
+  
+  if (abs(e) > 0) {
+  	
+  	// If mouse is hovering over the content area
+  	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
+  		TabAPI curTab = tabObjects.get(currentTab);
+  		curTab.scrollWheel(e);
+  	}
+  
+  	// If mouse is hovering over the side bar
+  	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
+  		TabAPI curTab = tabObjects.get(currentTab);
+  		curTab.scrollWheel(e);
+  	}
+  }
 }
 
 

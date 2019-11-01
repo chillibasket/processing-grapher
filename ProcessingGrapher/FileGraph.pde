@@ -2,7 +2,7 @@
  * FILE GRAPH PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon B.
+ * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
  * * * * * * * * * * * * * * * * * * * * * * */
 

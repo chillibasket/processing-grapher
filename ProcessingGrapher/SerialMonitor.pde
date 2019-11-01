@@ -2,7 +2,7 @@
  * SERIAL MONITOR CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon B.
+ * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -46,7 +46,7 @@ class SerialMonitor implements TabAPI {
 		outputfile = "No File Set";
 		recordData = false;
 		recordCounter = 0;
-		maxBuffer = 1000;
+		maxBuffer = 10000;
 		scrollUp = 0;
 		displayRows = 0;
 	}
@@ -244,12 +244,14 @@ class SerialMonitor implements TabAPI {
 		}
 		
 		// --- Data Buffer ---
-		if (serialBuffer.length >= maxBuffer) {
-			arrayCopy(serialBuffer, 1, serialBuffer, 0, serialBuffer.length - 1);
-			serialBuffer[serialBuffer.length - 1] = inputData;
-		} else {
-			serialBuffer = append(serialBuffer, inputData);
-		}
+    if (inputData.charAt(0) != '%' && inputData.charAt(0) != '$') {
+  		if (serialBuffer.length >= maxBuffer) {
+  			arrayCopy(serialBuffer, 1, serialBuffer, 0, serialBuffer.length - 1);
+  			serialBuffer[serialBuffer.length - 1] = inputData;
+  		} else {
+  			serialBuffer = append(serialBuffer, inputData);
+  		}
+    }
 
 		drawNewData = true;
 	}
