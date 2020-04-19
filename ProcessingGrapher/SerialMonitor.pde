@@ -3,7 +3,7 @@
  * implements TabAPI for Processing Grapher
  *
  * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
+ * Website: wired.chillibasket.com
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class SerialMonitor implements TabAPI {
@@ -26,6 +26,8 @@ class SerialMonitor implements TabAPI {
 	String msgText= "";
 	int maxBuffer;
 	int scrollUp;
+	int cursorPosition;
+	int[] msgTextBounds = {0,0};
 
 
 	/**********************************
@@ -39,9 +41,9 @@ class SerialMonitor implements TabAPI {
 		cT = top;
 		cB = bottom;
 
-    msgBorder = round(15 * uimult);
-    msgSize = round(2*(msgBorder) + (30 * uimult));
-  
+		msgBorder = round(15 * uimult);
+		msgSize = round(2*(msgBorder) + (30 * uimult));
+
 		msgB = cT + msgSize;
 		outputfile = "No File Set";
 		recordData = false;
@@ -49,6 +51,7 @@ class SerialMonitor implements TabAPI {
 		maxBuffer = 10000;
 		scrollUp = 0;
 		displayRows = 0;
+		cursorPosition = 0;
 	}
 
 
@@ -76,10 +79,10 @@ class SerialMonitor implements TabAPI {
 
 		// Message text button
 		String msgBtnText = "Send:";
-		int msgBtnSize = int(textWidth(msgBtnText)); 
-		textAlign(LEFT, TOP);
 		textSize(12 * uimult);
 		textFont(base_font);
+		int msgBtnSize = int(textWidth(msgBtnText)); 
+		textAlign(LEFT, TOP);
 		fill(c_terminal_text);
 		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + round(9 * uimult));
 		fill(c_background);
@@ -87,16 +90,72 @@ class SerialMonitor implements TabAPI {
 		strokeWeight(1 * uimult);
 		line(cL + 3*msgBorder + msgBtnSize, cT + msgBorder, cL + 3*msgBorder + msgBtnSize, msgB - msgBorder);
 
+		// Ensure cursor is within bounds
+		if (cursorPosition < 0) cursorPosition = 0;
+		else if (cursorPosition > msgText.length()) cursorPosition = msgText.length();
+
+		// Figure out where the cursor is and how much of the message to show
+		textSize(12 * uimult);
+		textFont(mono_font);
+		if (textWidth(msgText) < cR -cL - 6*msgBorder - msgBtnSize) {
+			msgTextBounds[0] = 0;
+			msgTextBounds[1] = msgText.length();
+		} else if (cursorPosition > msgTextBounds[1]) {
+			msgTextBounds[0] += (cursorPosition - msgTextBounds[1] - 1);
+			msgTextBounds[1] = cursorPosition;
+			while (textWidth(msgText.substring(msgTextBounds[0], msgTextBounds[1])) > cR - cL - 6*msgBorder - msgBtnSize) {
+				msgTextBounds[0]++;
+			}
+		} else if (cursorPosition < msgTextBounds[0]) {
+			msgTextBounds[1] -= (msgTextBounds[0] - cursorPosition - 1);
+			msgTextBounds[0] = cursorPosition;
+			while (textWidth(msgText.substring(msgTextBounds[0], msgTextBounds[1])) > cR - cL - 6*msgBorder - msgBtnSize) {
+				msgTextBounds[1]--;
+			}
+		} else if (msgTextBounds[1] > msgText.length()) {
+			msgTextBounds[0] -= (msgTextBounds[1] - msgText.length()) - 1;
+			msgTextBounds[1] = msgText.length();
+			while (textWidth(msgText.substring(msgTextBounds[0], msgTextBounds[1])) > cR - cL - 6*msgBorder - msgBtnSize) {
+				msgTextBounds[0]++;
+			}
+		}
+
+		// Validate the bounds
+		if (msgTextBounds[0] < 0) msgTextBounds[0] = 0;
+		if (msgTextBounds[1] < 0) msgTextBounds[1] = 0; 
+
+		// Draw cursor
+		fill(c_terminal_text);
+		stroke(c_terminal_text);
+		rectMode(CORNER);
+		rect(cL + 4*msgBorder + msgBtnSize + textWidth(msgText.substring(msgTextBounds[0], cursorPosition)) + round(1*uimult), cT + msgBorder + round(9 * uimult), round(2*uimult), round(13 * uimult));
+
 		// Message text
 		rectMode(CORNERS);
 		textAlign(LEFT, TOP);
 		textSize(12 * uimult);
-		textFont(base_font);
+		textFont(mono_font);
 		fill(c_white);
 		stroke(c_message_text);
 		strokeWeight(1 * uimult);
-		text(msgText, cL + 4*msgBorder + msgBtnSize, cT + msgBorder + round(9 * uimult), cR - 2*msgBorder, msgB - msgBorder);
+		text(msgText.substring(msgTextBounds[0], msgTextBounds[1]), cL + 4*msgBorder + msgBtnSize, cT + msgBorder + round(9 * uimult), cR - 2*msgBorder, msgB - msgBorder);
 
+		// Draw arrows to indicate if there is any hidden text
+		if (msgTextBounds[0] > 0) {
+			int halfWay = cT + msgBorder + round(15 * uimult);
+			int frontPos = cL + round(3.25*msgBorder) + msgBtnSize;
+			fill(c_terminal_text);
+			stroke(c_terminal_text);
+			triangle(frontPos, halfWay, frontPos + round(4*uimult), halfWay + round(2*uimult), frontPos + round(4*uimult), halfWay - round(2*uimult));
+		}
+
+		if (msgTextBounds[1] < msgText.length()) {
+			int halfWay = cT + msgBorder + round(15 * uimult);
+			int backPos = cR - round(1.25*msgBorder);
+			fill(c_terminal_text);
+			stroke(c_terminal_text);
+			triangle(backPos, halfWay, backPos - round(4*uimult), halfWay + round(2*uimult), backPos - round(4*uimult), halfWay - round(2*uimult));
+		}
 
 		// Draw the terminal
 		drawNewData();
@@ -188,11 +247,13 @@ class SerialMonitor implements TabAPI {
 	 * Change output file location
 	 **********************************/
 	void setOutput(String newoutput) {
-		// Ensure file type is *.csv
-        int dotPos = newoutput.lastIndexOf(".");
-        if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
-        newoutput = newoutput + ".csv";
-		outputfile = newoutput;
+    	if (newoutput != "No File Set") {
+	        // Ensure file type is *.csv
+	        int dotPos = newoutput.lastIndexOf(".");
+	        if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
+	        newoutput = newoutput + ".csv";
+	    }
+        outputfile = newoutput;
 	}
 
 	String getOutput(){
@@ -343,19 +404,71 @@ class SerialMonitor implements TabAPI {
 				msgText = "SENT: " + msgText;
 				serialBuffer = append(serialBuffer, msgText);
 				msgText = "";
+				cursorPosition = 0;
 				redrawContent = true;
 			}
 		} else if (key == BACKSPACE) {
 			if (msgText != "") {
-				if (msgText.length() > 1) {
+				if (cursorPosition < msgText.length() && cursorPosition > 0) {
+					String msg = msgText.substring(0,cursorPosition-1) + msgText.substring(cursorPosition,msgText.length());
+					msgText = msg;
+					cursorPosition--;
+				} else if (cursorPosition >= msgText.length() && msgText.length() > 1) {
 					msgText = msgText.substring(0, msgText.length()-1);
-				} else {
+					cursorPosition--;
+					if (cursorPosition < 0) cursorPosition = 0;
+				} else if (cursorPosition >= msgText.length() && msgText.length() <= 1) {
 					msgText = "";
+					cursorPosition = 0;
 				}
 				redrawContent = true;
 			}
+		} else if (key == DELETE) {
+			if (msgText != "") {
+				if (cursorPosition + 1 < msgText.length() && cursorPosition > 0) {
+					String msg = msgText.substring(0,cursorPosition) + msgText.substring(cursorPosition + 1,msgText.length());
+					msgText = msg;
+				} else if (cursorPosition + 1 == msgText.length() && msgText.length() > 1) {
+					msgText = msgText.substring(0, msgText.length()-1);
+				} else if (cursorPosition==0 && msgText.length() > 1) {
+					msgText = msgText.substring(1, msgText.length());
+				} else if (cursorPosition==0 && msgText.length() <= 1) {
+					msgText = "";
+					cursorPosition = 0;
+				}
+				redrawContent = true;
+			}
+		} else if (keyCode == RIGHT) {
+			if (cursorPosition < msgText.length()) cursorPosition++;
+			else cursorPosition = msgText.length();
+			redrawContent = true;
+		} else if (keyCode == LEFT) {
+			if (cursorPosition > 0) cursorPosition--;
+			else cursorPosition = 0;
+			redrawContent = true;
+		} else if (keyCode == UP) {
+			if (scrollUp < serialBuffer.length - displayRows) scrollUp++;
+			else scrollUp = serialBuffer.length - displayRows;
+			redrawUI = true;
+			drawNewData = true;
+		} else if (keyCode == DOWN) {
+			if (scrollUp > 0) scrollUp--;
+			else scrollUp = 0;
+			redrawUI = true;
+			drawNewData = true;
 		} else if (key != CODED) {
-			msgText += key;
+			if (cursorPosition < msgText.length()) {
+				if (cursorPosition == 0) {
+					msgText = key + msgText;
+				} else {
+					String msg = msgText.substring(0,cursorPosition) + key;
+					msg = msg + msgText.substring(cursorPosition,msgText.length());
+					msgText = msg;
+				}
+			} else {
+				msgText += key;
+			}
+			cursorPosition++;
 			redrawContent = true;
 		}
 	}

@@ -3,7 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date: 	16/03/19
+ * Date: 	19th April 2020
+ * Version: 1.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
 // Swing for input popups
@@ -79,7 +80,6 @@ boolean redrawContent = true;
 boolean drawNewData = false;
 
 // Interaction Booleans
-boolean contentClick = false;
 boolean textInput = false;
 
 // Tab Bar
@@ -251,6 +251,14 @@ void drawSidebar () {
  * Sidebar Drawing Functions
  *********************************************/
 // Draw a sidebar heading
+void drawText(String text, color textcolor, float lS, float tS, float iW, float tH) {
+	textAlign(LEFT, CENTER);
+	textSize(12 * uimult);
+	textFont(base_font);
+	fill(textcolor);
+	text(text, lS, tS, iW, tH);
+}
+
 void drawHeading(String text, float lS, float tS, float iW, float tH){
 	textAlign(CENTER, CENTER);
 	textSize(12 * uimult);
@@ -261,6 +269,10 @@ void drawHeading(String text, float lS, float tS, float iW, float tH){
 
 // Draw a sidebar button
 void drawButton(String text, color boxcolor, float lS, float tS, float iW, float iH, float tH){
+	drawButton(text, c_sidebar_text, boxcolor, lS, tS, iW, iH, tH);
+}
+
+void drawButton(String text, color textcolor, color boxcolor, float lS, float tS, float iW, float iH, float tH){
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
@@ -268,12 +280,16 @@ void drawButton(String text, color boxcolor, float lS, float tS, float iW, float
 	textFont(base_font);
 	fill(boxcolor);
 	rect(lS, tS, iW, iH);
-	fill(c_sidebar_text);
+	fill(textcolor);
 	text(text, lS, tS, iW, tH);
 }
 
 // Draw a sidebar databox
 void drawDatabox(String text, float lS, float tS, float iW, float iH, float tH){
+	drawDatabox(text, c_sidebar_text, lS, tS, iW, iH, tH);
+}
+
+void drawDatabox(String text, color textcolor, float lS, float tS, float iW, float iH, float tH){
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
@@ -283,7 +299,7 @@ void drawDatabox(String text, float lS, float tS, float iW, float iH, float tH){
 	rect(lS, tS, iW, iH);
 	fill(c_sidebar);
 	rect(lS + (1 * uimult), tS + (1 * uimult), iW - (2 * uimult), iH - (2 * uimult));
-	fill(c_sidebar_text);
+	fill(textcolor);
 	text(text, lS, tS, iW, tH);
 }
 
@@ -323,8 +339,7 @@ void mousePressed(){
 	if (!alertActive) {
 
 		// If mouse is hovering over the content area
-		if(contentClick && (mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) && (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult)))){
-			contentClick = false;
+		if((mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) && (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult)))){
 			TabAPI curTab = tabObjects.get(currentTab);
 			curTab.getContentClick(mouseX, mouseY);
 		} else cursor(ARROW);
@@ -523,6 +538,57 @@ float decrement(float number, boolean zero){
 		}
 	}
 	return number;
+}
+
+float ceilToSigFig(float num, int n) {
+	return (float) ceilToSigFig((double) num, n);
+}
+
+double ceilToSigFig(double num, int n) {
+    if(num == 0) {
+        return 0;
+    }
+
+    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+    final int power = n - (int) d;
+
+    final double magnitude = Math.pow(10, power);
+    final long shifted = (long) Math.ceil(num*magnitude);
+    return shifted/magnitude;
+}
+
+float floorToSigFig(float num, int n) {
+	return (float) floorToSigFig((double) num, n);
+}
+
+double floorToSigFig(double num, int n) {
+    if(num == 0) {
+        return 0;
+    }
+
+    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+    final int power = n - (int) d;
+
+    final double magnitude = Math.pow(10, power);
+    final long shifted = (long) Math.floor(num*magnitude);
+    return shifted/magnitude;
+}
+
+float roundToSigFig(float num, int n) {
+	return (float) roundToSigFig((double) num, n);
+}
+
+double roundToSigFig(double num, int n) {
+    if(num == 0) {
+        return 0;
+    }
+
+    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+    final int power = n - (int) d;
+
+    final double magnitude = Math.pow(10, power);
+    final long shifted = Math.round(num*magnitude);
+    return shifted/magnitude;
 }
 
 // Remove an element from a string array

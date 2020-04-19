@@ -16,6 +16,7 @@ class Graph {
     int xScale, yScale;
     int xRate;
     String plotType;
+    String plotName;
 
     // Ui variables
     int graphMark;
@@ -24,14 +25,16 @@ class Graph {
     boolean redrawGraph;
     boolean gridLines;
     boolean squareGrid;
+    boolean highlighted;
 
 
     /**********************************
      * Constructor
      **********************************/
-    Graph(int left, int right, int top, int bottom, float minx, float maxx, float miny, float maxy) {
+    Graph(int left, int right, int top, int bottom, float minx, float maxx, float miny, float maxy, String name) {
 
         //uimult = 1;
+        plotName = name;
 
         cL = gL = left;
         cR = gR = right;
@@ -53,6 +56,7 @@ class Graph {
         plotType = "linechart";
         redrawGraph = gridLines = true;
         squareGrid = false;
+        highlighted = false;
     }
     
 
@@ -109,7 +113,7 @@ class Graph {
             case 2: minY = newval; break;
             case 3: maxY = newval; break;
         }
-        for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
+        //for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
         for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
     }
 
@@ -136,6 +140,45 @@ class Graph {
         return round(map(xCoord, gL, gR, minX, maxX) / xRate);
     }
 
+    void setGraphType(String type) {
+        if (type == "linechart") plotType = "linechart";
+        else if (type == "dotchart") plotType = "dotchart";
+        else if (type == "barchart") plotType = "barchart";
+    }
+
+    String getGraphType() {
+        return plotType;
+    }
+
+    void setHighlight(boolean state, boolean update) {
+        highlighted = state;
+
+        if (update) {
+            // Clear the content area
+            rectMode(CORNER);
+            noStroke();
+            fill(c_background);
+            rect(cL + int(9 * uimult), cT + int(9 * uimult), textWidth(plotName) + int(2 * uimult), int(16 * uimult));
+
+            textAlign(LEFT, TOP);
+            fill(c_lightgrey);
+            if (highlighted) fill(c_red);
+            text(plotName, cL + int(10 * uimult), cT + int(10 * uimult));
+        }
+    }
+
+    boolean onGraph(int xCoord, int yCoord) {
+        if (xCoord >= gL && xCoord <= gR && yCoord >= gT && yCoord <= gB) return true;
+        else return false;
+    }
+
+    float xGraphPos(int xCoord) {
+        return map(xCoord, gL, gR, 0, 1);
+    }
+
+    float yGraphPos(int yCoord) {
+        return map(yCoord, gT, gB, 0, 1);
+    }
 
     /**********************************
      * Plot Data onto Graph
@@ -203,7 +246,7 @@ class Graph {
                 // linechart
                 default: 
                     // Only draw line if last value is set
-                    if(abs(lastY[type]) != 99999999){
+                    if(lastY[type] != 99999999){
                         // Determine x and y coordinates
                         x1 = round(map(lastX[type], minX, maxX, gL, gR));
                         if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
@@ -212,8 +255,9 @@ class Graph {
                         y2 = round(map(dataY, minY, maxY, gB, gT));
                         line(x1, y1, x2, y2);
                     }
+                    break;
             }
-        } 
+        }
 
         if(int(lastY[type]) != -99999999) { 
             if(dataX == -99999999) lastX[type] = lastX[type] + xStep;
@@ -261,17 +305,17 @@ class Graph {
      * Draw Grid
      **********************************/
     void drawGrid() {
-      redrawGraph = false;
+        redrawGraph = false;
 
         // X and Y axis zero
         float yZero = 0, xZero = 0;
-        if((minY > 0) || (maxY < 0)) yZero = minY;
+        if ((minY > 0) || (maxY < 0)) yZero = minY;
 
         int yOffset = round(map(yZero, minY, maxY, 0, yScale));
         int xOffset = round(map(xZero, minX, maxX, 0, xScale));
 
         float yDivUnit = abs((maxY - yZero) / float(yScale - yOffset));
-        float xDivUnit = abs((maxX - minX) / float(xScale - xOffset));
+        float xDivUnit = abs((maxX - minX) / float(xScale));
 
         // Text width and height
         int padding = int(4 * uimult);
@@ -309,12 +353,25 @@ class Graph {
         rect(cL, cT, cR - cL, cB - cT);
 
         // Setup drawing parameters
-        stroke(c_lightgrey);
         strokeWeight(1 * uimult);
         fill(c_lightgrey);
         textAlign(RIGHT, CENTER);
         textFont(base_font);
 
+        // Add border and graph title
+        stroke(c_darkgrey);
+        if (cT > round((tabHeight + 1) * uimult)) line(cL, cT, cR, cT);
+        if (cL > 1) line(cL, cT, cL, cB);
+        line(cL, cB, cR, cB);
+        line(cR, cT, cR, cB);
+        stroke(c_lightgrey);
+
+        textAlign(LEFT, TOP);
+        if (highlighted) fill(c_red);
+        text(plotName, cL + int(10 * uimult), cT + int(10 * uimult));
+        fill(c_lightgrey);
+
+        textAlign(RIGHT, CENTER);
 
         // ---------- Y-AXIS ----------
         int labelsHeight = yScale * yTextHeight;
