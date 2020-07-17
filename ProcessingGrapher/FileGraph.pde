@@ -4,6 +4,7 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
+* Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class FileGraph implements TabAPI {
@@ -23,10 +24,15 @@ class FileGraph implements TabAPI {
     float[] zoomCoordOne = {0, 0, 0, 0};
 
 
-
-    /**********************************
+    /**
      * Constructor
-     **********************************/
+     *
+     * @param  setname Name of the tab
+     * @param  left    Tab area left x-coordinate
+     * @param  right   Tab area right x-coordinate
+     * @param  top     Tab area top y-coordinate
+     * @param  bottom  Tab area bottom y-coordinate
+     */
     FileGraph(String setname, int left, int right, int top, int bottom) {
         name = setname;
         
@@ -45,22 +51,42 @@ class FileGraph implements TabAPI {
         labelling = false;
     }
 
+
+    /**
+     * Get the name of the current tab
+     *
+     * @return Tab name
+     */
     String getName() {
         return name;
     }
 
+
+    /**
+     * Redraw all tab content
+     */
     void drawContent() {
         graph.drawGrid();
         plotFileData();
     }
 
+
+    /**
+     * Draw new tab data
+     */
     void drawNewData() {
         // Not being used yet 
     }
 
-    /**********************************
-     * Change content area size
-     **********************************/
+
+    /**
+     * Change tab content area dimensions
+     *
+     * @param  newL New left x-coordinate
+     * @param  newR New right x-coordinate
+     * @param  newT New top y-coordinate
+     * @param  newB new bottom y-coordinate
+     */
     void changeSize(int newL, int newR, int newT, int newB) {
         cL = newL;
         cR = newR;
@@ -72,9 +98,11 @@ class FileGraph implements TabAPI {
     }
 
 
-    /**********************************
-     * Change output file location
-     **********************************/
+    /**
+     * Change CSV data file location
+     *
+     * @param  newoutput Absolute path to the new file location
+     */
     void setOutput(String newoutput) {
         outputfile = newoutput;
         if (outputfile != "No File Set") {
@@ -91,6 +119,10 @@ class FileGraph implements TabAPI {
         redrawContent = true;
     }
 
+
+    /**
+     * Plot CSV data from file onto a graph
+     */
     void plotFileData() {
         if(outputfile != "No File Set" && outputfile != "" && dataTable.getColumnCount() > 0) {
             xData = -1;
@@ -197,10 +229,20 @@ class FileGraph implements TabAPI {
         }
     }
 
+
+    /**
+     * Get the current CSV data file location
+     *
+     * @return Absolute path to the data file
+     */
     String getOutput() {
         return outputfile;
     }
 
+
+    /**
+     * Save any new changes to the current CSV data file
+     */
     void saveData() {
         if(outputfile != "No File Set" && outputfile != "") {
             try {
@@ -215,9 +257,9 @@ class FileGraph implements TabAPI {
     }
 
 
-    /**********************************
-     * Draw Side Bar
-     **********************************/
+    /**
+     * Draw the sidebar menu for the current tab
+     */
     void drawSidebar () {
 
         // Calculate sizing of sidebar
@@ -299,10 +341,23 @@ class FileGraph implements TabAPI {
         text("Input File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
     }
 
+
+    /**
+     * Keyboard input handler function
+     *
+     * @param  key The character of the key that was pressed
+     */
     void keyboardInput(char key) {
         // Not being used yet
     }
 
+
+    /**
+     * Content area mouse click handler function
+     *
+     * @param  xcoord X-coordinate of the mouse click
+     * @param  ycoord Y-coordinate of the mouse click
+     */
     void getContentClick (int xcoord, int ycoord) {
         if (labelling) {
             if(outputfile != "" && outputfile != "No File Set"){
@@ -357,13 +412,23 @@ class FileGraph implements TabAPI {
         else cursor(ARROW);
     }
 
+
+    /**
+     * Scroll wheel handler function
+     *
+     * @param  amount Multiplier/velocity of the latest mousewheel movement
+     */
     void scrollWheel (float amount) {
         // Not being used yet
     }
 
-    /**********************************
-     * Mouse Click on the SideBar
-     **********************************/
+
+    /**
+     * Sidebar mouse click handler function
+     *
+     * @param  xcoord X-coordinate of the mouse click
+     * @param  ycoord Y-coordinate of the mouse click
+     */
     void mclickSBar (int xcoord, int ycoord) {
 
         // Coordinate calculation
@@ -558,7 +623,13 @@ class FileGraph implements TabAPI {
         }
     }
 
+
+    /**
+     * Serial port data handler function
+     *
+     * @param  inputData New data received from the serial port
+     */
     void parsePortData(String inputData) {
-        // Not using serial comms 
+        // Empty as this tab is not using serial comms 
     }
 }

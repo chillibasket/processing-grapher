@@ -3,6 +3,7 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
+ * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class Graph {
@@ -48,7 +49,7 @@ class Graph {
 
         xScale = 40;
         yScale = 40;
-        xRate = 60;
+        xRate = 100;
 
         graphMark = round(8 * uimult);
         border = round(30 * uimult);
@@ -180,10 +181,12 @@ class Graph {
         return map(yCoord, gT, gB, 0, 1);
     }
 
+
     /**********************************
      * Plot Data onto Graph
      **********************************/
     void plotData(float dataY, float dataX, int type) {
+
         // Deal with labels
         /*
         if(type == -1) {
@@ -246,7 +249,7 @@ class Graph {
                 // linechart
                 default: 
                     // Only draw line if last value is set
-                    if(lastY[type] != 99999999){
+                    if(lastY[type] != -99999999){
                         // Determine x and y coordinates
                         x1 = round(map(lastX[type], minX, maxX, gL, gR));
                         if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));

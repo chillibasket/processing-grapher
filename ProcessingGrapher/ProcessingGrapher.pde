@@ -3,8 +3,9 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date: 	19th April 2020
- * Version: 1.1
+ * Date:    17th July 2020
+ * Version: 1.2
+ * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 // Swing for input popups

@@ -4,6 +4,7 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
+ * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class LiveGraph implements TabAPI {
@@ -28,9 +29,15 @@ class LiveGraph implements TabAPI {
     //float[] dataPoints = {0};
 
 
-    /**********************************
+    /**
      * Constructor
-     **********************************/
+     *
+     * @param  setname Name of the tab
+     * @param  left    Tab area left x-coordinate
+     * @param  right   Tab area right x-coordinate
+     * @param  top     Tab area top y-coordinate
+     * @param  bottom  Tab area bottom y-coordinate
+     */
     LiveGraph(String setname, int left, int right, int top, int bottom) {
         name = setname;
         
@@ -57,10 +64,20 @@ class LiveGraph implements TabAPI {
         dataTable = new Table();
     }
 
+
+    /**
+     * Get the name of the current tab
+     *
+     * @return Tab name
+     */
     String getName() {
         return name;
     }
-    
+
+
+    /**
+     * Redraw all tab content
+     */
     void drawContent() {
     	graphA.drawGrid();
     	graphA.resetGraph();
@@ -79,6 +96,9 @@ class LiveGraph implements TabAPI {
     }
 
 
+    /**
+     * Draw new tab data
+     */
     void drawNewData() {
         // If there is content to draw
         if (dataTable.getRowCount() > 0) {
@@ -113,6 +133,12 @@ class LiveGraph implements TabAPI {
     }
     
 
+    /**
+     * Resize graph y-axis if data point is out of bounds
+     *
+     * @param  dataPoint   Y-coordinate of new data point
+     * @param  graphSelect Which if the 4 graphs to check
+     */
     void checkGraphSize(float dataPoint, int graphSelect) {
     	
     	// If data exceeds graph size, resize the graph
@@ -137,9 +163,15 @@ class LiveGraph implements TabAPI {
 	    }
     }
 
-    /**********************************
-     * Change content area size
-     **********************************/
+
+    /**
+     * Change tab content area dimensions
+     *
+     * @param  newL New left x-coordinate
+     * @param  newR New right x-coordinate
+     * @param  newT New top y-coordinate
+     * @param  newB new bottom y-coordinate
+     */
     void changeSize(int newL, int newR, int newT, int newB) {
         cL = newL;
         cR = newR;
@@ -165,9 +197,11 @@ class LiveGraph implements TabAPI {
     }
 
 
-    /**********************************
-     * Change output file location
-     **********************************/
+    /**
+     * Change CSV data file location
+     *
+     * @param  newoutput Absolute path to the new file location
+     */
     void setOutput(String newoutput) {
     	if (newoutput != "No File Set") {
 	        // Ensure file type is *.csv
@@ -178,10 +212,20 @@ class LiveGraph implements TabAPI {
         outputfile = newoutput;
     }
 
+
+    /**
+     * Get the current CSV data file location
+     *
+     * @return Absolute path to the data file
+     */
     String getOutput(){
         return outputfile;
     }
 
+
+    /** 
+     * Start recording new serial data points to file
+     */
     void startRecording() {
         // Ensure table is empty
         dataTable = new Table();
@@ -195,6 +239,10 @@ class LiveGraph implements TabAPI {
         redrawUI = true;
     }
 
+
+    /**
+     * Stop recording data points to file
+     */
     void stopRecording(){
         recordData = false;
         try {
@@ -209,10 +257,14 @@ class LiveGraph implements TabAPI {
     }
 
 
-    /**********************************
-     * Parse data from port and plot on graph
-     **********************************/
+    /**
+     * Parse new data points received from serial port
+     *
+     * @param  inputData String containing data points separated by commas
+     */
     void parsePortData(String inputData){
+
+        // Check that the starts with a number
         if (charIsNum(inputData.charAt(0)) || charIsNum(inputData.charAt(1))) {
             String[] dataArray = split(inputData,',');
             
@@ -264,11 +316,27 @@ class LiveGraph implements TabAPI {
     }
 
 
-    /**********************************
-     * Draw Side Bar
-     **********************************/
+    /**
+     * Draw the sidebar menu for the current tab
+     */
     void drawSidebar () {
 
+        // Check if serial port has recently been disconnected
+        if (!serialConnected && dataColumns.length > 0) {
+            // Stop recording any data
+            if (recordData) stopRecording();
+
+            // Reset the signal list
+            dataTable.clearRows();
+            while (dataColumns.length > 0) {
+                dataColumns = shorten(dataColumns);
+                graphAssignment = shorten(graphAssignment);
+            }
+            while (dataTable.getColumnCount() > 0) dataTable.removeColumn(0);
+            drawFrom = 0;
+            redrawContent = true;
+        }
+        
         // Calculate sizing of sidebar
         // Do this here so commands below are simplified
         int sT = cT;
@@ -381,6 +449,11 @@ class LiveGraph implements TabAPI {
     }
 
 
+    /**
+     * Keyboard input handler function
+     *
+     * @param  key The character of the key that was pressed
+     */
     void keyboardInput(char key) {
         if (key == 's' && serialConnected) {
             final String message = showInputDialog("Serial Message:");
@@ -390,6 +463,13 @@ class LiveGraph implements TabAPI {
         }
     }
 
+
+    /**
+     * Content area mouse click handler function
+     *
+     * @param  xcoord X-coordinate of the mouse click
+     * @param  ycoord Y-coordinate of the mouse click
+     */
     void getContentClick (int xcoord, int ycoord) {
         if ((graphMode == 1 || ycoord <= (cT + cB) / 2) && (graphMode < 3 || xcoord <= (cL + cR) / 2)) {
         	selectedGraph = 1;
@@ -421,14 +501,24 @@ class LiveGraph implements TabAPI {
         	graphD.setHighlight(true, true);
 		}
     }
-    
+
+
+    /**
+     * Scroll wheel handler function
+     *
+     * @param  amount Multiplier/velocity of the latest mousewheel movement
+     */
     void scrollWheel (float amount) {
         // Not being used yet
     }
 
-    /**********************************
-     * Mouse Click on the SideBar
-     **********************************/
+
+    /**
+     * Sidebar mouse click handler function
+     *
+     * @param  xcoord X-coordinate of the mouse click
+     * @param  ycoord Y-coordinate of the mouse click
+     */
     void mclickSBar (int xcoord, int ycoord) {
 
         // Coordinate calculation
@@ -476,8 +566,10 @@ class LiveGraph implements TabAPI {
             } 
         }
 
-        // Connect to COM port
+        // Connect or disconnect COM port
         else if ((mouseY > sT + (uH * 3)) && (mouseY < sT + (uH * 3) + iH)){
+
+            // Connect or disconnect from the port
             setupSerial();
         }
 

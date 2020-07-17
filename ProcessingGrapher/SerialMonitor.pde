@@ -3,7 +3,8 @@
  * implements TabAPI for Processing Grapher
  *
  * Code by: Simon Bluett
- * Website: wired.chillibasket.com
+ * Email:   hello@chillibasket.com
+ * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class SerialMonitor implements TabAPI {
