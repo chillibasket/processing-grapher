@@ -22,18 +22,47 @@ class SerialMonitor implements TabAPI {
 	int recordCounter;
 	int autoSave;
 	int displayRows;
-	String[] serialBuffer = {"--- PROCESSING SERIAL MONITOR ---"};
-	String[] tagColumns = {"SENT:"};
+	String[] tagColumns = {"SENT:","[Info]"};
 	String msgText= "";
 	int maxBuffer;
 	int scrollUp;
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 
+	String[] serialBuffer = {"--- PROCESSING SERIAL MONITOR ---",
+	                         "",
+	                         "[Info] Connecting to a Serial Device",
+	                         "1. In the right sidebar, select the COM port",
+	                         "2. Set the correct baud rate for the communication",
+	                         "3. Click the 'Connect' button to begin communication",
+	                         "",
+	                         "[Info] Using the Serial Monitor",
+	                         "1. To send a message, start typing; press the enter key to send",
+	                         "2. Scroll using the scroll wheel, up/down arrow and page up/down keys",
+	                         "3. Press 'Clear Terminal' to remove all serial monitor messages",
+	                         "",
+	                         "[Info] Recording Serial Communication",
+	                         "1. Click 'Set Output File' to set the save file location",
+	                         "2. Press 'Start Recording' button to initiate the recording",
+	                         "3. Press 'Stop Recording' to stop and save the recording",
+	                         "",
+	                         "[Info] Adding Visual Colour Tags",
+	                         "Tags can be used to highlight lines containing specific text",
+	                         "1. Click 'Add New Tag' and type the text to be detected",
+	                         "2. Now any line containing this text will change colour",
+	                         "3. In the right sidebar, Tags can be deleted and modified",
+	                         ""};
 
-	/**********************************
+
+	/**
 	 * Constructor
-	 **********************************/
+	 *
+	 * @param  setname Name of the tab
+	 * @param  left    Tab area left x-coordinate
+	 * @param  right   Tab area right x-coordinate
+	 * @param  top     Tab area top y-coordinate
+	 * @param  bottom  Tab area bottom y-coordinate
+	 */
 	SerialMonitor(String setname, int left, int right, int top, int bottom) {
 		name = setname;
 		
@@ -56,18 +85,18 @@ class SerialMonitor implements TabAPI {
 	}
 
 
-	/**********************************
-	 * Func   String getName()
-	 * Retu   The name of the current object instance
+	/**
+	 * Get the name of the current tab
+	 *
+	 * @return Tab name
 	 */
 	String getName() {
 		return name;
 	}
 
 
-	/**********************************
-	 * Func   void drawContent()
-	 * Desc   Draw the content area
+	/**
+	 * Redraw all tab content
 	 */
 	void drawContent() {
 		// Draw the message box
@@ -163,9 +192,8 @@ class SerialMonitor implements TabAPI {
 	}
 
 
-	/**********************************
-	 * Func   void drawNewData()
-	 * Desc   Draw the serial terminal content
+	/**
+	 * Draw new tab data
 	 */
 	void drawNewData() {
 		// Figure out some measurements
@@ -222,8 +250,19 @@ class SerialMonitor implements TabAPI {
 			}
 			fill(textColor);
 
+			// Check wheter text length exceeds width of the window
+			boolean outOfBounds = false;
+			while (textWidth(textRow) > cR - 2*cL - 5*border) {
+				textRow = textRow.substring(0, textRow.length() - 1);
+				outOfBounds = true;
+			}
+
 			// Print the text
 			text(textRow, cL + 2*border, msgB + totalHeight, cR - cL - 3*border, yTextHeight);
+			if (outOfBounds) {
+				fill(c_terminal_text);
+				text(">>", cR - 2*border, msgB + totalHeight);
+			}
 			totalHeight -= yTextHeight;
 		}
 
@@ -231,36 +270,53 @@ class SerialMonitor implements TabAPI {
 	}
 	
 
-	/**********************************
-	 * Change content area size
-	 **********************************/
+	/**
+	 * Change tab content area dimensions
+	 *
+	 * @param  newL New left x-coordinate
+	 * @param  newR New right x-coordinate
+	 * @param  newT New top y-coordinate
+	 * @param  newB new bottom y-coordinate
+	 */
 	void changeSize(int newL, int newR, int newT, int newB) {
 		cL = newL;
 		cR = newR;
 		cT = newT;
 		cB = newB;
 		msgB = cT + msgSize;
-		drawContent();
+		//drawContent();
 	}
 
 
-	/**********************************
-	 * Change output file location
-	 **********************************/
+	/**
+	 * Change CSV data file location
+	 *
+	 * @param  newoutput Absolute path to the new file location
+	 */
 	void setOutput(String newoutput) {
-    	if (newoutput != "No File Set") {
-	        // Ensure file type is *.csv
-	        int dotPos = newoutput.lastIndexOf(".");
-	        if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
-	        newoutput = newoutput + ".csv";
-	    }
-        outputfile = newoutput;
+		if (newoutput != "No File Set") {
+			// Ensure file type is *.csv
+			int dotPos = newoutput.lastIndexOf(".");
+			if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
+			newoutput = newoutput + ".csv";
+		}
+		outputfile = newoutput;
 	}
 
+
+	/**
+	 * Get the current CSV data file location
+	 *
+	 * @return Absolute path to the data file
+	 */
 	String getOutput(){
 		return outputfile;
 	}
 
+
+	/** 
+	 * Start recording new serial data points to file
+	 */
 	void startRecording() {
 		// Ensure table is empty
 		dataTable = new Table();
@@ -273,6 +329,10 @@ class SerialMonitor implements TabAPI {
 		redrawUI = true;
 	}
 
+
+	/**
+	 * Stop recording data points to file
+	 */
 	void stopRecording(){
 		recordData = false;
 		saveTable(dataTable, outputfile, "csv");
@@ -280,9 +340,11 @@ class SerialMonitor implements TabAPI {
 	}
 
 
-	/**********************************
-	 * Parse data from port and put it into the buffer
-	 **********************************/
+	/**
+	 * Parse new data points received from serial port
+	 *
+	 * @param  inputData String containing data points separated by commas
+	 */
 	void parsePortData(String inputData) {
 	
 		inputData = inputData.replace("\n", "");
@@ -305,23 +367,23 @@ class SerialMonitor implements TabAPI {
 			}
 		}
 		
-		// --- Data Buffer ---
-    if (inputData.charAt(0) != '%' && inputData.charAt(0) != '$') {
-  		if (serialBuffer.length >= maxBuffer) {
-  			arrayCopy(serialBuffer, 1, serialBuffer, 0, serialBuffer.length - 1);
-  			serialBuffer[serialBuffer.length - 1] = inputData;
-  		} else {
-  			serialBuffer = append(serialBuffer, inputData);
-  		}
-    }
+	// --- Data Buffer ---
+	if (inputData.charAt(0) != '%' && inputData.charAt(0) != '$') {
+		if (serialBuffer.length >= maxBuffer) {
+			arrayCopy(serialBuffer, 1, serialBuffer, 0, serialBuffer.length - 1);
+			serialBuffer[serialBuffer.length - 1] = inputData;
+		} else {
+			serialBuffer = append(serialBuffer, inputData);
+		}
+	}
 
 		drawNewData = true;
 	}
 
 
-	/**********************************
-	 * Draw Side Bar
-	 **********************************/
+	/**
+	 * Draw the sidebar menu for the current tab
+	 */
 	void drawSidebar () {
 
 		// Calculate sizing of sidebar
@@ -396,6 +458,11 @@ class SerialMonitor implements TabAPI {
 	}
 
 
+	/**
+	 * Keyboard input handler function
+	 *
+	 * @param  key The character of the key that was pressed
+	 */
 	void keyboardInput(char key) {
 		if (key == ENTER || key == RETURN) {
 			if (msgText != ""){
@@ -457,6 +524,19 @@ class SerialMonitor implements TabAPI {
 			else scrollUp = 0;
 			redrawUI = true;
 			drawNewData = true;
+
+		} else if (keyCode == KeyEvent.VK_PAGE_UP) {
+			if (scrollUp < serialBuffer.length - displayRows) scrollUp += displayRows;
+			if (scrollUp > serialBuffer.length - displayRows) scrollUp = serialBuffer.length - displayRows;
+			redrawUI = true;
+			drawNewData = true;
+
+		} else if (keyCode == KeyEvent.VK_PAGE_DOWN) {
+			if (scrollUp > 0) scrollUp -= displayRows;
+			if (scrollUp < 0) scrollUp = 0;
+			redrawUI = true;
+			drawNewData = true;
+
 		} else if (key != CODED) {
 			if (cursorPosition < msgText.length()) {
 				if (cursorPosition == 0) {
@@ -475,14 +555,23 @@ class SerialMonitor implements TabAPI {
 	}
 
 
+	/**
+	 * Content area mouse click handler function
+	 *
+	 * @param  xcoord X-coordinate of the mouse click
+	 * @param  ycoord Y-coordinate of the mouse click
+	 */
 	void getContentClick (int xcoord, int ycoord) {
 		// Nothing here yet  
 	}
-	
-	
-	/**********************************
-	 * Mouse Click on the SideBar
-	 **********************************/
+
+
+	/**
+	 * Sidebar mouse click handler function
+	 *
+	 * @param  xcoord X-coordinate of the mouse click
+	 * @param  ycoord Y-coordinate of the mouse click
+	 */
 	void mclickSBar (int xcoord, int ycoord) {
 
 		// Coordinate calculation
@@ -630,10 +719,13 @@ class SerialMonitor implements TabAPI {
 			}
 		}
 	}
-	
-	/**********************************
-	 * Mouse Scrolled
-	 **********************************/
+
+
+	/**
+	 * Scroll wheel handler function
+	 *
+	 * @param  amount Multiplier/velocity of the latest mousewheel movement
+	 */
 	void scrollWheel (float amount) {
 		if (amount > 0) {
 			scrollUp -= 5;

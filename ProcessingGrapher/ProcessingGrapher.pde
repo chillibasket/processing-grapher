@@ -3,8 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date:    17th July 2020
- * Version: 1.2
+ * Date:    18th July 2020
+ * Version: 1.3
  * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -12,8 +12,13 @@
 import static javax.swing.JOptionPane.*;
 import processing.serial.*;
 
-// Legacy imports - if no bugs pop up, then remove
+// Advanced key inputs
+import java.awt.event.KeyEvent;
+
+// File dialog
 import java.io.File;
+
+// Resizable windows
 import javax.swing.JFrame;
 import java.awt.Dimension;
 import processing.awt.PSurfaceAWT.SmoothCanvas;
@@ -25,7 +30,7 @@ float uimult = 1.0;
 
 // Fonts
 String programFont = "Lucida Sans";
-String terminalFont = "Monaco";
+String terminalFont = "Inconsolata-SemiBold.ttf";
 
 // Predefined colors
 color c_white = color(255, 255, 255);
@@ -117,7 +122,7 @@ void setup() {
 
 	// Initialise the fonts
 	base_font = createFont(programFont, 12*uimult);
-	mono_font = createFont(terminalFont, 12*uimult);
+	mono_font = createFont(terminalFont, 13*uimult);
 	
 	// Calculate screen size of the tab content area
 	int tabWidth = round(width - (sidebarWidth * uimult));
@@ -377,18 +382,18 @@ void mouseWheel(MouseEvent event) {
   float e = event.getCount();
   
   if (abs(e) > 0) {
-  	
-  	// If mouse is hovering over the content area
-  	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
-  		TabAPI curTab = tabObjects.get(currentTab);
-  		curTab.scrollWheel(e);
-  	}
+	
+	// If mouse is hovering over the content area
+	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.scrollWheel(e);
+	}
   
-  	// If mouse is hovering over the side bar
-  	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
-  		TabAPI curTab = tabObjects.get(currentTab);
-  		curTab.scrollWheel(e);
-  	}
+	// If mouse is hovering over the side bar
+	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.scrollWheel(e);
+	}
   }
 }
 
@@ -546,16 +551,16 @@ float ceilToSigFig(float num, int n) {
 }
 
 double ceilToSigFig(double num, int n) {
-    if(num == 0) {
-        return 0;
-    }
+	if(num == 0) {
+		return 0;
+	}
 
-    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
-    final int power = n - (int) d;
+	final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+	final int power = n - (int) d;
 
-    final double magnitude = Math.pow(10, power);
-    final long shifted = (long) Math.ceil(num*magnitude);
-    return shifted/magnitude;
+	final double magnitude = Math.pow(10, power);
+	final long shifted = (long) Math.ceil(num*magnitude);
+	return shifted/magnitude;
 }
 
 float floorToSigFig(float num, int n) {
@@ -563,16 +568,16 @@ float floorToSigFig(float num, int n) {
 }
 
 double floorToSigFig(double num, int n) {
-    if(num == 0) {
-        return 0;
-    }
+	if(num == 0) {
+		return 0;
+	}
 
-    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
-    final int power = n - (int) d;
+	final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+	final int power = n - (int) d;
 
-    final double magnitude = Math.pow(10, power);
-    final long shifted = (long) Math.floor(num*magnitude);
-    return shifted/magnitude;
+	final double magnitude = Math.pow(10, power);
+	final long shifted = (long) Math.floor(num*magnitude);
+	return shifted/magnitude;
 }
 
 float roundToSigFig(float num, int n) {
@@ -580,16 +585,16 @@ float roundToSigFig(float num, int n) {
 }
 
 double roundToSigFig(double num, int n) {
-    if(num == 0) {
-        return 0;
-    }
+	if(num == 0) {
+		return 0;
+	}
 
-    final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
-    final int power = n - (int) d;
+	final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+	final int power = n - (int) d;
 
-    final double magnitude = Math.pow(10, power);
-    final long shifted = Math.round(num*magnitude);
-    return shifted/magnitude;
+	final double magnitude = Math.pow(10, power);
+	final long shifted = Math.round(num*magnitude);
+	return shifted/magnitude;
 }
 
 // Remove an element from a string array

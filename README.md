@@ -2,6 +2,8 @@
 A Processing-based terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. 
 
 This is still a work in progress, with several features still to be added and bugs to be fixed!
+</br>
+</br>
 
 ## Features
 1. Easy UI scaling and colour adjustments 
@@ -20,11 +22,32 @@ This is still a work in progress, with several features still to be added and bu
 	1. Opens comma delimited files for analysis
 	1. Apply different colours and names to each input
 	1. Supports zooming into sections of the waveforms
+</br>
+</br>
 
+![](/Images/SerialMonitor_tab.jpg) 
+</br>
+*Serial monitor tab, showing the communication with an Arduino*
+</br>
+</br>
+
+![](/Images/LiveGraph_tab.jpg)
+</br>
+*Live graph tab, illustrating how real-time data can be plotted on multiple graphs*
+</br>
+</br>
+
+![](/Images/FileGraph_tab.jpg)
+</br>
+*File graph tab, showing how information from a CSV file can be plotted on a graph*
+</br>
+</br>
 
 ## Usage
+1. Download and install the Processing IDE from [https://processing.org/](https://processing.org/).
+1. Clone/download all files in this repository.
 1. Open "ProcessingGrapher.pde" in the Processing editor.
-1. To change the size/scaling of all text and buttons, you can change the "uimult" multiplier on line 23.
+1. To change the size/scaling of all text and buttons, you can change the "uimult" multiplier on line 29.
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
 	1. Go to the "Serial" or "Live Graph" tab of the program
@@ -32,17 +55,29 @@ This is still a work in progress, with several features still to be added and bu
 	1. A pop-up, listing all available ports should appear. Type in the number corresponding to the port you want to connect to
 	1. Press on the "Baud: 115200" button and insert the baud rate of the serial connection
 	1. Finally, click on the "Connect" button to initiate the connection with the Arduino.
+1. To plot real-time data received from the Arduino:
+	1. Make sure that the data consists of numbers being separated by a comma
+	1. For example the message "12,25,16" could be sent using Arduino code:
+	```cpp
+	Serial.print(dataPoint1); Serial.print(",");
+	Serial.print(dataPoint2); Serial.print(",");
+	Serial.println(dataPoint3);
+	```
+</br>
+</br>
 
 ## Changelog
+1. (18th July 2020) Version 1.3
+	1. Added usage instructions which appear in the serial monitor on startup
+	1. Added the "Inconsolata" font which is used in the serial monitor
+	1. Fixed issue where serial messages which are longer than the window width would not appear. Now the visible portion of the text is shown, and a double arrow ">>" icon is used to show that some text is hidden. However, there is not any way to see that text yet, other than resizing the entire window.
+	1. Added support for "Page Up" and "Page Down" keys to quickly scroll through text in the serial monitor.
+1. (17th July 2020) Version 1.2
+	1. Fixed live graph bug which plotted erroneous data when graph y-axis was resized.
+	1. Added code which reset the live graph signal list when serial device is disconnected.
 1. (19th April 2020) Version 1.1
 	1. Added ability to display live serial data on up to four separate graphs.
 	1. Graphs now support the display of linecharts, dotcharts and barcharts.
 	1. Updated zooming options on the "Live Graph" and "File Graph" tabs.
 	1. Fixed some of the bugs in displaying the live graph data.
 	1. Changed method used to plot live serial data, so that the maximum frequency which can be displayed is no longer limited by th frame rate (60Hz).
-
-![](/Images/SerialMonitor_tab.jpg) *Serial monitor tab, showing the communication with an Arduino*
-
-![](/Images/LiveGraph_tab.jpg) *Live graph tab, illustrating how real-time data can be plotted on multiple graphs*
-
-![](/Images/FileGraph_tab.jpg) *File graph tab, showing how information from a CSV file can be plotted on a graph*
