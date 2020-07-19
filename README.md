@@ -5,6 +5,12 @@ This is still a work in progress, with several features still to be added and bu
 </br>
 </br>
 
+![](/Images/SerialMonitor_tab.jpg) 
+</br>
+*Serial monitor tab, showing the communication with an Arduino*
+</br>
+</br>
+
 ## Features
 1. Easy UI scaling and colour adjustments 
 1. Serial terminal monitor
@@ -22,24 +28,6 @@ This is still a work in progress, with several features still to be added and bu
 	1. Opens comma delimited files for analysis
 	1. Apply different colours and names to each input
 	1. Supports zooming into sections of the waveforms
-</br>
-</br>
-
-![](/Images/SerialMonitor_tab.jpg) 
-</br>
-*Serial monitor tab, showing the communication with an Arduino*
-</br>
-</br>
-
-![](/Images/LiveGraph_tab.jpg)
-</br>
-*Live graph tab, illustrating how real-time data can be plotted on multiple graphs*
-</br>
-</br>
-
-![](/Images/FileGraph_tab.jpg)
-</br>
-*File graph tab, showing how information from a CSV file can be plotted on a graph*
 </br>
 </br>
 
@@ -66,7 +54,22 @@ This is still a work in progress, with several features still to be added and bu
 </br>
 </br>
 
+![](/Images/LiveGraph_tab.jpg)
+</br>
+*Live graph tab, illustrating how real-time data can be plotted on multiple graphs*
+</br>
+</br>
+
+![](/Images/FileGraph_tab.jpg)
+</br>
+*File graph tab, showing how information from a CSV file can be plotted on a graph*
+</br>
+</br>
+
 ## Changelog
+1. (19th July 2020) Version 1.4
+	1. Added scrolling support to the right-hand menu bar using the mouse scroll wheel or up/down arrow keys. This solves the issue where menu items could be hidden when the window size is too small.
+	1. Finished updating all code function commenting to a more consistent Doxygen-style format.
 1. (18th July 2020) Version 1.3
 	1. Added usage instructions which appear in the serial monitor on startup
 	1. Added the "Inconsolata" font which is used in the serial monitor

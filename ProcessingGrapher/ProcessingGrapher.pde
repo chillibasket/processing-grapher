@@ -3,8 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date:    18th July 2020
- * Version: 1.3
+ * Date:    19th July 2020
+ * Version: 1.4
  * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -102,8 +102,10 @@ int alertHeight = 150;
 String alertHeading = "";
 boolean alertActive = false;
 
+int tabTop = round(tabHeight * uimult);
 
-/*********************************************
+
+/*****************************************//**
  * Setup
  *********************************************/
 void setup() {
@@ -126,7 +128,6 @@ void setup() {
 	
 	// Calculate screen size of the tab content area
 	int tabWidth = round(width - (sidebarWidth * uimult));
-	int tabTop = round(tabHeight * uimult);
 	int tabBottom = round(height - (bottombarHeight * uimult));
 
 	// Define all the tabs here
@@ -138,7 +139,7 @@ void setup() {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Draw
  *********************************************/
 void draw() {
@@ -182,8 +183,10 @@ void draw() {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Draw the Tabs Top-Bar
+ *
+ * @param  highlight The current active tab
  *********************************************/
 void drawTabs (int highlight) {
 
@@ -218,7 +221,7 @@ void drawTabs (int highlight) {
 }
 
 
-/*********************************************
+/******************************************//**
  * Draw the Side Bar & Bottom Bar
  *********************************************/
 void drawSidebar () {
@@ -253,64 +256,146 @@ void drawSidebar () {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Sidebar Drawing Functions
  *********************************************/
-// Draw a sidebar heading
+
+/**
+ * Draw sidebar text
+ *
+ * @param  text      The text to display
+ * @param  textcolor The colour of the text
+ * @param  lS        Left X-coordinate
+ * @param  tS        Top Y-coordinate
+ * @param  iW        Width of text box area
+ * @param  tH        Height of text box area
+ */
 void drawText(String text, color textcolor, float lS, float tS, float iW, float tH) {
-	textAlign(LEFT, CENTER);
-	textSize(12 * uimult);
-	textFont(base_font);
-	fill(textcolor);
-	text(text, lS, tS, iW, tH);
+	if (tS >= tabTop && tS <= height) {
+		textAlign(LEFT, CENTER);
+		textSize(12 * uimult);
+		textFont(base_font);
+		fill(textcolor);
+		text(text, lS, tS, iW, tH);
+	}
 }
 
+
+/**
+ * Draw sidebar heading text
+ *
+ * @param  text The text to display
+ * @param  lS   Left X-coordinate
+ * @param  tS   Top Y-coordinate
+ * @param  iW   Width of text box area
+ * @param  tH   Height of text box area
+ */
 void drawHeading(String text, float lS, float tS, float iW, float tH){
-	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
-	textFont(base_font);
-	fill(c_sidebar_heading);
-	text(text, lS, tS, iW, tH);
+	if (tS >= tabTop && tS <= height) {
+		textAlign(CENTER, CENTER);
+		textSize(12 * uimult);
+		textFont(base_font);
+		fill(c_sidebar_heading);
+		text(text, lS, tS, iW, tH);
+	}
 }
 
-// Draw a sidebar button
+
+/**
+ * Draw a sidebar button (overload function)
+ *
+ * @see drawButton(String, color, color, float, float, float, float, float)
+ */
 void drawButton(String text, color boxcolor, float lS, float tS, float iW, float iH, float tH){
 	drawButton(text, c_sidebar_text, boxcolor, lS, tS, iW, iH, tH);
 }
 
+
+/**
+ * Draw a sidebar button
+ *
+ * @param  text      The text to display on the button
+ * @param  textcolor The colour of the text
+ * @param  boxcolor  Background fill colour of the button
+ * @param  lS        Top-left X-coordinate of the button
+ * @param  tS        Top-left Y-coordinate of the button
+ * @param  iW        Width of the button
+ * @param  iH        Height of the button
+ * @param  tH        Hieght of the text area on the button
+ */
 void drawButton(String text, color textcolor, color boxcolor, float lS, float tS, float iW, float iH, float tH){
-	rectMode(CORNER);
-	noStroke();
-	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
-	textFont(base_font);
-	fill(boxcolor);
-	rect(lS, tS, iW, iH);
-	fill(textcolor);
-	text(text, lS, tS, iW, tH);
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		noStroke();
+		textAlign(CENTER, CENTER);
+		textSize(12 * uimult);
+		textFont(base_font);
+		fill(boxcolor);
+		rect(lS, tS, iW, iH);
+		fill(textcolor);
+		text(text, lS, tS, iW, tH);
+	}
 }
 
-// Draw a sidebar databox
+
+/**
+ * Draw a sidebar databox (overload function)
+ *
+ * @see drawDatabox(String, color, float, float, float, float, float)
+ */
 void drawDatabox(String text, float lS, float tS, float iW, float iH, float tH){
 	drawDatabox(text, c_sidebar_text, lS, tS, iW, iH, tH);
 }
 
+
+/**
+ * Draw a sidebar databox - this is a button with no fill but just an outline
+ *
+ * @param  text      The text to display on the button
+ * @param  textcolor The colour of the text
+ * @param  lS        Top-left X-coordinate of the button
+ * @param  tS        Top-left Y-coordinate of the button
+ * @param  iW        Width of the button
+ * @param  iH        Height of the button
+ * @param  tH        Hieght of the text area on the button
+ */
 void drawDatabox(String text, color textcolor, float lS, float tS, float iW, float iH, float tH){
-	rectMode(CORNER);
-	noStroke();
-	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
-	textFont(base_font);
-	fill(c_sidebar_button);
-	rect(lS, tS, iW, iH);
-	fill(c_sidebar);
-	rect(lS + (1 * uimult), tS + (1 * uimult), iW - (2 * uimult), iH - (2 * uimult));
-	fill(textcolor);
-	text(text, lS, tS, iW, tH);
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		noStroke();
+		textAlign(CENTER, CENTER);
+		textSize(12 * uimult);
+		textFont(base_font);
+		fill(c_sidebar_button);
+		rect(lS, tS, iW, iH);
+		fill(c_sidebar);
+		rect(lS + (1 * uimult), tS + (1 * uimult), iW - (2 * uimult), iH - (2 * uimult));
+		fill(textcolor);
+		text(text, lS, tS, iW, tH);
+	}
 }
 
 
-/*********************************************
+/**
+ * Draw a simple rectangle on the sidebar
+ *
+ * @param  boxcolor Background fill colour of the rectangle
+ * @param  lS        Top-left X-coordinate of the button
+ * @param  tS        Top-left Y-coordinate of the button
+ * @param  iW        Width of the button
+ * @param  iH        Height of the button
+ */       
+void drawRectangle(color boxcolor, float lS, float tS, float iW, float iH){
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		noStroke();
+		fill(boxcolor);
+		rect(lS, tS, iW, iH);
+	}
+}
+
+
+/*****************************************//**
  * Draw the Alert Box
  *********************************************/
 void drawAlert () {
@@ -337,7 +422,7 @@ void drawAlert () {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Mouse Click Handler
  *********************************************/
 void mousePressed(){ 
@@ -375,8 +460,10 @@ void mousePressed(){
 }
 
 
-/*********************************************
+/*****************************************//**
  * Mouse Wheel Scroll Handler
+ *
+ * @param  event Details of the mouse-scroll event
  *********************************************/
 void mouseWheel(MouseEvent event) {
   float e = event.getCount();
@@ -398,7 +485,7 @@ void mouseWheel(MouseEvent event) {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Keyboard Button Handler
  *********************************************/
 void keyPressed() {
@@ -407,7 +494,7 @@ void keyPressed() {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Setup Serial Communication
  *********************************************/
 void setupSerial () {
@@ -452,8 +539,10 @@ void setupSerial () {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Receive Serial Message Handler
+ *
+ * @param  myPort The selected serial COMs port
  *********************************************/
 void serialEvent (Serial myPort) {
 	try {
@@ -472,8 +561,10 @@ void serialEvent (Serial myPort) {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Send Serial Message
+ *
+ * @param  message The message to be sent
  *********************************************/
 void serialSend (String message) {
 	if (serialConnected) {
@@ -482,8 +573,10 @@ void serialSend (String message) {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Get the File Selected in the Input Dialog
+ *
+ * @param  selection The selected file path
  *********************************************/
 void fileSelected(File selection) {
 
@@ -508,10 +601,11 @@ void fileSelected(File selection) {
 }
 
 
-/*********************************************
+/*****************************************//**
  * Variable Modification Functions
  *********************************************/
 // Increment a number
+/*
 float increment(float number){
 	if (abs(number) >= 10 && abs(number) < 100) {
 		number = round(number + 1);
@@ -525,9 +619,10 @@ float increment(float number){
 		number *= 10;
 	}
 	return number;
-}
+}*/
 
 // Decrement a number
+/*
 float decrement(float number, boolean zero){
 	if (zero && (number < 0)) number = 0;
 	else {
@@ -544,12 +639,26 @@ float decrement(float number, boolean zero){
 		}
 	}
 	return number;
-}
+}*/
 
+
+/**
+ * Ceil number up to 'n' significant figure (overload function)
+ *
+ * @see double ceilToSigFig(double, int)
+ */
 float ceilToSigFig(float num, int n) {
 	return (float) ceilToSigFig((double) num, n);
 }
 
+
+/**
+ * Ceil number up to 'n' significant figure
+ *
+ * @param  num The number to be rounded
+ * @param  n   The number of significant figures to keep
+ * @return The number rounded up to 'n' significant figures
+ */
 double ceilToSigFig(double num, int n) {
 	if(num == 0) {
 		return 0;
@@ -563,10 +672,24 @@ double ceilToSigFig(double num, int n) {
 	return shifted/magnitude;
 }
 
+
+/**
+ * Floor number down to 'n' significant figure (overload function)
+ *
+ * @see double floorToSigFig(double, int)
+ */
 float floorToSigFig(float num, int n) {
 	return (float) floorToSigFig((double) num, n);
 }
 
+
+/**
+ * Floor number down to 'n' significant figure
+ *
+ * @param  num The number to be rounded
+ * @param  n   The number of significant figures to keep
+ * @return The number rounded down to 'n' significant figures
+ */
 double floorToSigFig(double num, int n) {
 	if(num == 0) {
 		return 0;
@@ -580,10 +703,24 @@ double floorToSigFig(double num, int n) {
 	return shifted/magnitude;
 }
 
+
+/**
+ * Round number to 'n' significant figures (overload function)
+ *
+ * @see double roundToSigFig(double, int)
+ */
 float roundToSigFig(float num, int n) {
 	return (float) roundToSigFig((double) num, n);
 }
 
+
+/**
+ * Round number up/down to 'n' significant figure
+ *
+ * @param  num The number to be rounded
+ * @param  n   The number of significant figures to keep
+ * @return The number rounded up/down to 'n' significant figures
+ */
 double roundToSigFig(double num, int n) {
 	if(num == 0) {
 		return 0;
@@ -597,22 +734,38 @@ double roundToSigFig(double num, int n) {
 	return shifted/magnitude;
 }
 
-// Remove an element from a string array
+
+/**
+ * Remove an element from a string array
+ *
+ * @param  a     The String array
+ * @param  index The index of the String to be removed
+ * @return The string with the specified item removed
+ */
 String[] remove(String[] a, int index){
+	// Move the specified item to the end of the array
 	for (int i = index + 1; i < a.length; i++) {
 		a[i-1] = a[i];
 	}
+
+	// Remove the last item from the array
 	return shorten(a);
 }
 
-// Test if a character is a number
+
+/**
+ * Test whether a character is a number/digit
+ *
+ * @param  c The character to be tested
+ * @return True if the character is a number
+ */
 boolean charIsNum(char c) {
 	return 48<=c&&c<=57;
 }
 
 
 
-/******************************************************************************************
+/**************************************************************************************//**
  * Abstracted TAB API Interface
  ******************************************************************************************/
 interface TabAPI {

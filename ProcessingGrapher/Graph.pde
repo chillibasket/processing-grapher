@@ -21,7 +21,6 @@ class Graph {
 
 	// Ui variables
 	int graphMark;
-	//int uimult;
 	int border;
 	boolean redrawGraph;
 	boolean gridLines;
@@ -29,12 +28,21 @@ class Graph {
 	boolean highlighted;
 
 
-	/**********************************
+	/**
 	 * Constructor
-	 **********************************/
+	 *
+	 * @param  left    Graph area left x-coordinate
+	 * @param  right   Graph area right x-coordinate
+	 * @param  top     Graph area top y-coordinate
+	 * @param  bottom  Graph area bottom y-coordinate
+	 * @param  minx    Minimum X-axis value on graph
+	 * @param  maxx    Maximum X-axis value on graph
+	 * @param  miny    Minimum Y-axis value on graph
+	 * @param  maxy    Maximum Y-axis value on graph
+	 * @param  name    Name/title of the graph
+	 */
 	Graph(int left, int right, int top, int bottom, float minx, float maxx, float miny, float maxy, String name) {
 
-		//uimult = 1;
 		plotName = name;
 
 		cL = gL = left;
@@ -61,9 +69,14 @@ class Graph {
 	}
 	
 
-	/**********************************
-	 * Plot Data onto Graph
-	 **********************************/
+	/**
+	 * Change graph content area dimensions
+	 *
+	 * @param  newL New left x-coordinate
+	 * @param  newR New right x-coordinate
+	 * @param  newT New top y-coordinate
+	 * @param  newB new bottom y-coordinate
+	 */
 	void changeSize(int newL, int newR, int newT, int newB) {
 		cL = newL;
 		cR = newR;
@@ -75,9 +88,12 @@ class Graph {
 	}
 
 
-	/**********************************
-	 * Change number of divisions on axis
-	 **********************************/
+	/**
+	 * Change number of divisions on graph scales
+	 *
+	 * @param  newx Number of X-axis divisions
+	 * @param  newy Number of Y-axis divisions
+	 */
 	void changeGraphDiv(int newx, int newy) {
 		xScale = newx;
 		yScale = newy;
@@ -85,28 +101,65 @@ class Graph {
 		drawGrid();
 	}
 
+
+	/**
+	 * Get the number of divisions on graph scales
+	 *
+	 * @return Number of X-axis divisions
+	 */
 	int getXscale() {
 		return xScale;
 	}
 
+
+	/**
+	 * Get the number of divisions on graph scales
+	 *
+	 * @return Number of Y-axis divisions
+	 */
 	int getYscale() {
 		return yScale;
 	}
 
-	// Change rate at which x-axis data is shown
+
+	/**
+	 * Get the data rate relating to Y-axis spacing
+	 * of the live serial data graph
+	 *
+	 * @return Data rate in samples per second
+	 */
 	int getXrate() {
 		return xRate;
 	}
 
+
+	/**
+	 * Set the data rate relating to Y-axis spacing
+	 * of the live serial data graph
+	 *
+	 * @param  newrate Data rate in samples per second
+	 */
 	void setXrate(int newrate) {
 		xRate = newrate;
 	}
 
+
+	/**
+	 * Set the X- and Y- graph axes to the same scale
+	 *
+	 * @param  value True/false to enable equal graph axes
+	 */
 	void setSquareGrid(boolean value) {
 		squareGrid = value;
 	}
 
-	// Change the minimum and maximum bounds of the graph
+
+	/**
+	 * Change the range of the X- or Y- axes 
+	 *
+	 * @param  newval The new minimum or maximum range value
+	 * @param  type   Specify the X- or Y- limit to modify
+	 */
 	void setMinMax(float newval, int type) {
 		switch(type){
 			case 0: minX = newval; break;
@@ -114,10 +167,17 @@ class Graph {
 			case 2: minY = newval; break;
 			case 3: maxY = newval; break;
 		}
-		//for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
+
 		for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
 	}
 
+
+	/**
+	 * Get the current range of the X- or Y- axes 
+	 *
+	 * @param  type Specify the X- or Y- limit to retrieve
+	 * @return The new minimum or maximum range value
+	 */
 	float getMinMax(int type) {
 		switch(type){
 			case 0: return minX;
@@ -128,11 +188,23 @@ class Graph {
 		}
 	}
 
+
+	/**
+	 * Reset graph 
+	 */
 	void resetGraph(){
 		for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
 		for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
 	}
 
+
+	/**
+	 * Draw a X-axis label onto the graph
+	 *
+	 * @param  xCoord The X-coordinate on the screen
+	 * @param  yCoord The Y-coordinate on the screen
+	 * @return The X-axis value of the label position on the graph
+	 */
 	int setXlabel(float xCoord, float yCoord) {
 		if (xCoord < gL || xCoord > gR || yCoord < gT || yCoord > gB) return -1;
 		stroke(c_sidebar);
@@ -141,16 +213,38 @@ class Graph {
 		return round(map(xCoord, gL, gR, minX, maxX) / xRate);
 	}
 
+
+	/**
+	 * Change the graph display type
+	 *
+	 * @param  type The name of the graph type to display
+	 */
 	void setGraphType(String type) {
 		if (type == "linechart") plotType = "linechart";
 		else if (type == "dotchart") plotType = "dotchart";
 		else if (type == "barchart") plotType = "barchart";
 	}
 
+
+	/**
+	 * Get the type of graph which is currently being displayed
+	 *
+	 * @return The name of the graph type being displayed
+	 */
 	String getGraphType() {
 		return plotType;
 	}
 
+
+	/**
+	 * Show that current graph is active
+	 *
+	 * This function changes the colour of the graph name/title text
+	 * to show that it has been selected.
+	 *
+	 * @param  state
+	 * @param  update
+	 */
 	void setHighlight(boolean state, boolean update) {
 		highlighted = state;
 
@@ -168,23 +262,49 @@ class Graph {
 		}
 	}
 
+
+	/**
+	 * Check if a window coordinate is on the graph area
+	 *
+	 * @param  xCoord The window X-coordinate
+	 * @param  yCoord The window Y-coordinate
+	 * @return True if coordinate is within the graph area
+	 */
 	boolean onGraph(int xCoord, int yCoord) {
 		if (xCoord >= gL && xCoord <= gR && yCoord >= gT && yCoord <= gB) return true;
 		else return false;
 	}
 
+
+	/**
+	 * Convert window coordinate into X-axis graph value
+	 *
+	 * @param  xCoord The window X-coordinate
+	 * @return The graph X-axis value at this X-coordinate
+	 */
 	float xGraphPos(int xCoord) {
 		return map(xCoord, gL, gR, 0, 1);
 	}
 
+
+	/**
+	 * Convert window coordinate into Y-axis graph value
+	 *
+	 * @param  yCoord The window Y-coordinate
+	 * @return The graph Y-axis value at this Y-coordinate
+	 */
 	float yGraphPos(int yCoord) {
 		return map(yCoord, gT, gB, 0, 1);
 	}
 
 
-	/**********************************
-	 * Plot Data onto Graph
-	 **********************************/
+	/**
+	 * Plot a new data point on the graph
+	 *
+	 * @param  dataY The Y-axis value of the data
+	 * @param  dataX The X-axis value of the data
+	 * @param  type  The signal ID/number
+	 */
 	void plotData(float dataY, float dataX, int type) {
 
 		// Deal with labels
@@ -277,9 +397,15 @@ class Graph {
 	}
 
 
-	/**********************************
-	 * Plot a Rectangle on the Graph
-	 **********************************/
+	/**
+	 * Plot a rectangle on the graph
+	 *
+	 * @param  dataY1 Y-axis value of top-left point
+	 * @param  dataY2 Y-axis value of bottom-right point
+	 * @param  dataX1 X-axis value of top-left point
+	 * @param  dataX2 X-axis value of bottom-right point
+	 * @param  type   The signal ID/number (this determines the colour)
+	 */
 	void plotRectangle(float dataY1, float dataY2, float dataX1, float dataX2, int type) {
 
 		// Only plot data if it is within bounds
@@ -304,9 +430,9 @@ class Graph {
 	}
 
 
-	/**********************************
-	 * Draw Grid
-	 **********************************/
+	/**
+	 * Draw the grid and axes of the graph
+	 */
 	void drawGrid() {
 		redrawGraph = false;
 

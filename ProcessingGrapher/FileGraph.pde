@@ -12,6 +12,8 @@ class FileGraph implements TabAPI {
 	int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
 	int xData;
 	Graph graph;
+	int menuScroll;
+	int menuHeight;
 
 	String name;
 	String outputfile;
@@ -49,6 +51,8 @@ class FileGraph implements TabAPI {
 		zoomActive = false;
 		setZoomSize = -1;
 		labelling = false;
+		menuScroll = 0;
+		menuHeight = cB - cT - 1; 
 	}
 
 
@@ -274,6 +278,30 @@ class FileGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
+		menuHeight = round((14.5 + dataColumns.length) * uH);
+
+		// Figure out if scrolling of the menu is necessary
+		if (menuHeight > sH) {
+			if (menuScroll == -1) menuScroll = 0;
+			else if (menuScroll > menuHeight - sH) menuScroll = menuHeight - sH;
+
+			// Draw left bar
+			fill(c_darkgrey);
+			rect(width - round(15 * uimult) / 2, sT, round(15 * uimult) / 2, sH);
+
+			// Figure out size and position of scroll bar indicator
+			int scrollbarSize = sH - round(sH * float(menuHeight - sH) / menuHeight);
+			if (scrollbarSize < uH) scrollbarSize = uH;
+			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
+			fill(c_terminal_text);
+			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+
+			sT -= menuScroll;
+			sL -= round(15 * uimult) / 4;
+			iL -= round(15 * uimult) / 4;
+		} else {
+			menuScroll = -1;
+		}
 
 		// Open, close and save files
 		drawHeading("Content File", iL, sT + (uH * 0), iW, tH);
@@ -290,9 +318,8 @@ class FileGraph implements TabAPI {
 		drawButton("Line", (graph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
 		drawButton("Dots", (graph.getGraphType() == "dotchart")? c_red:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
 		drawButton("Bar", (graph.getGraphType() == "barchart")? c_red:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
-		fill(c_grey);
-		rect(iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		rect(iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		// Graph scaling / segmentation
 		drawDatabox(str(graph.getMinMax(0)), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
@@ -305,8 +332,7 @@ class FileGraph implements TabAPI {
 		// Zoom Options
 		drawButton("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
 		drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
-		fill(c_grey);
-		rect(iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
@@ -329,8 +355,7 @@ class FileGraph implements TabAPI {
 				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
 				drawButton("", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-				fill(c_grey);
-				rect(iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+				drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 				tHnow++;
 			}
 		}
@@ -348,7 +373,22 @@ class FileGraph implements TabAPI {
 	 * @param  key The character of the key that was pressed
 	 */
 	void keyboardInput(char key) {
-		// Not being used yet
+		if (keyCode == UP) {
+			// Scroll menu bar
+			if (mouseX >= cR && menuScroll != -1) {
+				menuScroll -= (12 * uimult);
+				if (menuScroll < 0) menuScroll = 0;
+			}
+			redrawUI = true;
+
+		} else if (keyCode == DOWN) {
+			// Scroll menu bar
+			if (mouseX >= cR && menuScroll != -1) {
+				menuScroll += (12 * uimult);
+				if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+			}
+			redrawUI = true;
+		}
 	}
 
 
@@ -419,7 +459,14 @@ class FileGraph implements TabAPI {
 	 * @param  amount Multiplier/velocity of the latest mousewheel movement
 	 */
 	void scrollWheel (float amount) {
-		// Not being used yet
+		// Scroll menu bar
+		if (mouseX >= cR && menuScroll != -1) {
+			menuScroll += (5 * amount * uimult);
+			if (menuScroll < 0) menuScroll = 0;
+			else if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+		}
+
+		redrawUI = true;
 	}
 
 
@@ -433,6 +480,7 @@ class FileGraph implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
+		if (menuScroll > 0) sT -= menuScroll;
 		int sL = cR;
 		int sW = width - cR;
 		int sH = height - sT;

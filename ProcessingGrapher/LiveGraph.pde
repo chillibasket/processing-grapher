@@ -11,6 +11,8 @@ class LiveGraph implements TabAPI {
 
 	int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
 	Graph graphA, graphB, graphC, graphD;
+	int menuScroll;
+	int menuHeight;
 
 	String name;
 	String outputfile;
@@ -61,6 +63,8 @@ class LiveGraph implements TabAPI {
 		drawFrom = 0;
 
 		dataTable = new Table();
+		menuScroll = 0;
+		menuHeight = cB - cT - 1; 
 	}
 
 
@@ -348,6 +352,30 @@ class LiveGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
+		menuHeight = round((15.5 + dataColumns.length + (graphMode * 0.75)) * uH);
+
+		// Figure out if scrolling of the menu is necessary
+		if (menuHeight > sH) {
+			if (menuScroll == -1) menuScroll = 0;
+			else if (menuScroll > menuHeight - sH) menuScroll = menuHeight - sH;
+
+			// Draw left bar
+			fill(c_darkgrey);
+			rect(width - round(15 * uimult) / 2, sT, round(15 * uimult) / 2, sH);
+
+			// Figure out size and position of scroll bar indicator
+			int scrollbarSize = sH - round(sH * float(menuHeight - sH) / menuHeight);
+			if (scrollbarSize < uH) scrollbarSize = uH;
+			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
+			fill(c_terminal_text);
+			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+
+			sT -= menuScroll;
+			sL -= round(15 * uimult) / 4;
+			iL -= round(15 * uimult) / 4;
+		} else {
+			menuScroll = -1;
+		}
 
 		// Connect or Disconnect to COM Port
 		drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
@@ -356,14 +384,12 @@ class LiveGraph implements TabAPI {
 		else if(ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
 		else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
 		drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
-		if (serialConnected) drawButton("Disconnect", c_red, iL, sT + (uH * 3), iW, iH, tH);
-		else drawButton("Connect", c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
+		drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
 		// Save to File
 		drawHeading("Save to File", iL, sT + (uH * 4.5), iW, tH);
 		drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-		if(recordData) drawButton("Stop Recording", c_red, iL, sT + (uH * 6.5), iW, iH, tH);
-		else drawButton("Start Recording", c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
+		drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
 
 		// Graph options
 		Graph currentGraph;
@@ -376,9 +402,8 @@ class LiveGraph implements TabAPI {
 		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL, sT + (uH * 9), iW / 3, iH, tH);
 		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_red:c_sidebar_button, iL + (iW / 3), sT + (uH * 9), iW / 3, iH, tH);
 		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_red:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 9), iW / 3, iH, tH);
-		fill(c_grey);
-		rect(iL + (iW / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		rect(iL + (iW * 2 / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		drawDatabox(str(currentGraph.getMinMax(0)), c_sidebar_button, iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
@@ -405,10 +430,9 @@ class LiveGraph implements TabAPI {
 		drawButton("2", (graphMode == 2)? c_red:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
 		drawButton("3", (graphMode == 3)? c_red:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
 		drawButton("4", (graphMode == 4)? c_red:c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
-		fill(c_grey);
-		rect(iL + iW - (60 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		rect(iL + iW - (40 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		rect(iL + iW - (20 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + iW - (60 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + iW - (40 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		float tHnow = 15.5;
 
@@ -431,8 +455,7 @@ class LiveGraph implements TabAPI {
 					// Down button
 					drawButton((graphAssignment[i] < graphMode)? "▼":"", c_sidebar, buttonColor, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-					fill(c_grey);
-					rect(iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+					drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 					tHnow++;
 					itemCount++;
 				}
@@ -459,6 +482,22 @@ class LiveGraph implements TabAPI {
 			if (message != null){
 				serialSend(message);
 			}
+
+		} else if (keyCode == UP) {
+			// Scroll menu bar
+			if (mouseX >= cR && menuScroll != -1) {
+				menuScroll -= (12 * uimult);
+				if (menuScroll < 0) menuScroll = 0;
+			}
+			redrawUI = true;
+
+		} else if (keyCode == DOWN) {
+			// Scroll menu bar
+			if (mouseX >= cR && menuScroll != -1) {
+				menuScroll += (12 * uimult);
+				if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+			}
+			redrawUI = true;
 		}
 	}
 
@@ -508,7 +547,14 @@ class LiveGraph implements TabAPI {
 	 * @param  amount Multiplier/velocity of the latest mousewheel movement
 	 */
 	void scrollWheel (float amount) {
-		// Not being used yet
+		// Scroll menu bar
+		if (mouseX >= cR && menuScroll != -1) {
+			menuScroll += (5 * amount * uimult);
+			if (menuScroll < 0) menuScroll = 0;
+			else if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+		}
+
+		redrawUI = true;
 	}
 
 
@@ -522,6 +568,7 @@ class LiveGraph implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
+		if (menuScroll > 0) sT -= menuScroll;
 		int sL = cR;
 		int sW = width - cR;
 		int sH = height - sT;
