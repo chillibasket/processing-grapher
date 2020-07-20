@@ -352,7 +352,7 @@ class LiveGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		menuHeight = round((15.5 + dataColumns.length + (graphMode * 0.75)) * uH);
+		menuHeight = round((11 + dataColumns.length + (graphMode * 0.75)) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -378,18 +378,18 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Connect or Disconnect to COM Port
-		drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
-		String[] ports = Serial.list();
-		if(ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
-		else if(ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
-		else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
-		drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
-		drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
+		//drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
+		//String[] ports = Serial.list();
+		//if(ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
+		//else if(ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
+		//else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
+		//drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
+		//drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
 		// Save to File
-		drawHeading("Save to File", iL, sT + (uH * 4.5), iW, tH);
-		drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-		drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
+		drawHeading("Record Graph Data", iL, sT + (uH * 0), iW, tH);
+		drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
+		drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
 
 		// Graph options
 		Graph currentGraph;
@@ -398,43 +398,34 @@ class LiveGraph implements TabAPI {
 		else if (selectedGraph == 4) currentGraph = graphD;
 		else currentGraph = graphA;
 
-		drawHeading("Graph " + selectedGraph + " - Options", iL, sT + (uH * 8), iW, tH);
-		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL, sT + (uH * 9), iW / 3, iH, tH);
-		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_red:c_sidebar_button, iL + (iW / 3), sT + (uH * 9), iW / 3, iH, tH);
-		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_red:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 9), iW / 3, iH, tH);
-		drawRectangle(c_grey, iL + (iW / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawHeading("Graph " + selectedGraph + " - Options",                                     iL,                sT + (uH * 3.5),         iW, tH);
+		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL,                sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_red:c_sidebar_button,  iL + (iW / 3),     sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_red:c_sidebar_button,   iL + (iW * 2 / 3), sT + (uH * 4.5), iW / 3, iH, tH);
+		drawRectangle(c_grey, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.getMinMax(0)), c_sidebar_button, iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(1)), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(2)), iL, sT + (uH * 11), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 11), 12 * uimult, iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(3)), iL + (iW / 2) + (6 * uimult), sT + (uH * 11), (iW / 2) - (6 * uimult), iH, tH);
-
-		// +- Buttons
-		//drawButton("-", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 9), 20 * uimult, iH, tH);
-		//drawButton("-", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		//drawButton("+", c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 9), 20 * uimult, iH, tH);
-		//drawButton("+", c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		//fill(c_grey);
-		//rect(iL + iW - (20 * uimult), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		//rect(iL + iW - (20 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawDatabox(str(currentGraph.getMinMax(0)), c_sidebar_button, iL,                           sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("x",                             c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMinMax(1)),                   iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinMax(2)),                   iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("y",                             c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMinMax(3)),                   iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 
 		// Input Data Columns
-		drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
-		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
+		drawHeading("Data Format", iL, sT + (uH * 8), iW, tH);
+		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 9), iW, iH, tH);
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
-		drawDatabox("Split", c_sidebar_button, iL, sT + (uH * 14.5), iW - (80 * uimult), iH, tH);
-		drawButton("1", (graphMode == 1)? c_red:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
-		drawButton("2", (graphMode == 2)? c_red:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
-		drawButton("3", (graphMode == 3)? c_red:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
-		drawButton("4", (graphMode == 4)? c_red:c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 14.5), 20 * uimult, iH, tH);
-		drawRectangle(c_grey, iL + iW - (60 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + iW - (40 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * 14.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawDatabox("Split", c_sidebar_button, iL, sT + (uH * 10), iW - (80 * uimult), iH, tH);
+		drawButton("1", (graphMode == 1)? c_red:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
+		drawButton("2", (graphMode == 2)? c_red:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
+		drawButton("3", (graphMode == 3)? c_red:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
+		drawButton("4", (graphMode == 4)? c_red:c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
+		drawRectangle(c_grey, iL + iW - (60 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + iW - (40 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		float tHnow = 15.5;
+		float tHnow = 11;
 
 		for (int j = 0; j < graphMode; j++) {
 			drawText("Graph " + (j + 1), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
@@ -580,6 +571,7 @@ class LiveGraph implements TabAPI {
 		int iW = int(sW - (20 * uimult));
 
 		// COM Port Number
+		/*
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			// Make a list of available serial ports and convert into string
 			String dialogOutput = "List of available ports:\n";
@@ -617,16 +609,16 @@ class LiveGraph implements TabAPI {
 
 			// Connect or disconnect from the port
 			setupSerial();
-		}
+		}*/
 
 		// Select output file name and directory
-		else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			outputfile = "";
 			selectInput("Select select a directory and name for output", "fileSelected");
 		}
 		
 		// Start recording data and saving it to a file
-		else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
+		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
 			if(recordData){
 				stopRecording();
 			} else if(outputfile != "" && outputfile != "No File Set"){
@@ -638,7 +630,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Change graph type
-		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
+		else if ((mouseY > sT + (uH * 4.5)) && (mouseY < sT + (uH * 4.5) + iH)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -665,7 +657,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Update X axis scaling
-		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
+		else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -698,7 +690,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Update Y axis scaling
-		else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
+		else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -729,7 +721,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Change the input data rate
-		else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
+		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
 			final String newrate = showInputDialog("Set new data rate:");
 			if (newrate != null){
 				try {
@@ -745,7 +737,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Add a new input data column
-		else if ((mouseY > sT + (uH * 14.5)) && (mouseY < sT + (uH * 14.5) + iH)){
+		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
 			
 			// Graph mode 1
 			if ((mouseX >= iL + iW - (80 * uimult)) && (mouseX < iL + iW - (60 * uimult))) {
@@ -823,7 +815,7 @@ class LiveGraph implements TabAPI {
 		}
 		
 		else {
-			float tHnow = 15.5;
+			float tHnow = 11;
 
 			for (int j = 0; j < graphMode; j++) {
 				tHnow += 0.75;

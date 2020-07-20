@@ -3,8 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date:    19th July 2020
- * Version: 1.4
+ * Date:    20th July 2020
+ * Version: 1.5
  * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -76,7 +76,7 @@ int bottombarHeight = 20;
 // Serial Port Variables
 Serial myPort;
 int portNumber = 0;
-int baudRate = 115200;
+int baudRate = 9600;
 boolean serialConnected = false;
 
 // Drawing Booleans
@@ -121,6 +121,7 @@ void setup() {
 	surface.setResizable(true);
 	background(c_background);
 	frameRate(60);
+
 
 	// Initialise the fonts
 	base_font = createFont(programFont, 12*uimult);
@@ -248,7 +249,7 @@ void drawSidebar () {
 	fill(c_sidebar);
 	rect(sL, sT, sW, sH);
 	fill(c_sidebar_h);
-	rect(width - (sidebarWidth * uimult), sT, 1 * uimult, sH);
+	rect(width - (sidebarWidth * uimult) + 1, sT, 1 * uimult, sH);
 	
 	// Draw sidebar elements specific to the current tab
 	TabAPI curTab = tabObjects.get(currentTab);

@@ -16,6 +16,7 @@ class SerialMonitor implements TabAPI {
 	int msgSize;
 	int menuScroll;
 	int menuHeight;
+	int menuLevel;
 
 	String name;
 	String outputfile;
@@ -31,6 +32,7 @@ class SerialMonitor implements TabAPI {
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 
+	int[] baudRateList = {110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200};
 	String[] serialBuffer = {"--- PROCESSING SERIAL MONITOR ---",
 	                         "",
 	                         "[Info] Connecting to a Serial Device",
@@ -86,6 +88,7 @@ class SerialMonitor implements TabAPI {
 		cursorPosition = 0;
 		menuScroll = 0;
 		menuHeight = cB - cT - 1; 
+		menuLevel = 0;
 	}
 
 
@@ -402,7 +405,12 @@ class SerialMonitor implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		menuHeight = round((12.5 + tagColumns.length) * uH);
+
+		String[] ports = Serial.list();
+
+		if (menuLevel == 0)	menuHeight = round((12.5 + tagColumns.length) * uH);
+		else if (menuLevel == 1) menuHeight = round((2.5 + ports.length) * uH);
+		else if (menuLevel == 2) menuHeight = round((2.5 + baudRateList.length) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -427,53 +435,77 @@ class SerialMonitor implements TabAPI {
 			menuScroll = -1;
 		}
 
-		// Connect or Disconnect to COM Port
-		drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
-		String[] ports = Serial.list();
-		if (ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
-		else if (ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
-		else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
-		drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
-		drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
+		// Root sidebar menu
+		if (menuLevel == 0) {
+			// Connect or Disconnect to COM Port
+			drawHeading("Serial Port", iL, sT + (uH * 0), iW, tH);
+			if (ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
+			else if (ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
+			else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
+			drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
+			drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
-		// Save to File
-		drawHeading("Save to File", iL, sT + (uH * 4.5), iW, tH);
-		drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-		drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
+			// Save to File
+			drawHeading("Record Messages", iL, sT + (uH * 4.5), iW, tH);
+			drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
+			drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
 
-		// Input Data Columns
-		drawHeading("Serial Buffer", iL, sT + (uH * 8), iW, tH);
-		textAlign(LEFT, CENTER);
-		//drawDatabox("Size: " + str(maxBuffer), iL, sT + (uH * 9), iW - (40 * uimult), iH, tH);
-		drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
+			// Input Data Columns
+			drawHeading("Terminal Options", iL, sT + (uH * 8), iW, tH);
+			textAlign(LEFT, CENTER);
+			drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
 
-		// +- Buttons
-		//drawButton("-", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 9), 20 * uimult, iH, tH);
-		//drawButton("+", c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 9), 20 * uimult, iH, tH);
-		//fill(c_grey);
-		//rect(iL + iW - (20 * uimult), sT + (uH * 9) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			// Input Data Columns
+			drawHeading("Colour Tags", iL, sT + (uH * 10.5), iW, tH);
+			//drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 12.5), iW, iH, tH);
+			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 11.5), iW, iH, tH);
 
-		// Input Data Columns
-		drawHeading("Colour Tags", iL, sT + (uH * 10.5), iW, tH);
-		//drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 12.5), iW, iH, tH);
-		drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 11.5), iW, iH, tH);
+			float tHnow = 12.5;
 
-		float tHnow = 12.5;
+			// List of Data Columns
+			for(int i = 0; i < tagColumns.length; i++){
+				// Column name
+				drawDatabox(tagColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
 
-		// List of Data Columns
-		for(int i = 0; i < tagColumns.length; i++){
-			// Column name
-			drawDatabox(tagColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
+				// Remove column button
+				drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-			// Remove column button
-			drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+				// Swap column with one being listed above button
+				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
+				drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-			// Swap column with one being listed above button
-			color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
-			drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+				drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+				tHnow++;
+			}
 
-			drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-			tHnow++;
+		// Serial port select menu
+		} else if (menuLevel == 1) {
+			drawHeading("Select a Port", iL, sT + (uH * 0), iW, tH);
+
+			float tHnow = 1;
+			if (ports.length == 0) {
+				drawText("No devices detected", c_sidebar_text, iL, sT + (uH * tHnow), iW, iH);
+				tHnow += 1;
+			} else {
+				for (int i = 0; i < ports.length; i++) {
+					drawButton(ports[i], c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+					tHnow += 1;
+				}
+			}
+			tHnow += 0.5;
+			drawButton("Cancel", c_red, iL, sT + (uH * tHnow), iW, iH, tH);
+
+		// Baud rate selection menu
+		} else if (menuLevel == 2) {
+			drawHeading("Select Baud Rate", iL, sT + (uH * 0), iW, tH);
+
+			float tHnow = 1;
+			for (int i = 0; i < baudRateList.length; i++) {
+				drawButton(str(baudRateList[i]), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+				tHnow += 1;
+			}
+			tHnow += 0.5;
+			drawButton("Cancel", c_red, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
 
 		// Draw bottom info bar
@@ -628,137 +660,189 @@ class SerialMonitor implements TabAPI {
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
 
-		// COM Port Number
-		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
-			// Make a list of available serial ports and convert into string
-			String dialogOutput = "List of available ports:\n";
-			String[] ports = Serial.list();
-			if(ports.length == 0) dialogOutput += "No ports available!\n";
-			else {
-				for(int i = 0; i < ports.length; i++) dialogOutput += ("[" + i + "]: " + ports[i] + "\n");
-			}
+		String[] ports = Serial.list();
 
-			final String id = showInputDialog(dialogOutput + "\nPlease enter a list number for the port:");
+		// Root menu level
+		if (menuLevel == 0) {
+			// COM Port Number
+			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+				// Make a list of available serial ports and convert into string
 
-			if (id != null){
-				try {
-					portNumber = Integer.parseInt(id);
-					redrawUI = true;
-				} catch (Exception e) {}
-			} 
-		}
-
-		// COM Port Baud Rate
-		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
-
-			final String rate = showInputDialog("Please enter a baud rate:");
-
-			if (rate != null){
-				try {
-					baudRate = Integer.parseInt(rate);
-					redrawUI = true;
-				} catch (Exception e) {}
-			} 
-		}
-
-		// Connect to COM port
-		else if ((mouseY > sT + (uH * 3)) && (mouseY < sT + (uH * 3) + iH)){
-			setupSerial();
-		}
-
-		// Select output file name and directory
-		else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
-			outputfile = "";
-			selectInput("Select select a directory and name for output", "fileSelected");
-		}
-		
-		// Start recording data and saving it to a file
-		else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
-			if(recordData){
-				stopRecording();
-			} else if(outputfile != "" && outputfile != "No File Set"){
-				startRecording();
-			} else {
-				alertHeading = "Error - Please set an output file path";
-				redrawAlert = true;
-			}
-		}
-
-		// Change number of serial buffer
-		/*
-		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
-			// Decrease serial buffer
-			if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-				maxBuffer -= 1;
-				if (maxBuffer < 10) maxBuffer = 10;
+				menuLevel = 1;
+				menuScroll = 0;
 				redrawUI = true;
+
+				/*
+				String dialogOutput = "List of available ports:\n";
+				if(ports.length == 0) dialogOutput += "No ports available!\n";
+				else {
+					for(int i = 0; i < ports.length; i++) dialogOutput += ("[" + i + "]: " + ports[i] + "\n");
+				}
+
+				final String id = showInputDialog(dialogOutput + "\nPlease enter a list number for the port:");
+
+				if (id != null){
+					try {
+						portNumber = Integer.parseInt(id);
+						redrawUI = true;
+					} catch (Exception e) {}
+				}*/
 			}
 
-			// Increase serial buffer
-			else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-				maxBuffer += 1;
+			// COM Port Baud Rate
+			else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
+
+				menuLevel = 2;
+				menuScroll = 0;
 				redrawUI = true;
-			}
-		}*/
+				/*
+				final String rate = showInputDialog("Please enter a baud rate:");
 
-		// Clear the terminal buffer
-		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
-			for (int i = serialBuffer.length - 1; i > 0; i--) {
-				serialBuffer = shorten(serialBuffer);
+				if (rate != null){
+					try {
+						baudRate = Integer.parseInt(rate);
+						redrawUI = true;
+					} catch (Exception e) {}
+				} */
 			}
-			serialBuffer[0] = "--- PROCESSING SERIAL MONITOR ---";
-			scrollUp = 0;
-			drawNewData = true;
-		}
 
-		// Add a new colour tag column
-		else if ((mouseY > sT + (uH * 11.5)) && (mouseY < sT + (uH * 11.5) + iH)){
-			final String colname = showInputDialog("Tag Keyword:");
-			if (colname != null){
-				tagColumns = append(tagColumns, colname);
-				redrawUI = true;
+			// Connect to COM port
+			else if ((mouseY > sT + (uH * 3)) && (mouseY < sT + (uH * 3) + iH)){
+				setupSerial();
+			}
+
+			// Select output file name and directory
+			else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+				outputfile = "";
+				selectInput("Select select a directory and name for output", "fileSelected");
+			}
+			
+			// Start recording data and saving it to a file
+			else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
+				if(recordData){
+					stopRecording();
+				} else if(outputfile != "" && outputfile != "No File Set"){
+					startRecording();
+				} else {
+					alertHeading = "Error - Please set an output file path";
+					redrawAlert = true;
+				}
+			}
+
+			// Clear the terminal buffer
+			else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
+				for (int i = serialBuffer.length - 1; i > 0; i--) {
+					serialBuffer = shorten(serialBuffer);
+				}
+				serialBuffer[0] = "--- PROCESSING SERIAL MONITOR ---";
+				scrollUp = 0;
 				drawNewData = true;
 			}
-		}
-		
-		else {
-			float tHnow = 12.5;
 
-			// List of Data Columns
-			for(int i = 0; i < tagColumns.length; i++){
+			// Add a new colour tag column
+			else if ((mouseY > sT + (uH * 11.5)) && (mouseY < sT + (uH * 11.5) + iH)){
+				final String colname = showInputDialog("Tag Keyword:");
+				if (colname != null){
+					tagColumns = append(tagColumns, colname);
+					redrawUI = true;
+					drawNewData = true;
+				}
+			}
+			
+			else {
+				float tHnow = 12.5;
 
-				if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
+				// List of Data Columns
+				for(int i = 0; i < tagColumns.length; i++){
 
-					// Remove column
-					if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-						tagColumns = remove(tagColumns, i);
-						redrawUI = true;
-						drawNewData = true;
-					}
+					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
 
-					// Move column up one space
-					else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-						if (i - 1 >= 0) {
-							String temp = tagColumns[i - 1];
-							tagColumns[i - 1] = tagColumns[i];
-							tagColumns[i] = temp;
-						}
-						redrawUI = true;
-						drawNewData = true;
-					}
-
-					// Change name of column
-					else {
-						final String colname = showInputDialog("New Tag Keyword:");
-						if (colname != null){
-							tagColumns[i] = colname;
+						// Remove column
+						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+							tagColumns = remove(tagColumns, i);
 							redrawUI = true;
 							drawNewData = true;
 						}
+
+						// Move column up one space
+						else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+							if (i - 1 >= 0) {
+								String temp = tagColumns[i - 1];
+								tagColumns[i - 1] = tagColumns[i];
+								tagColumns[i] = temp;
+							}
+							redrawUI = true;
+							drawNewData = true;
+						}
+
+						// Change name of column
+						else {
+							final String colname = showInputDialog("New Tag Keyword:");
+							if (colname != null){
+								tagColumns[i] = colname;
+								redrawUI = true;
+								drawNewData = true;
+							}
+						}
 					}
+					
+					tHnow++;
 				}
-				
+			}
+
+		// Select COM port
+		} else if (menuLevel == 1) {
+			float tHnow = 1;
+			if (ports.length == 0) tHnow++;
+			else {
+				for (int i = 0; i < ports.length; i++) {
+					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+
+						// If the serial port is already connected to a different port, disconnect it
+						if (serialConnected && portNumber != i) setupSerial();
+
+						portNumber = i;
+						menuLevel = 0;
+						menuScroll = 0;
+						redrawUI = true;
+					}
+					tHnow++;
+				}
+			}
+
+			// Cancel button
+			tHnow += 0.5;
+			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+
+		// Select a baud rate
+		} else if (menuLevel == 2) {
+			float tHnow = 1;
+			for (int i = 0; i < baudRateList.length; i++) {
+				if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+					baudRate = baudRateList[i];
+					menuLevel = 0;
+					menuScroll = 0;
+
+					// If serial is already connected, disconnect and reconnect it at the new rate
+					if (serialConnected) {
+						setupSerial();
+						setupSerial();
+					}
+					redrawUI = true;
+				}
 				tHnow++;
+			}
+
+			// Cancel button
+			tHnow += 0.5;
+			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
 			}
 		}
 	}

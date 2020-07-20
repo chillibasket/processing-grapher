@@ -354,16 +354,18 @@ class Graph {
 					break;
 
 				case "barchart":
-					// Determine x and y coordinates
-					x1 = round(map(lastX[type], minX, maxX, gL, gR));
-					if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
-					else x2 = round(map(dataX, minX, maxX, gL, gR));
-					y1 = round(map(dataY, minY, maxY, gB, gT));
-					if (minY <= 0) y2 = round(map(0, minY, maxY, gB, gT));
-					else y2 = round(map(minY, minY, maxY, gB, gT));
-					
-					rectMode(CORNERS);
-					rect(x1, y1, x2, y2);
+					if(lastY[type] != -99999999){
+						// Determine x and y coordinates
+						x1 = round(map(lastX[type], minX, maxX, gL, gR));
+						if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
+						else x2 = round(map(dataX, minX, maxX, gL, gR));
+						y1 = round(map(dataY, minY, maxY, gB, gT));
+						if (minY <= 0) y2 = round(map(0, minY, maxY, gB, gT));
+						else y2 = round(map(minY, minY, maxY, gB, gT));
+						
+						rectMode(CORNERS);
+						rect(x1, y1, x2, y2);
+					}
 					break;
 
 				// linechart
