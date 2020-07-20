@@ -44,6 +44,7 @@ class SerialMonitor implements TabAPI {
 	                         "1. To send a message, start typing; press the enter key to send",
 	                         "2. Scroll using the scroll wheel, up/down arrow and page up/down keys",
 	                         "3. Press 'Clear Terminal' to remove all serial monitor messages",
+	                         "4. Press CTRL+ or CTRL- to increase or decrease interface size",
 	                         "",
 	                         "[Info] Recording Serial Communication",
 	                         "1. Click 'Set Output File' to set the save file location",
@@ -290,6 +291,9 @@ class SerialMonitor implements TabAPI {
 		cR = newR;
 		cT = newT;
 		cB = newB;
+
+		msgBorder = round(15 * uimult);
+		msgSize = round(2*(msgBorder) + (30 * uimult));
 		msgB = cT + msgSize;
 		//drawContent();
 	}

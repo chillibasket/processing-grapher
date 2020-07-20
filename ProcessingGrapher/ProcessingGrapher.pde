@@ -87,6 +87,7 @@ boolean drawNewData = false;
 
 // Interaction Booleans
 boolean textInput = false;
+boolean controlKey = false;
 
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
@@ -110,6 +111,17 @@ int tabTop = round(tabHeight * uimult);
  *********************************************/
 void setup() {
 	size(1000, 700);
+	background(c_background);
+
+	// Draw a loading sign
+	textAlign(CENTER, CENTER);
+	textSize(18 * uimult);
+	fill(255);
+	text("Loading", 0, 0, width, height);
+	line(0, height/2 - (14 * uimult), width, height/2 - (14 * uimult));
+	line(0, height/2 - (18 * uimult), width, height/2 - (18 * uimult));
+	line(0, height/2 + (22 * uimult), width, height/2 + (22 * uimult));
+	line(0, height/2 + (26 * uimult), width, height/2 + (26 * uimult));
 
 	// These lines implement a minimum window size
 	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
@@ -119,7 +131,6 @@ void setup() {
 	
 	// Set up the canvas
 	surface.setResizable(true);
-	background(c_background);
 	frameRate(60);
 
 
@@ -128,15 +139,40 @@ void setup() {
 	mono_font = createFont(terminalFont, 13*uimult);
 	
 	// Calculate screen size of the tab content area
-	int tabWidth = round(width - (sidebarWidth * uimult));
+	int tabWidth2 = round(width - (sidebarWidth * uimult));
 	int tabBottom = round(height - (bottombarHeight * uimult));
 
 	// Define all the tabs here
-	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth, tabTop, tabBottom));
-	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth, tabTop, tabBottom));
-	tabObjects.add(new FileGraph("File Graph", 0, tabWidth, tabTop, tabBottom));
+	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
+	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
+	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
 	
-	delay(20);
+	//delay(20);
+}
+
+
+/*****************************************//**
+ * Resize scaling of all UI elements
+ *
+ * @param  amount The quantity by which to change the scaling multiplier
+ *********************************************/
+void uiResize(float amount) {
+	// Resize UI scaler
+	uimult += amount;
+
+	// Resize fonts
+	base_font = createFont(programFont, 12*uimult);
+	mono_font = createFont(terminalFont, 13*uimult);
+	tabTop = round(tabHeight * uimult);
+
+	// Update sizing on all tabs
+	for (TabAPI curTab : tabObjects) {
+		curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
+	}
+
+	// Redraw all content
+	redrawUI = true;
+	redrawContent = true;
 }
 
 
@@ -487,11 +523,38 @@ void mouseWheel(MouseEvent event) {
 
 
 /*****************************************//**
- * Keyboard Button Handler
+ * Keyboard Button Press Handler
  *********************************************/
 void keyPressed() {
-	TabAPI curTab = tabObjects.get(currentTab);
-	curTab.keyboardInput(key);
+
+	// Check for control key
+	if (key == CODED && keyCode == CONTROL) {
+		controlKey = true;
+
+	// Decrease UI scaling (CTRL and -)
+	} else if (controlKey && keyCode == 45) {
+		uiResize(-0.1);
+	// Increase UI scaling (CTRL and +)
+	} else if (controlKey && key == '=') {
+		uiResize(0.1);
+
+	// For all other keys, send them on to the active tab
+	} else {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.keyboardInput(key);
+	}
+
+	//print(key); print(", "); print(keyCode); print(", "); println(controlKey);
+}
+
+
+/*****************************************//**
+ * Keyboard Button Release Handler
+ *********************************************/
+void keyReleased() {
+	if (key == CODED && keyCode == CONTROL) {
+		controlKey = false;
+	}
 }
 
 
@@ -764,6 +827,22 @@ boolean charIsNum(char c) {
 	return 48<=c&&c<=57;
 }
 
+
+/**
+ * Test whether a String follows correct format to be displayed on live graph
+ *
+ * @param  msg The string to be tested
+ * @return True if the string doesn't contain any invalid characters
+ */
+boolean numberMessage(String msg) {
+	for (int i = 0; i < msg.length() - 1; i++) {
+		char j = msg.charAt(i);
+		if (!charIsNum(j) && j != ',' && j != '-' && j != '+' && j != ' ' && j != '.' && j != '\n' && j != '\r') {
+			return false;
+		}
+	}
+	return true;
+}
 
 
 /**************************************************************************************//**

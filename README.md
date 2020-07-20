@@ -74,6 +74,8 @@ This is still a work in progress; please let me know if you come across any issu
 1. (20th July 2020) Version 1.5
 	1. Streamlined the Serial devices connection process by adding COM port and Baud rate options into sub menus on the right-hand sidebar (instead of blocking pop-ups).
 	1. Removed the duplicate serial connection code from the "Live Graph" tab, so that future improvements to the serial connection process will be easier.
+	1. Added loading screen on start-up.
+	1. CTRL+ and CTRL- keyboard combinations can be used to increase and decrease the UI scaling factor.
 1. (19th July 2020) Version 1.4
 	1. Added scrolling support to the right-hand menu bar using the mouse scroll wheel or up/down arrow keys. This solves the issue where menu items could be hidden when the window size is too small.
 	1. Finished updating all code function commenting to a more consistent Doxygen-style format.

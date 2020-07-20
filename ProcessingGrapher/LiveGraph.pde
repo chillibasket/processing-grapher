@@ -51,7 +51,7 @@ class LiveGraph implements TabAPI {
 		graphB = new Graph(cL, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 2");
 		graphC = new Graph((cL + cR) / 2, cR, cT, (cT + cB) / 2, 0, 10, 0, 1, "Graph 3");
 		graphD = new Graph((cL + cR) / 2, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 4");
-		graphA.setHighlight(true, true);
+		graphA.setHighlight(true, false);
 		graphMode = 1;
 		selectedGraph = 1;
 		outputfile = "No File Set";
@@ -268,7 +268,7 @@ class LiveGraph implements TabAPI {
 	void parsePortData(String inputData){
 
 		// Check that the starts with a number
-		if (charIsNum(inputData.charAt(0)) || charIsNum(inputData.charAt(1))) {
+		if (numberMessage(inputData)) {
 			String[] dataArray = split(inputData,',');
 			
 			// If data column does not exist, add it to the list
