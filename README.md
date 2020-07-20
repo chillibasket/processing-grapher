@@ -1,7 +1,11 @@
-# processing-grapher
-A Processing-based terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. 
+[![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/)
+[![Issues](https://img.shields.io/github/issues-raw/chillibasket/processing-grapher.svg?maxAge=25000)](https://github.com/chillibasket/processing-grapher/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/chillibasket/processing-grapher.svg?style=flat)]()
 
-This is still a work in progress, with several features still to be added and bugs to be fixed!
+# Serial Monitor and Realtime Graphing Program
+This project is a Processing-based serial terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. This program is designed as a replacement for the serial monitor contained within the Arduino IDE. The program contains easy-to-use tools to record data received from serial devices, and to plot numerical data on up to 4 separate graphs in real-time. This makes it useful for quickly analysing sensor data from a micro-controller. 
+
+This is still a work in progress; please let me know if you come across any issues or bugs which need to be fixed!
 </br>
 </br>
 
@@ -34,18 +38,18 @@ This is still a work in progress, with several features still to be added and bu
 ## Usage
 1. Download and install the Processing IDE from [https://processing.org/](https://processing.org/).
 1. Clone/download all files in this repository.
-1. Open "ProcessingGrapher.pde" in the Processing editor.
-1. To change the size/scaling of all text and buttons, you can change the "uimult" multiplier on line 29.
+1. Open `ProcessingGrapher.pde` in the Processing editor.
+1. To change the size/scaling of all text and buttons, you can change the `uimult` multiplier on line 29.
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
 	1. Go to the "Serial" or "Live Graph" tab of the program
-	1. In the right-hand sidebar, press on "Port: None" button
-	1. A pop-up, listing all available ports should appear. Type in the number corresponding to the port you want to connect to
-	1. Press on the "Baud: 115200" button and insert the baud rate of the serial connection
-	1. Finally, click on the "Connect" button to initiate the connection with the Arduino.
+	1. In the right-hand sidebar, press on `Port: None` button
+	1. A list of all available ports should appear. Type in the number corresponding to the port you want to connect to
+	1. Press on the `Baud: 9600` button and insert the baud rate of the serial connection
+	1. Finally, click on the `Connect` button to initiate the connection with the Arduino.
 1. To plot real-time data received from the Arduino:
 	1. Make sure that the data consists of numbers being separated by a comma
-	1. For example the message "12,25,16" could be sent using Arduino code:
+	1. For example the message `12,25,16` could be sent using Arduino code:
 	```cpp
 	Serial.print(dataPoint1); Serial.print(",");
 	Serial.print(dataPoint2); Serial.print(",");
