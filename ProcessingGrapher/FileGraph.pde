@@ -72,6 +72,14 @@ class FileGraph implements TabAPI {
 	void drawContent() {
 		graph.drawGrid();
 		plotFileData();
+
+		// Show message if no serial device is connected
+		if (outputfile == "No File Set") {
+			String[] message = {"1. Click 'Open Data' to open and plot the signals from a *.CSV file",
+							    "2. The first row of the file should contain headings for each of the signal",
+							    "3. If the heading starts with 'x:', this column will be used as the x-axis"};
+			drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+		}
 	}
 
 

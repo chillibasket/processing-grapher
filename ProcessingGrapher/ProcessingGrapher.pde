@@ -77,6 +77,7 @@ int bottombarHeight = 20;
 Serial myPort;
 int portNumber = 0;
 int baudRate = 9600;
+char lineEnding = '\n';
 boolean serialConnected = false;
 
 // Drawing Booleans
@@ -271,8 +272,8 @@ void drawSidebar () {
 
 	// Calculate sizing of sidebar
 	int sT = round(tabHeight * uimult);
-	int sL = round(width - ((sidebarWidth - 1) * uimult));
-	int sW = round((sidebarWidth - 1) * uimult);
+	int sL = round(width - (sidebarWidth * uimult) + 1);
+	int sW = round(sidebarWidth * uimult);
 	int sH = height - sT;
 
 	// Bottom info area
@@ -285,7 +286,7 @@ void drawSidebar () {
 	fill(c_sidebar);
 	rect(sL, sT, sW, sH);
 	fill(c_sidebar_h);
-	rect(width - (sidebarWidth * uimult) + 1, sT, 1 * uimult, sH);
+	rect(sL, sT, 1 * uimult, sH);
 	
 	// Draw sidebar elements specific to the current tab
 	TabAPI curTab = tabObjects.get(currentTab);
@@ -428,6 +429,83 @@ void drawRectangle(color boxcolor, float lS, float tS, float iW, float iH){
 		noStroke();
 		fill(boxcolor);
 		rect(lS, tS, iW, iH);
+	}
+}
+
+
+/**
+ * Check in mouse clicked on a sidebar menu item
+ *
+ * @param  yPos    Mouse Y-coordinate
+ * @param  topPos  Top Y-coordinate of menu area
+ * @param  unitH   Height of a standard menu item unit
+ * @param  itemH   Height of menu item
+ * @param  n       Number of units the current item is from the top
+ * @return True if mouse Y-coordinate is on the menu item, false otherwise
+ */
+boolean menuYclick(int yPos, int topPos, int unitH, int itemH, float n) {
+	return ((yPos > topPos + (unitH * n)) && (yPos < topPos + (unitH * n) + itemH));
+}
+
+
+/**
+ * Draw a message box on the screen
+ *
+ * @param  heading  Title text of the message box
+ * @param  text     Array of strings to be displayed (each item is a new line)
+ * @param  lS       Left X-coordinate of the display area
+ * @param  rS       Right X-coordinate of the display area
+ * @param  tS       Top Y-coordinate of the display area
+ */ 
+void drawMessageArea(String heading, String[] text, float lS, float rS, float tS) {
+	// Setup drawing parameters
+	rectMode(CORNER);
+	noStroke();
+	textAlign(CENTER, CENTER);
+	textSize(12 * uimult);
+	textFont(base_font);
+
+	// Get text width
+	int border = int(uimult * 15);
+
+	// Approximate how many rows of text are needed
+	int boxHeight = int(30 * uimult) + 2 * border;
+	int boxWidth = int(rS - lS);
+	int[] itemHeight = new int[text.length];
+	int largestWidth = 0;
+
+	for (int i = 0; i < text.length; i++) {
+		itemHeight[i] = int(20 * uimult);
+		boxHeight += int(20 * uimult);
+		int textW = int(textWidth(text[i]));
+
+		if ((textW + 2 * border > largestWidth) && (textW + 2 * border < boxWidth)) largestWidth = int(textW + 2 * border + 2 * uimult);
+		else if (textW + 2 * border > boxWidth) {
+			largestWidth = boxWidth;
+			boxHeight += int(20 * uimult * (ceil(textWidth(text[i]) / (boxWidth - 2 * border) - 1)));
+			itemHeight[i] += int(20 * uimult * (ceil(textWidth(text[i]) / (boxWidth - 2 * border) - 1)));
+		}
+	}
+
+	boxWidth = largestWidth;
+
+	// Draw the box
+	fill(c_tabbar_h);
+	rect(int((lS + rS) / 2.0 - (boxWidth) / 2.0 - uimult * 2), tS - int(uimult * 2), boxWidth + int(uimult * 4), boxHeight + int(uimult * 4));
+	fill(c_tabbar);
+	rect((lS + rS) / 2.0 - (boxWidth) / 2.0, tS, boxWidth, boxHeight);
+
+	// Draw the text
+	rectMode(CORNER);
+	fill(c_sidebar_heading);
+	text(heading, int((lS + rS) / 2.0 - boxWidth / 2.0 + border), int(tS + border), boxWidth - 2 * border, 20 * uimult);
+
+	fill(c_white);
+
+	int verticalSum = int(tS + border + 25 * uimult);
+	for (int i = 0; i < text.length; i++) {
+		text(text[i],  int((lS + rS) / 2.0 - (boxWidth) / 2.0 + border), verticalSum, boxWidth - 2 * border, itemHeight[i]);
+		verticalSum += itemHeight[i];
 	}
 }
 
@@ -583,8 +661,16 @@ void setupSerial () {
 		// Try to connet to the serial port
 		} else {
 			try {
+				// Connect to the port
 				myPort = new Serial(this, Serial.list()[portNumber], baudRate);
-				myPort.bufferUntil('\n');
+
+				// Trigger serial event once a line-ending is reached in the buffer
+				if (lineEnding != 0) {
+					myPort.bufferUntil(lineEnding);
+				// Else if no line-ending is set, trigger after any byte is received
+				} else {
+					myPort.buffer(1);
+				}
 				serialConnected = true;
 				redrawUI = true;
 			} catch (Exception e){
@@ -610,7 +696,13 @@ void setupSerial () {
  *********************************************/
 void serialEvent (Serial myPort) {
 	try {
-		String inString = myPort.readStringUntil('\n');
+		String inString;
+		if (lineEnding != 0) {
+			inString = myPort.readStringUntil(lineEnding);
+			inString = trim(inString);
+		} else {
+			inString = myPort.readString();
+		}
 
 		// Send the data over to all the tabs
 		if (inString != null) {
@@ -632,7 +724,7 @@ void serialEvent (Serial myPort) {
  *********************************************/
 void serialSend (String message) {
 	if (serialConnected) {
-		myPort.write(message);
+		myPort.write(message + lineEnding);
 	}
 }
 
@@ -650,7 +742,9 @@ void fileSelected(File selection) {
 		// Send it over to the tabs that require it
 		for (TabAPI curTab : tabObjects) {
 			if(curTab.getOutput() == "") {
-				curTab.setOutput(selection.getAbsolutePath());
+				// Get absolute path of file and convert backslashes into normal slashes
+				String newFile = join(split(selection.getAbsolutePath(), '\\'), "/");
+				curTab.setOutput(newFile);
 			}
 		}
 

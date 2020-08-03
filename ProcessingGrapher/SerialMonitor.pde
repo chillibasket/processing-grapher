@@ -32,7 +32,7 @@ class SerialMonitor implements TabAPI {
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 
-	int[] baudRateList = {110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200};
+	int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
 	String[] serialBuffer = {"--- PROCESSING SERIAL MONITOR ---",
 	                         "",
 	                         "[Info] Connecting to a Serial Device",
@@ -346,7 +346,14 @@ class SerialMonitor implements TabAPI {
 	 */
 	void stopRecording(){
 		recordData = false;
-		saveTable(dataTable, outputfile, "csv");
+		try {
+			saveTable(dataTable, outputfile, "csv");
+		} catch (Exception e) {
+			print(e);
+			saveTable(dataTable, "autoSave-serial.csv", "csv");
+			alertHeading = "Error saving CSV file to specified location; see autoSave-serial.csv in the program folder for backup. \n" + e;
+			redrawAlert = true;
+		}
 		redrawUI = true;
 	}
 
@@ -374,7 +381,12 @@ class SerialMonitor implements TabAPI {
 			recordCounter++;
 			if(recordCounter >= maxBuffer){
 				recordCounter = 0;
-				saveTable(dataTable, outputfile, "csv");
+				try {
+					saveTable(dataTable, outputfile, "csv");
+				} catch (Exception e) {
+					print(e);
+					saveTable(dataTable, "autoSave-serial.csv", "csv");
+				}
 			}
 		}
 		
@@ -456,12 +468,10 @@ class SerialMonitor implements TabAPI {
 
 			// Input Data Columns
 			drawHeading("Terminal Options", iL, sT + (uH * 8), iW, tH);
-			textAlign(LEFT, CENTER);
 			drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
 
 			// Input Data Columns
 			drawHeading("Colour Tags", iL, sT + (uH * 10.5), iW, tH);
-			//drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 12.5), iW, iH, tH);
 			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 11.5), iW, iH, tH);
 
 			float tHnow = 12.5;
@@ -668,64 +678,37 @@ class SerialMonitor implements TabAPI {
 
 		// Root menu level
 		if (menuLevel == 0) {
-			// COM Port Number
-			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
-				// Make a list of available serial ports and convert into string
 
+			// COM Port Number
+			if (menuYclick(mouseY, sT, uH, iH, 1)) { //(mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 				menuLevel = 1;
 				menuScroll = 0;
 				redrawUI = true;
-
-				/*
-				String dialogOutput = "List of available ports:\n";
-				if(ports.length == 0) dialogOutput += "No ports available!\n";
-				else {
-					for(int i = 0; i < ports.length; i++) dialogOutput += ("[" + i + "]: " + ports[i] + "\n");
-				}
-
-				final String id = showInputDialog(dialogOutput + "\nPlease enter a list number for the port:");
-
-				if (id != null){
-					try {
-						portNumber = Integer.parseInt(id);
-						redrawUI = true;
-					} catch (Exception e) {}
-				}*/
 			}
 
 			// COM Port Baud Rate
-			else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
-
+			else if (menuYclick(mouseY, sT, uH, iH, 2)){
 				menuLevel = 2;
 				menuScroll = 0;
 				redrawUI = true;
-				/*
-				final String rate = showInputDialog("Please enter a baud rate:");
-
-				if (rate != null){
-					try {
-						baudRate = Integer.parseInt(rate);
-						redrawUI = true;
-					} catch (Exception e) {}
-				} */
 			}
 
 			// Connect to COM port
-			else if ((mouseY > sT + (uH * 3)) && (mouseY < sT + (uH * 3) + iH)){
+			else if (menuYclick(mouseY, sT, uH, iH, 3)){
 				setupSerial();
 			}
 
 			// Select output file name and directory
-			else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+			else if (menuYclick(mouseY, sT, uH, iH, 5.5)){
 				outputfile = "";
-				selectInput("Select select a directory and name for output", "fileSelected");
+				selectOutput("Select a directory and name for output", "fileSelected");
 			}
 			
 			// Start recording data and saving it to a file
-			else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
-				if(recordData){
+			else if (menuYclick(mouseY, sT, uH, iH, 6.5)) {
+				if(recordData) {
 					stopRecording();
-				} else if(outputfile != "" && outputfile != "No File Set"){
+				} else if(outputfile != "" && outputfile != "No File Set") {
 					startRecording();
 				} else {
 					alertHeading = "Error - Please set an output file path";
@@ -734,7 +717,7 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Clear the terminal buffer
-			else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
+			else if (menuYclick(mouseY, sT, uH, iH, 9)) {
 				for (int i = serialBuffer.length - 1; i > 0; i--) {
 					serialBuffer = shorten(serialBuffer);
 				}
@@ -744,8 +727,8 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Add a new colour tag column
-			else if ((mouseY > sT + (uH * 11.5)) && (mouseY < sT + (uH * 11.5) + iH)){
-				final String colname = showInputDialog("Tag Keyword:");
+			else if (menuYclick(mouseY, sT, uH, iH, 11.5)) {
+				final String colname = showInputDialog("New Tag Keyword Text:");
 				if (colname != null){
 					tagColumns = append(tagColumns, colname);
 					redrawUI = true;
@@ -757,19 +740,19 @@ class SerialMonitor implements TabAPI {
 				float tHnow = 12.5;
 
 				// List of Data Columns
-				for(int i = 0; i < tagColumns.length; i++){
+				for(int i = 0; i < tagColumns.length; i++) {
 
-					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
+					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
 
 						// Remove column
-						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
 							tagColumns = remove(tagColumns, i);
 							redrawUI = true;
 							drawNewData = true;
 						}
 
 						// Move column up one space
-						else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+						else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
 							if (i - 1 >= 0) {
 								String temp = tagColumns[i - 1];
 								tagColumns[i - 1] = tagColumns[i];
@@ -781,7 +764,7 @@ class SerialMonitor implements TabAPI {
 
 						// Change name of column
 						else {
-							final String colname = showInputDialog("New Tag Keyword:");
+							final String colname = showInputDialog("Change Tag Keyword:");
 							if (colname != null){
 								tagColumns[i] = colname;
 								redrawUI = true;

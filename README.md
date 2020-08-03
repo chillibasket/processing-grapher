@@ -71,6 +71,11 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 
 ## Changelog
+1. (3rd August 2020) Version 1.6
+	1. Added "Getting Started" boxes to help new users.
+	1. Updated error-handling of the CSV file saving process.
+	1. Added variable which can be used to change the serial comms line-ending character.
+	1. File open/save path strings are now properly cleaned to prevent backslash "\" errors.
 1. (20th July 2020) Version 1.5
 	1. Streamlined the Serial devices connection process by adding COM port and Baud rate options into sub menus on the right-hand sidebar (instead of blocking pop-ups).
 	1. Removed the duplicate serial connection code from the "Live Graph" tab, so that future improvements to the serial connection process will be easier.

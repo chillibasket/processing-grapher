@@ -96,6 +96,14 @@ class LiveGraph implements TabAPI {
 			graphD.drawGrid();
 			graphD.resetGraph();
 		}
+
+		// Show message if no serial device is connected
+		if (!serialConnected) {
+			String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
+							    "2. Each line sent by the device should only contain numbers separated with commas",
+							    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
+			drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+		}
 	}
 
 
@@ -252,8 +260,8 @@ class LiveGraph implements TabAPI {
 			saveTable(dataTable, outputfile, "csv");
 		} catch (Exception e) {
 			print(e);
-			saveTable(dataTable, "autoSave.csv", "csv");
-			alertHeading = "Error saving CSV file; see autoSave.csv for backup";
+			saveTable(dataTable, "autoSave-graph.csv", "csv");
+			alertHeading = "Error saving CSV file to specified location; see autoSave-graph.csv in the program folder for backup. \n" + e;
 			redrawAlert = true;
 		}
 		redrawUI = true;
@@ -301,7 +309,7 @@ class LiveGraph implements TabAPI {
 						saveTable(dataTable, outputfile, "csv");
 					} catch (Exception e) {
 						print(e);
-						saveTable(dataTable, "autoSave.csv", "csv");
+						saveTable(dataTable, "autoSave-graph.csv", "csv");
 					}
 				}
 
@@ -614,7 +622,7 @@ class LiveGraph implements TabAPI {
 		// Select output file name and directory
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			outputfile = "";
-			selectInput("Select select a directory and name for output", "fileSelected");
+			selectOutput("Select a directory and name for output", "fileSelected");
 		}
 		
 		// Start recording data and saving it to a file
@@ -828,7 +836,7 @@ class LiveGraph implements TabAPI {
 						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
 
 							// Down arrow
-							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
 								graphAssignment[i]++;
 								if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
 								redrawUI = true;
@@ -836,7 +844,7 @@ class LiveGraph implements TabAPI {
 							}
 
 							// Up arrow
-							else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+							else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
 								graphAssignment[i]--;
 								if (graphAssignment[i] < 1) graphAssignment[i] = 1;
 								redrawUI = true;
