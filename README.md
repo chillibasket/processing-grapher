@@ -16,11 +16,11 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 
 ## Features
-1. Easy UI scaling and colour adjustments 
+1. Easy UI scaling
 1. Serial terminal monitor
 	1. Connect to any serial port at any baud rate
 	1. Send and receive serial communication
-	1. Record the communication as a comma delimited file
+	1. Record the communication as a text file
 	1. Change the colour of lines containing specific tags
 1. Live Graphing
 	1. Plot real-time data obtained from serial device on a graph
@@ -39,10 +39,11 @@ This is still a work in progress; please let me know if you come across any issu
 1. Download and install the Processing IDE from [https://processing.org/](https://processing.org/).
 1. Clone/download all files in this repository.
 1. Open `ProcessingGrapher.pde` in the Processing editor.
-1. To change the size/scaling of all text and buttons, you can change the `uimult` multiplier on line 29.
+1. Press the `Run` button on the top-left of the Processing editor to start the program.
+1. To change the size/scaling of all text and buttons, press the `CTRL+` or `CTRL-` keyboard combinations.
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
-	1. Go to the "Serial" or "Live Graph" tab of the program
+	1. Go to the "Serial" tab of the program
 	1. In the right-hand sidebar, press on `Port: None` button
 	1. A list of all available ports should appear. Type in the number corresponding to the port you want to connect to
 	1. Press on the `Baud: 9600` button and insert the baud rate of the serial connection
@@ -50,11 +51,15 @@ This is still a work in progress; please let me know if you come across any issu
 1. To plot real-time data received from the Arduino:
 	1. Make sure that the data consists of numbers being separated by a comma
 	1. For example the message `12,25,16` could be sent using Arduino code:
-	```cpp
-	Serial.print(dataPoint1); Serial.print(",");
-	Serial.print(dataPoint2); Serial.print(",");
-	Serial.println(dataPoint3);
-	```
+		```cpp
+		Serial.print(dataPoint1); Serial.print(",");
+		Serial.print(dataPoint2); Serial.print(",");
+		Serial.println(dataPoint3);
+		```
+	1. Go to the "Live Graph" tab of the program. The data should automatically be plotted on the graph.
+	1. To plot different signals on separate graphs, click on the number of graphs (1 to 4) in the "Split" section of the right-hand sidebar.
+	1. You can then press the up or down buttons on each signal in the sidebar to move it to a different graph.
+	1. To change options (such as graph type, x-axis and y-axis scaling) for a specific graph, click on the graph you want to edit. The options for that graph are then shown in the sidebar.
 </br>
 </br>
 
