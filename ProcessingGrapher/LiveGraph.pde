@@ -13,21 +13,24 @@ class LiveGraph implements TabAPI {
 	Graph graphA, graphB, graphC, graphD;
 	int menuScroll;
 	int menuHeight;
-
 	String name;
+
 	String outputfile;
+	PrintWriter outputObject;
+
 	String[] dataColumns = {};
 	int[] graphAssignment = {};
 	int graphMode;
-	Table dataTable;
+	CustomTable dataTable;
 	boolean recordData;
 	int recordCounter;
-	int autoSave;
+	int fileCounter;
+	int maxFileRows = 100000;
 	int drawFrom;
 	int xRate;
 	int selectedGraph;
 	boolean autoAxis;
-	//float[] dataPoints = {0};
+	int maxSamples;
 
 
 	/**
@@ -57,12 +60,13 @@ class LiveGraph implements TabAPI {
 		outputfile = "No File Set";
 		recordData = false;
 		recordCounter = 0;
-		autoSave = 10;
+		fileCounter = 0;
 		xRate = 100;
 		autoAxis = true;
 		drawFrom = 0;
+		maxSamples = 10;
 
-		dataTable = new Table();
+		dataTable = new CustomTable();
 		menuScroll = 0;
 		menuHeight = cB - cT - 1; 
 	}
@@ -103,6 +107,9 @@ class LiveGraph implements TabAPI {
 							    "2. Each line sent by the device should only contain numbers separated with commas",
 							    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
 			drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+
+		} else if (dataTable.getRowCount() > 0) {
+			drawNewData();
 		}
 	}
 
@@ -113,21 +120,49 @@ class LiveGraph implements TabAPI {
 	void drawNewData() {
 		// If there is content to draw
 		if (dataTable.getRowCount() > 0) {
+			
+			int samplesA = int(dataTable.getRowCount() - xRate * abs(graphA.getMinMax(1) - graphA.getMinMax(0)));
+			drawFrom = samplesA;
+			
+			int samplesB = dataTable.getRowCount();
+			int samplesC = samplesB;
+			int samplesD = samplesB;
+
+			graphA.clearGraph();
+			if (graphMode >= 2) {
+				graphB.clearGraph();
+				samplesB = int(dataTable.getRowCount() - xRate * abs(graphB.getMinMax(1) - graphB.getMinMax(0)));
+				if (samplesB < drawFrom) drawFrom = samplesB;
+			}
+			if (graphMode >= 3) {
+				graphC.clearGraph();
+				samplesC = int(dataTable.getRowCount() - xRate * abs(graphC.getMinMax(1) - graphC.getMinMax(0)));
+				if (samplesC < drawFrom) drawFrom = samplesC;
+			}
+			if (graphMode >= 4) {
+				graphD.clearGraph();
+				samplesD = int(dataTable.getRowCount() - xRate * abs(graphD.getMinMax(1) - graphD.getMinMax(0)));
+				if (samplesD < drawFrom) drawFrom = samplesD;
+			}
+
+			maxSamples = dataTable.getRowCount() - drawFrom;
+			if (drawFrom < 0) drawFrom = 0;
+
 			for (int j = drawFrom; j < dataTable.getRowCount() - 1; j++) {
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
 					try {
 						float dataPoint = dataTable.getFloat(j, i);
 						if(Float.isNaN(dataPoint)) dataPoint = 99999999;
-						if (graphAssignment[i] == 2 && graphMode >= 2) {
+						if (graphAssignment[i] == 2 && graphMode >= 2 && samplesB <= drawFrom) {
 							checkGraphSize(dataPoint, 2);
 							graphB.plotData(dataPoint, -99999999, i);
-						} else if (graphAssignment[i] == 3 && graphMode >= 3) {
+						} else if (graphAssignment[i] == 3 && graphMode >= 3 && samplesC <= drawFrom) {
 							checkGraphSize(dataPoint, 3);
 							graphC.plotData(dataPoint, -99999999, i);
-						} else if (graphAssignment[i] == 4 && graphMode >= 4) {
+						} else if (graphAssignment[i] == 4 && graphMode >= 4 && samplesD <= drawFrom) {
 							checkGraphSize(dataPoint, 4);
 							graphD.plotData(dataPoint, -99999999, i);
-						} else {
+						} else if (graphAssignment[i] == 1 && samplesA <= drawFrom) {
 							checkGraphSize(dataPoint, 1);
 							graphA.plotData(dataPoint, -99999999, i);
 						}
@@ -219,6 +254,13 @@ class LiveGraph implements TabAPI {
 			int dotPos = newoutput.lastIndexOf(".");
 			if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
 			newoutput = newoutput + ".csv";
+
+			// Test whether this file is actually accessible
+			if (saveFile(newoutput) == null) {
+				alertHeading = "Error\nUnable to access the selected output file location; is this actually a writable location?\n" + newoutput;
+				newoutput = "No File Set";
+				redrawAlert = true;
+			}
 		}
 		outputfile = newoutput;
 	}
@@ -239,15 +281,22 @@ class LiveGraph implements TabAPI {
 	 */
 	void startRecording() {
 		// Ensure table is empty
-		dataTable = new Table();
+		dataTable = new CustomTable();
 		drawFrom = 0;
 
 		// Add columns to the table
 		while(dataTable.getColumnCount() < dataColumns.length) dataTable.addColumn(dataColumns[dataTable.getColumnCount()]);
 
-		recordCounter = 0;
-		recordData = true;
-		redrawUI = true;
+		// Open up the CSV output stream
+		if (!dataTable.openCSVoutput(outputfile)) {
+			alertHeading = "Error\nUnable to create the output file; is this actually a writable location?\n" + outputfile;
+			redrawAlert = true;
+		} else {
+			recordCounter = 0;
+			fileCounter = 0;
+			recordData = true;
+			redrawUI = true;
+		}
 	}
 
 
@@ -256,14 +305,9 @@ class LiveGraph implements TabAPI {
 	 */
 	void stopRecording(){
 		recordData = false;
-		try {
-			saveTable(dataTable, outputfile, "csv");
-		} catch (Exception e) {
-			print(e);
-			saveTable(dataTable, "autoSave-graph.csv", "csv");
-			alertHeading = "Error saving CSV file to specified location; see autoSave-graph.csv in the program folder for backup. \n" + e;
-			redrawAlert = true;
-		}
+		dataTable.closeCSVoutput();
+		alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " samples to " + (fileCounter + 1) + " CSV file(s)";
+		redrawAlert = true;
 		redrawUI = true;
 	}
 
@@ -272,12 +316,13 @@ class LiveGraph implements TabAPI {
 	 * Parse new data points received from serial port
 	 *
 	 * @param  inputData String containing data points separated by commas
+	 * @param  graphable True if data in message can be plotted on a graph
 	 */
-	void parsePortData(String inputData){
+	void parsePortData(String inputData, boolean graphable) {
 
 		// Check that the starts with a number
-		if (numberMessage(inputData)) {
-			String[] dataArray = split(inputData,',');
+		if (graphable) {
+			String[] dataArray = trim(split(inputData, ','));
 			
 			// If data column does not exist, add it to the list
 			while(dataColumns.length < dataArray.length){
@@ -300,26 +345,29 @@ class LiveGraph implements TabAPI {
 				}
 			}
 
+			// Record data to file
 			if (recordData) {
 				recordCounter++;
-				// Auto-save recording at set intervals to prevent loss of data
-				if(recordCounter >= autoSave * xRate){
-					recordCounter = 0;
-					try {
-						saveTable(dataTable, outputfile, "csv");
-					} catch (Exception e) {
-						print(e);
-						saveTable(dataTable, "autoSave-graph.csv", "csv");
-					}
-				}
+				dataTable.saveCSVentries(dataTable.lastRowIndex(), dataTable.lastRowIndex());
 
-			// Remove first few rows from table while table length exceeds bounds
-			} else {
-				while (dataTable.getRowCount() > xRate * abs(graphA.getMinMax(1) - graphA.getMinMax(0))) {
-					dataTable.removeRow(0);
-					drawFrom--;
-					if (drawFrom < 0) drawFrom = 0;
+				// Separate data into files once the max number of rows has been reached
+				if (recordCounter >= maxFileRows) {
+					dataTable.closeCSVoutput();
+					fileCounter++;
+					recordCounter = 0;
+
+					int dotPos = outputfile.lastIndexOf(".");
+					String nextoutputfile = outputfile.substring(0, dotPos);
+					nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".csv";
+					dataTable.openCSVoutput(nextoutputfile);
 				}
+			}
+			
+			// Remove rows from table which don't need to be shown on the graphs anymore
+			while (dataTable.getRowCount() > maxSamples) {
+				dataTable.removeRow(0);
+				drawFrom--;
+				if (drawFrom < 0) drawFrom = 0;
 			}
 	
 			drawNewData = true;
@@ -622,7 +670,7 @@ class LiveGraph implements TabAPI {
 		// Select output file name and directory
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			outputfile = "";
-			selectOutput("Select a directory and name for output", "fileSelected");
+			selectOutput("Select a location and name for the output *.csv file", "fileSelected");
 		}
 		
 		// Start recording data and saving it to a file
@@ -632,7 +680,7 @@ class LiveGraph implements TabAPI {
 			} else if(outputfile != "" && outputfile != "No File Set"){
 				startRecording();
 			} else {
-				alertHeading = "Error - Please set an output file path";
+				alertHeading = "Error\nPlease set an output file path.";
 				redrawAlert = true;
 			}
 		}

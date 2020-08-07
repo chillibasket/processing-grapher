@@ -12,6 +12,8 @@ class SerialMonitor implements TabAPI {
 	int cL, cR, cT, cB;
 	int msgB;
 
+	PrintWriter dataWriter;
+
 	int msgBorder;
 	int msgSize;
 	int menuScroll;
@@ -20,10 +22,10 @@ class SerialMonitor implements TabAPI {
 
 	String name;
 	String outputfile;
-	Table dataTable;
 	boolean recordData;
 	int recordCounter;
-	int autoSave;
+	int fileCounter;
+	int maxFileRows = 100000;
 	int displayRows;
 	String[] tagColumns = {"SENT:","[Info]"};
 	String msgText= "";
@@ -83,6 +85,7 @@ class SerialMonitor implements TabAPI {
 		outputfile = "No File Set";
 		recordData = false;
 		recordCounter = 0;
+		fileCounter = 0;
 		maxBuffer = 10000;
 		scrollUp = 0;
 		displayRows = 0;
@@ -309,7 +312,14 @@ class SerialMonitor implements TabAPI {
 			// Ensure file type is *.csv
 			int dotPos = newoutput.lastIndexOf(".");
 			if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
-			newoutput = newoutput + ".csv";
+			newoutput = newoutput + ".txt";
+
+			// Test whether this file is actually accessible
+			if (saveFile(newoutput) == null) {
+				alertHeading = "Error\nUnable to access the selected output file location; is this actually a writable location?\n" + newoutput;
+				newoutput = "No File Set";
+				redrawAlert = true;
+			}
 		}
 		outputfile = newoutput;
 	}
@@ -329,15 +339,19 @@ class SerialMonitor implements TabAPI {
 	 * Start recording new serial data points to file
 	 */
 	void startRecording() {
-		// Ensure table is empty
-		dataTable = new Table();
+		try {
+			// Open the writer
+			dataWriter = createWriter(outputfile);
 
-		// Add columns to the table
-		if(dataTable.getColumnCount() < 1) dataTable.addColumn("Serial Data");
-
-		recordCounter = 0;
-		recordData = true;
-		redrawUI = true;
+			recordCounter = 0;
+			fileCounter = 0;
+			recordData = true;
+			redrawUI = true;
+		} catch (Exception e) {
+			println(e);
+			alertHeading = "Error\nUnable to create the output file:\n" + e;
+			redrawAlert = true;
+		}
 	}
 
 
@@ -346,14 +360,19 @@ class SerialMonitor implements TabAPI {
 	 */
 	void stopRecording(){
 		recordData = false;
+
 		try {
-			saveTable(dataTable, outputfile, "csv");
+			dataWriter.flush();
+			dataWriter.close();
+
+			alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " entries to " + (fileCounter + 1) + " TXT file(s)";
+			redrawAlert = true;
 		} catch (Exception e) {
-			print(e);
-			saveTable(dataTable, "autoSave-serial.csv", "csv");
-			alertHeading = "Error saving CSV file to specified location; see autoSave-serial.csv in the program folder for backup. \n" + e;
+			println(e);
+			alertHeading = "Error\nUnable to save the output file:\n" + e;
 			redrawAlert = true;
 		}
+
 		redrawUI = true;
 	}
 
@@ -362,43 +381,41 @@ class SerialMonitor implements TabAPI {
 	 * Parse new data points received from serial port
 	 *
 	 * @param  inputData String containing data points separated by commas
+	 * @param  graphable True if data in message can be plotted on a graph
 	 */
-	void parsePortData(String inputData) {
+	void parsePortData(String inputData, boolean graphable) {
 	
+		// Remove line ending characters
 		inputData = inputData.replace("\n", "");
 		inputData = inputData.replace("\r", "");
-
-		// --- Data Recording ---
-		if(recordData) {
-			TableRow newRow = dataTable.addRow();
-			try {
-				newRow.setString(0, inputData);
-			} catch (Exception e) {
-				print(e);
-			}
-			
-			// Auto-save recording at set intervals to prevent loss of data
-			recordCounter++;
-			if(recordCounter >= maxBuffer){
-				recordCounter = 0;
-				try {
-					saveTable(dataTable, outputfile, "csv");
-				} catch (Exception e) {
-					print(e);
-					saveTable(dataTable, "autoSave-serial.csv", "csv");
-				}
-			}
-		}
 		
-	// --- Data Buffer ---
-	if (inputData.charAt(0) != '%' && inputData.charAt(0) != '$') {
+		// --- Data Buffer ---
 		if (serialBuffer.length >= maxBuffer) {
 			arrayCopy(serialBuffer, 1, serialBuffer, 0, serialBuffer.length - 1);
 			serialBuffer[serialBuffer.length - 1] = inputData;
 		} else {
 			serialBuffer = append(serialBuffer, inputData);
 		}
-	}
+
+		// --- Data Recording ---
+		if(recordData) {
+			recordCounter++;
+			dataWriter.println(inputData);
+			dataWriter.flush();
+
+			// Separate data into files once the max number of rows has been reached
+			if (recordCounter >= maxFileRows) {
+				dataWriter.close();
+				fileCounter++;
+				recordCounter = 0;
+
+				int dotPos = outputfile.lastIndexOf(".");
+				String nextoutputfile = outputfile.substring(0, dotPos);
+				nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".txt";
+				saveFile(nextoutputfile);
+				dataWriter = createWriter(nextoutputfile);
+			}
+		}
 
 		drawNewData = true;
 	}
@@ -701,7 +718,7 @@ class SerialMonitor implements TabAPI {
 			// Select output file name and directory
 			else if (menuYclick(mouseY, sT, uH, iH, 5.5)){
 				outputfile = "";
-				selectOutput("Select a directory and name for output", "fileSelected");
+				selectOutput("Select a location and name for the output *.txt file", "fileSelected");
 			}
 			
 			// Start recording data and saving it to a file
@@ -711,7 +728,7 @@ class SerialMonitor implements TabAPI {
 				} else if(outputfile != "" && outputfile != "No File Set") {
 					startRecording();
 				} else {
-					alertHeading = "Error - Please set an output file path";
+					alertHeading = "Error\nPlease set an output file path";
 					redrawAlert = true;
 				}
 			}

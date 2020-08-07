@@ -3,8 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date:    20th July 2020
- * Version: 1.5
+ * Date:    6th August 2020
+ * Version: 1.7
  * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -181,37 +181,43 @@ void uiResize(float amount) {
  * Draw
  *********************************************/
 void draw() {
-	// Redraw the content area elements
-	if (redrawContent){
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.drawContent();
-		redrawContent = false;
-	}
+	if (!alertActive) {
+		// Redraw the content area elements
+		if (redrawContent){
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.drawContent();
+			redrawContent = false;
+		}
 
-	// Draw new data in the content area
-	if (drawNewData) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.drawNewData();
-		drawNewData = false;
-	}
-	
-	// Redraw the UI elements (right and top bars)
-	if (redrawUI){
-		drawTabs(currentTab);
-		drawSidebar();
-		redrawUI = false;
-	}
+		// Draw new data in the content area
+		if (drawNewData) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.drawNewData();
+			drawNewData = false;
+		}
+		
+		// Redraw the UI elements (right and top bars)
+		if (redrawUI){
+			drawTabs(currentTab);
+			drawSidebar();
+			redrawUI = false;
+		}
 
-	// Redraw the alert message
-	if(redrawAlert){
-		drawAlert();
-		redrawAlert = false;
+		// Redraw the alert message
+		if(redrawAlert){
+			drawAlert();
+			redrawAlert = false;
+		}
 	}
 
 	// If the window is resized, redraw all elements at the new size
 	if ((lastWidth != width) || (lastHeight != height)){
 		redrawUI = true;
 		redrawContent = true;
+		if (alertActive) {
+			alertActive = false;
+			redrawAlert = true;
+		} 
 		lastWidth = width;
 		lastHeight = height;
 		for (TabAPI curTab : tabObjects) {
@@ -457,7 +463,8 @@ boolean menuYclick(int yPos, int topPos, int unitH, int itemH, float n) {
  * @param  rS       Right X-coordinate of the display area
  * @param  tS       Top Y-coordinate of the display area
  */ 
-void drawMessageArea(String heading, String[] text, float lS, float rS, float tS) {
+
+void drawMessageArea(String heading, String[] text, float lS, float rS, float tS, boolean alert) {
 	// Setup drawing parameters
 	rectMode(CORNER);
 	noStroke();
@@ -488,11 +495,24 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	}
 
 	boxWidth = largestWidth;
+	int verticalSum = int(tS + border + 25 * uimult);
+
+	// Slightly lighten the background content
+	if (alert) {
+		fill(c_white, 80);
+		rect(0, 0, width, height);
+		if (boxWidth < alertWidth * uimult) boxWidth = int(alertWidth * uimult);
+		if (boxHeight < alertHeight * uimult) {
+			verticalSum += int(((alertHeight * uimult) - boxHeight) / 2.0);
+			boxHeight = int(alertHeight * uimult);
+		}
+	}
 
 	// Draw the box
 	fill(c_tabbar_h);
 	rect(int((lS + rS) / 2.0 - (boxWidth) / 2.0 - uimult * 2), tS - int(uimult * 2), boxWidth + int(uimult * 4), boxHeight + int(uimult * 4));
-	fill(c_tabbar);
+	if (alert) fill(c_tabbar);
+	else fill(c_darkgrey);
 	rect((lS + rS) / 2.0 - (boxWidth) / 2.0, tS, boxWidth, boxHeight);
 
 	// Draw the text
@@ -502,11 +522,15 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 
 	fill(c_white);
 
-	int verticalSum = int(tS + border + 25 * uimult);
 	for (int i = 0; i < text.length; i++) {
+		if (alert && i == text.length - 1) fill(c_lightgrey);
 		text(text[i],  int((lS + rS) / 2.0 - (boxWidth) / 2.0 + border), verticalSum, boxWidth - 2 * border, itemHeight[i]);
 		verticalSum += itemHeight[i];
 	}
+}
+
+void drawMessageArea(String heading, String[] text, float lS, float rS, float tS) {
+	drawMessageArea(heading, text, lS, rS, tS, false);
 }
 
 
@@ -516,7 +540,20 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 void drawAlert () {
 	alertActive = true;
 
+	String heading = "Info Message";
+	String[] messages = split(alertHeading, '\n');
+	messages = append(messages, "");
+	messages = append(messages, "[Click to dismiss]");
+
+	if (messages.length > 1) {
+		heading = messages[0];
+		messages = remove(messages, 0);
+	}
+	
+	drawMessageArea(heading, messages, 50 * uimult, width - 50 * uimult, (height / 2.5) - (alertHeight * uimult / 2), true);
+
 	// Setup drawing parameters
+	/*
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
@@ -534,6 +571,7 @@ void drawAlert () {
 	rect((width / 2) - ((alertWidth - 2) * uimult / 2), (height / 2) - ((alertHeight - 2) * uimult / 2), (alertWidth - 2) * uimult, (alertHeight - 2) * uimult);
 	fill(c_white);
 	text(alertHeading, (width / 2) - ((alertWidth - 2) * uimult / 2), (height / 2) - ((alertHeight - 2) * uimult / 2), (alertWidth - 2) * uimult, (alertHeight - 2) * uimult);
+	*/
 }
 
 
@@ -649,13 +687,13 @@ void setupSerial () {
 		// If no ports are available
 		if(ports.length == 0) {
 
-			alertHeading = "Error - No serial ports available";
+			alertHeading = "Error\nNo serial ports available";
 			redrawAlert = true;
 
 		// If the port number we want to use is not in the list
 		} else if((portNumber < 0) || (ports.length <= portNumber)) {
 
-			alertHeading = "Error - Invalid port number selected";
+			alertHeading = "Error\nInvalid port number selected";
 			redrawAlert = true;
 
 		// Try to connet to the serial port
@@ -674,7 +712,8 @@ void setupSerial () {
 				serialConnected = true;
 				redrawUI = true;
 			} catch (Exception e){
-				alertHeading = "Error connecting to port: " + e;
+				alertHeading = "Error\nUnable to connect to the port:\n" + e;
+				println(e);
 				redrawAlert = true;
 			}
 		}
@@ -704,14 +743,18 @@ void serialEvent (Serial myPort) {
 			inString = myPort.readString();
 		}
 
+		// Check if data is graphable
+		boolean graphable = numberMessage(inString);
+
 		// Send the data over to all the tabs
 		if (inString != null) {
 			for (TabAPI curTab : tabObjects) {
-				curTab.parsePortData(inString);
+				curTab.parsePortData(inString, graphable);
 			}
 		}
-	} catch (Exception e){
-		alertHeading = "Error reading port: " + e;
+	} catch (Exception e) {
+		alertHeading = "Error\nUnable to read data from serial port:\n" + e;
+		println(e);
 		redrawAlert = true;
 	}
 }
@@ -724,7 +767,13 @@ void serialEvent (Serial myPort) {
  *********************************************/
 void serialSend (String message) {
 	if (serialConnected) {
-		myPort.write(message + lineEnding);
+		try {
+			myPort.write(message + lineEnding);
+		} catch (Exception e) {
+			alertHeading = "Error\nUnable to write to the serial port:\n" + e;
+			println(e);
+			redrawAlert = true;
+		}
 	}
 }
 
@@ -962,10 +1011,10 @@ interface TabAPI {
 	// Change content area size
 	void changeSize(int newL, int newR, int newT, int newB);
 	
-	// Getting new files paths
+	// Getting new file paths
 	String getOutput();
 	void setOutput(String newoutput);
 	
 	// Serial communication
-	void parsePortData(String inputData);
+	void parsePortData(String inputData, boolean graphable);
 }

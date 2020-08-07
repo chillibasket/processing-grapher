@@ -71,6 +71,10 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 
 ## Changelog
+1. (6th August 2020) Version 1.7
+	1. Revamped file saving process so that new entries are written to the output file the moment they are received.
+	1. When recording data for a long time, the entries are now automatically split into multiple files of maximum 100,000 rows.
+	1. Updated live graphs to show a continuous running data stream, rather than drawing the data from left to right.
 1. (3rd August 2020) Version 1.6
 	1. Added "Getting Started" boxes to help new users.
 	1. Updated error-handling of the CSV file saving process.

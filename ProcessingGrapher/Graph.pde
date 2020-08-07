@@ -8,8 +8,10 @@
 
 class Graph {
 
-	int cL, cR, cT, cB;     // Content coordinates (left, right, top bottom)
+	// Content coordinates (left, right, top bottom)
+	int cL, cR, cT, cB;
 	int gL, gR, gT, gB;     // Graph area coordinates
+	float gridX, gridY; 		// Grid spacing
 
 	float minX, maxX, minY, maxY; // Limits of data
 	float[] lastX = {0}, lastY = {-99999999};   // Array containing previous x and y values
@@ -49,6 +51,8 @@ class Graph {
 		cR = gR = right;
 		cT = gT = top;
 		cB = gB = bottom;
+		gridX = 0;
+		gridY = 0;
 
 		minX = minx;
 		maxX = maxx;
@@ -433,6 +437,46 @@ class Graph {
 
 
 	/**
+	 * Clear the graph area and redraw the grid lines
+	 */
+	void clearGraph () {
+		// Clear the content area
+		rectMode(CORNER);
+		noStroke();
+		fill(c_background);
+		rect(gL, gT, gR - gL + 1, gB - gT + 1);
+
+		// Setup drawing parameters
+		strokeWeight(1 * uimult);
+
+		stroke(c_darkgrey);
+
+		if (gridLines && gridX != 0) {
+			// X-axis Grid lines
+			for (float i = gL; i < gR; i += gridX) {
+				line(i, gT, i, gB);
+			}
+		}
+
+		if (gridLines && gridY != 0) {
+			// Y-axis Grid lines
+			for (float i = gT; i < gB; i += gridY) {
+				line(gL, i, gR, i);
+			}
+		}
+
+		float yZero = 0;
+		if ((minY > 0) || (maxY < 0)) yZero = minY;
+
+		stroke(c_lightgrey);
+		line(gL, gT, gL, gB);
+		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
+
+		resetGraph();
+	}
+
+
+	/**
 	 * Draw the grid and axes of the graph
 	 */
 	void drawGrid() {
@@ -506,6 +550,8 @@ class Graph {
 
 		// ---------- Y-AXIS ----------
 		int labelsHeight = yScale * yTextHeight;
+		gridY = 0;
+		float gridYold = 0;
 
 		// Draw each of the division markings
 		for (int i = 0;  i < yScale; i++){
@@ -536,6 +582,8 @@ class Graph {
 						if (gridLines) {
 							stroke(c_darkgrey);
 							line(gL, currentYpixel, gR, currentYpixel);
+							gridYold = gridY;
+							gridY = currentYpixel;
 						}
 
 						// Limit to 2 decimal places, but only show decimals if needed
@@ -551,11 +599,14 @@ class Graph {
 			}
 		}
 
+		gridY = abs(gridY - gridYold);
 
 		// ---------- X-AXIS ----------
 		textAlign(CENTER, CENTER);
 		textFont(base_font);
 		int labelsWidth = xScale * xTextWidth;
+		gridX = 0;
+		float gridXold = 0;
 
 		// Draw each of the division markings
 		for (int i = 0;  i < xScale; i++){
@@ -585,6 +636,8 @@ class Graph {
 					if (gridLines) {
 						stroke(c_darkgrey);
 						line(currentXpixel, gT, currentXpixel, gB);
+						gridXold = gridX;
+						gridX = currentXpixel;
 					}
 
 					// Limit to 2 decimal places, but only show decimals if needed
@@ -599,10 +652,10 @@ class Graph {
 			}
 		}
 
-		stroke(c_lightgrey);
-		line(gL, gT, gL, gB);
+		gridX = abs(gridX - gridXold);
 
 		stroke(c_lightgrey);
+		line(gL, gT, gL, gB);
 		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
 	}
 }

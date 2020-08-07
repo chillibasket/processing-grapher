@@ -4,7 +4,7 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
-* Copyright (C) 2020, GPL v3
+ * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
 class FileGraph implements TabAPI {
@@ -123,7 +123,7 @@ class FileGraph implements TabAPI {
 				dataTable = loadTable(outputfile, "csv, header");
 				zoomActive = false;
 			} else {
-				alertHeading = "Invalid file type; it must be *.csv";
+				alertHeading = "Error\nInvalid file type; it must be *.csv";
 				outputfile = "No File Set";
 				redrawAlert = true;
 			}
@@ -259,10 +259,10 @@ class FileGraph implements TabAPI {
 		if(outputfile != "No File Set" && outputfile != "") {
 			try {
 				saveTable(dataTable, outputfile, "csv");
-				alertHeading = "File Saved!";
+				alertHeading = "Success!\nThe data has been saved to the file";
 				redrawAlert = true;
 			} catch (Exception e){
-				alertHeading = "Error - Unable to save file " + e;
+				alertHeading = "Error\nUnable to save file:\n" + e;
 				redrawAlert = true;
 			}
 		}
@@ -684,8 +684,9 @@ class FileGraph implements TabAPI {
 	 * Serial port data handler function
 	 *
 	 * @param  inputData New data received from the serial port
+	 * @param  graphable True if data in message can be plotted on a graph
 	 */
-	void parsePortData(String inputData) {
+	void parsePortData(String inputData, boolean graphable) {
 		// Empty as this tab is not using serial comms 
 	}
 }
