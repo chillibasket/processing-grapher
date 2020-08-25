@@ -12,14 +12,18 @@ class Graph {
 	int cL, cR, cT, cB;
 	int gL, gR, gT, gB;     // Graph area coordinates
 	float gridX, gridY; 		// Grid spacing
+	float offsetLeft, offsetBottom;
 
 	float minX, maxX, minY, maxY; // Limits of data
 	float[] lastX = {0}, lastY = {-99999999};   // Array containing previous x and y values
+	float xStep;
 
 	int xScale, yScale;
 	int xRate;
-	String plotType;
+	int plotType;
 	String plotName;
+	String xAxisName;
+	String yAxisName;
 
 	// Ui variables
 	int graphMark;
@@ -51,8 +55,11 @@ class Graph {
 		cR = gR = right;
 		cT = gT = top;
 		cB = gB = bottom;
+
 		gridX = 0;
 		gridY = 0;
+		offsetLeft = cL;
+		offsetBottom = cT;
 
 		minX = minx;
 		maxX = maxx;
@@ -62,14 +69,18 @@ class Graph {
 		xScale = 40;
 		yScale = 40;
 		xRate = 100;
+		xStep = 1 / float(xRate);
 
 		graphMark = round(8 * uimult);
 		border = round(30 * uimult);
 
-		plotType = "linechart";
+		plotType = 0;
 		redrawGraph = gridLines = true;
 		squareGrid = false;
 		highlighted = false;
+
+		xAxisName = "";
+		yAxisName = "";
 	}
 	
 
@@ -144,7 +155,11 @@ class Graph {
 	 * @param  newrate Data rate in samples per second
 	 */
 	void setXrate(int newrate) {
-		xRate = newrate;
+		if (newrate > 0 && validFloat(newrate)) {
+			xRate = newrate;
+			xStep = 1 / float(xRate);
+
+		} else println("Graph::setXrate() - Invalid number: " + newrate);
 	}
 
 
@@ -159,38 +174,94 @@ class Graph {
 
 
 	/**
-	 * Change the range of the X- or Y- axes 
+	 * Set the name label for the X-axis
 	 *
-	 * @param  newval The new minimum or maximum range value
-	 * @param  type   Specify the X- or Y- limit to modify
+	 * @param  newName The text to be displayed beside the axis
 	 */
-	void setMinMax(float newval, int type) {
-		switch(type){
-			case 0: minX = newval; break;
-			case 1: maxX = newval; break;
-			case 2: minY = newval; break;
-			case 3: maxY = newval; break;
-		}
-
-		for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
+	void setXaxisName(String newName) {
+		xAxisName = newName;
 	}
 
 
 	/**
-	 * Get the current range of the X- or Y- axes 
+	 * Set the name label for the Y-axis
 	 *
-	 * @param  type Specify the X- or Y- limit to retrieve
-	 * @return The new minimum or maximum range value
+	 * @param  newName The text to be displayed beside the axis
 	 */
-	float getMinMax(int type) {
-		switch(type){
-			case 0: return minX;
-			case 1: return maxX;
-			case 2: return minY;
-			case 3: return maxY;
-			default: return 0;
-		}
+	void setYaxisName(String newName) {
+		yAxisName = newName;
 	}
+
+
+	/**
+	 * Set the minimum X-axis value
+	 *
+	 * @param  newValue The new x-axis minimum value
+	 * @return True if update is successful, false if newValue is invalid
+	 */
+	boolean setMinX(float newValue) {
+		if (validFloat(newValue) && newValue < maxX) {
+			minX = newValue;
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * Set the maximum X-axis value
+	 *
+	 * @param  newValue The new x-axis maximum value
+	 * @return True if update is successful, false if newValue is invalid
+	 */
+	boolean setMaxX(float newValue) {
+		if (validFloat(newValue) && newValue > minX) {
+			maxX = newValue;
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * Set the minimum Y-axis value
+	 *
+	 * @param  newValue The new y-axis minimum value
+	 * @return True if update is successful, false if newValue is invalid
+	 */
+	boolean setMinY(float newValue) {
+		if (validFloat(newValue) && newValue < maxY) {
+			minY = newValue;
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * Set the maximum Y-axis value
+	 *
+	 * @param  newValue The new y-axis maximum value
+	 * @return True if update is successful, false if newValue is invalid
+	 */
+	boolean setMaxY(float newValue) {
+		if (validFloat(newValue) && newValue > minY) {
+			maxY = newValue;
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * Functions to get the range of the X- or Y- axes
+	 *
+	 * @return The new minimum or maximum range value
+	 */	
+	float getMinX() { return minX; }
+	float getMaxX() { return maxX; }
+	float getMinY() { return minY; }
+	float getMaxY() { return maxY; }
 
 
 	/**
@@ -199,6 +270,27 @@ class Graph {
 	void resetGraph(){
 		for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
 		for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
+	}
+
+
+	/**
+	 * Reset and remove all saved data
+	 */
+	void reset() {
+		while(lastX.length > 0) lastX = shorten(lastX);
+		while(lastY.length > 0) lastY = shorten(lastY);
+	}
+
+
+	/**
+	 * Test whether a float number is valid
+	 *
+	 * @param  newNumber The number to test
+	 * @return True if valid, false is number is NaN or Infinity
+	 */
+	boolean validFloat(float newNumber) {
+		if ((newNumber != newNumber) || newNumber == Float.POSITIVE_INFINITY || newNumber == Float.NEGATIVE_INFINITY) return false;
+		return true;
 	}
 
 
@@ -224,9 +316,9 @@ class Graph {
 	 * @param  type The name of the graph type to display
 	 */
 	void setGraphType(String type) {
-		if (type == "linechart") plotType = "linechart";
-		else if (type == "dotchart") plotType = "dotchart";
-		else if (type == "barchart") plotType = "barchart";
+		if (type == "linechart") plotType = 0;
+		else if (type == "dotchart") plotType = 1;
+		else if (type == "barchart") plotType = 2;
 	}
 
 
@@ -236,7 +328,12 @@ class Graph {
 	 * @return The name of the graph type being displayed
 	 */
 	String getGraphType() {
-		return plotType;
+		switch (plotType) {
+			case 0: return "linechart";
+			case 1: return "dotchart";
+			case 2: return "barchart";
+			default: return "invalid";
+		}
 	}
 
 
@@ -249,21 +346,8 @@ class Graph {
 	 * @param  state
 	 * @param  update
 	 */
-	void setHighlight(boolean state, boolean update) {
+	void setHighlight(boolean state) {
 		highlighted = state;
-
-		if (update) {
-			// Clear the content area
-			rectMode(CORNER);
-			noStroke();
-			fill(c_background);
-			rect(cL + int(9 * uimult), cT + int(9 * uimult), textWidth(plotName) + int(2 * uimult), int(16 * uimult));
-
-			textAlign(LEFT, TOP);
-			fill(c_lightgrey);
-			if (highlighted) fill(c_red);
-			text(plotName, cL + int(10 * uimult), cT + int(10 * uimult));
-		}
 	}
 
 
@@ -275,7 +359,8 @@ class Graph {
 	 * @return True if coordinate is within the graph area
 	 */
 	boolean onGraph(int xCoord, int yCoord) {
-		if (xCoord >= gL && xCoord <= gR && yCoord >= gT && yCoord <= gB) return true;
+		//if (xCoord >= gL && xCoord <= gR && yCoord >= gT && yCoord <= gB) return true;
+		if (xCoord >= cL && xCoord <= cR && yCoord >= cT && yCoord <= cB) return true;
 		else return false;
 	}
 
@@ -287,6 +372,8 @@ class Graph {
 	 * @return The graph X-axis value at this X-coordinate
 	 */
 	float xGraphPos(int xCoord) {
+		if (xCoord < gL) xCoord = gL;
+		else if (xCoord > gR) xCoord = gR;
 		return map(xCoord, gL, gR, 0, 1);
 	}
 
@@ -298,7 +385,19 @@ class Graph {
 	 * @return The graph Y-axis value at this Y-coordinate
 	 */
 	float yGraphPos(int yCoord) {
+		if (yCoord < gT) yCoord = gT;
+		else if (yCoord > gB) yCoord = gB;
 		return map(yCoord, gT, gB, 0, 1);
+	}
+
+
+	void plotData(float dataY, int type) {
+	
+		// Ensure that the element actually exists in data arrays
+		while(lastY.length < type + 1) lastY = append(lastY, -99999999);
+		while(lastX.length < type + 1) lastX = append(lastX, 0);
+
+		plotData(dataY, lastX[type] + xStep, type);
 	}
 
 
@@ -311,61 +410,65 @@ class Graph {
 	 */
 	void plotData(float dataY, float dataX, int type) {
 
-		// Deal with labels
-		/*
-		if(type == -1) {
-			stroke(c_sidebar);
-			strokeWeight(1 * uimult);
-			line(map(lastX[0], minX, maxX, gL, gR), gT, map(lastX[0], minX, maxX, gL, gR), gB);
-			return;
-		}*/
+		if (validFloat(dataY) && validFloat(dataX)) {
+			// Deal with labels
+			/*
+			if(type == -1) {
+				stroke(c_sidebar);
+				strokeWeight(1 * uimult);
+				line(map(lastX[0], minX, maxX, gL, gR), gT, map(lastX[0], minX, maxX, gL, gR), gB);
+				return;
+			}*/
 
-		float xStep = 1 / float(xRate);
-		int x1, y1, x2 = gL, y2;
+			int x1, y1, x2 = gL, y2;
 
-		// Ensure that the element actually exists in data arrays
-		while(lastY.length < type + 1) lastY = append(lastY, -99999999);
-		while(lastX.length < type + 1) lastX = append(lastX, 0);
-		
-		// Redraw grid, if required
-		if(lastX[type] == 0 && redrawGraph) drawGrid();
+			// Ensure that the element actually exists in data arrays
+			while(lastY.length < type + 1) lastY = append(lastY, -99999999);
+			while(lastX.length < type + 1) lastX = append(lastX, 0);
+			
+			// Redraw grid, if required
+			if (redrawGraph) drawGrid();
 
-		// Bound the Y-axis data
-		if (dataY > maxY && dataY != 99999999 && dataY != -99999999) dataY = maxY;
-		if (dataY < minY && dataY != 99999999 && dataY != -99999999) dataY = minY;
+			// Bound the Y-axis data
+			if (dataY > maxY) dataY = maxY;
+			if (dataY < minY) dataY = minY;
 
-		// Bound the X-axis
-		if (dataX > maxX && dataX != 99999999 && dataX != -99999999) dataX = maxX;
-		if (dataX < minX && dataX != 99999999 && dataX != -99999999) dataX = minX;
-
-		// Only plot data if it is within bounds
-		if(dataY >= minY && dataY <= maxY && dataY != 99999999) {
+			// Bound the X-axis
+			if (dataX > maxX) dataX = maxX;
+			if (dataX < minX) dataX = minX;
 
 			// Get relevant color from list
-			fill(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
-			stroke(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
+			int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
+			fill(c_colorlist[colorIndex]);
+			stroke(c_colorlist[colorIndex]);
 			strokeWeight(1 * uimult);
-			
-			switch(plotType){
 
-				case "dotchart":
+			switch(plotType){
+				// Dot chart
+				case 1:
 					// Determine x and y coordinates
-					if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
-					else x2 = round(map(dataX, minX, maxX, gL, gR));
+					x2 = round(map(dataX, minX, maxX, gL, gR));
 					y2 = round(map(dataY, minY, maxY, gB, gT));
 					
-					ellipse(x2, y2, 2*uimult, 2*uimult);
+					ellipse(x2, y2, 1*uimult, 1*uimult);
 					break;
 
-				case "barchart":
-					if(lastY[type] != -99999999){
+				// Bar chart
+				case 2:
+					if (lastY[type] != -99999999 && lastY[type] != 99999999) {
+						noStroke();
 						// Determine x and y coordinates
 						x1 = round(map(lastX[type], minX, maxX, gL, gR));
-						if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
-						else x2 = round(map(dataX, minX, maxX, gL, gR));
+						x2 = round(map(dataX, minX, maxX, gL, gR));
 						y1 = round(map(dataY, minY, maxY, gB, gT));
 						if (minY <= 0) y2 = round(map(0, minY, maxY, gB, gT));
 						else y2 = round(map(minY, minY, maxY, gB, gT));
+
+						// Figure out how wide the bar should be
+						int oneSegment = ceil((x2 - x1) / float(lastX.length));
+						x1 += oneSegment * type;
+						if (lastX.length > 1) x2 = x1 + oneSegment;
+						else x2 = x1 + ceil(oneSegment / 1.5);
 						
 						rectMode(CORNERS);
 						rect(x1, y1, x2, y2);
@@ -375,30 +478,19 @@ class Graph {
 				// linechart
 				default: 
 					// Only draw line if last value is set
-					if(lastY[type] != -99999999){
+					if (lastY[type] != -99999999) {
 						// Determine x and y coordinates
 						x1 = round(map(lastX[type], minX, maxX, gL, gR));
-						if(dataX == -99999999) x2 = round(map(lastX[type] + xStep, minX, maxX, gL, gR));
-						else x2 = round(map(dataX, minX, maxX, gL, gR));
+						x2 = round(map(dataX, minX, maxX, gL, gR));
 						y1 = round(map(lastY[type], minY, maxY, gB, gT));
 						y2 = round(map(dataY, minY, maxY, gB, gT));
 						line(x1, y1, x2, y2);
 					}
 					break;
 			}
-		}
-
-		if(int(lastY[type]) != -99999999) { 
-			if(dataX == -99999999) lastX[type] = lastX[type] + xStep;
-			else lastX[type] = dataX;
-		} else lastX[type] = 0;
-		lastY[type] = dataY;
-
-		if(x2 > gR) {
-			if (type == lastX.length - 1) {
-			  for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
-			} else lastX[type] = 0;
-			redrawGraph = true;
+			
+			lastY[type] = dataY;
+			lastX[type] = dataX;
 		}
 	}
 
@@ -444,35 +536,100 @@ class Graph {
 		rectMode(CORNER);
 		noStroke();
 		fill(c_background);
-		rect(gL, gT, gR - gL + 1, gB - gT + 1);
+		rect(gL, gT - (uimult * 1), gR - gL + (uimult * 1), gB - gT + (uimult * 2));
 
 		// Setup drawing parameters
 		strokeWeight(1 * uimult);
-
 		stroke(c_darkgrey);
 
+		// Draw X-axis grid lines
 		if (gridLines && gridX != 0) {
-			// X-axis Grid lines
-			for (float i = gL; i < gR; i += gridX) {
+			for (float i = offsetLeft; i < gR; i += gridX) {
 				line(i, gT, i, gB);
 			}
 		}
 
+		// Draw y-axis grid lines
 		if (gridLines && gridY != 0) {
-			// Y-axis Grid lines
-			for (float i = gT; i < gB; i += gridY) {
+			for (float i = offsetBottom; i > gT; i -= gridY) {
 				line(gL, i, gR, i);
 			}
 		}
 
 		float yZero = 0;
-		if ((minY > 0) || (maxY < 0)) yZero = minY;
+		float xZero = 0;
+		if (minY > 0) yZero = minY;
+		else if (maxY < 0) yZero = maxY;
+		if (minX > 0) xZero = minX;
+		else if (maxX < 0) xZero = maxX;
 
+		// Draw the graph axis lines
 		stroke(c_lightgrey);
-		line(gL, gT, gL, gB);
+		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
 		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
 
+		// Clear all previous data positions
 		resetGraph();
+	}
+
+
+	/**
+	 * Round a number to the closest suitable axis division size
+	 *
+	 * The axis divisions should end in the numbers 1, 2, 2.5, or 5
+	 * to ensure that the axes are easily interpretable
+	 *
+	 * @param  num The approximate division size we are aiming for
+	 * @return The closest idealised division size
+	 */
+	double roundToIdeal(float num) {
+		if(num == 0) {
+			return 0;
+		}
+
+		int n = 2;
+
+		final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
+		final int power = n - (int) d;
+
+		final double magnitude = Math.pow(10, power);
+		long shifted = Math.round(num*magnitude);
+
+		// Apply rounding to nearest useful divisor
+		if (abs(shifted) > 75) shifted = (num < 0)? -100:100;
+		else if (abs(shifted) > 30) shifted = (num < 0)? -50:50;
+		else if (abs(shifted) > 23) shifted = (num < 0)? -25:25;
+		else if (abs(shifted) > 15) shifted = (num < 0)? -20:20;
+		else shifted = (num < 0)? -10:10; 
+
+		return shifted/magnitude;
+	}
+
+
+	/**
+	 * Calculate the precision with which the graph axes should be drawn
+	 *
+	 * @param  maxValue The maximum axis value
+	 * @param  minValue The minimum axis value
+	 * @param  segments The step size with which the graph will be divided
+	 * @return The number of significant digits to display
+	 */
+	int calculateRequiredPrecision(double maxValue, double minValue, double segments) {
+		if (segments == 0 || maxValue == minValue) return 1;
+
+		double largeValue = (maxValue < 0) ? -maxValue : maxValue;
+		if (maxValue == 0 || -minValue > largeValue) largeValue = (minValue < 0) ? -minValue : minValue;
+
+		final double d1 = Math.ceil(Math.log10((segments < 0) ? -segments : segments));
+		final double d2 = Math.ceil(Math.log10(largeValue));
+		final double removeMSN = segments % Math.pow( 10, Math.floor( d1 ) ) ;
+
+		int value = abs((int) d2 - (int) d1);
+		if (removeMSN > 0) value++;
+
+		//println(maxValue + " - " + minValue + "(" + d2 + ") - " + segments + "(" + d1 + ") - " + value + " " + removeMSN);
+
+		return  value;
 	}
 
 
@@ -480,46 +637,8 @@ class Graph {
 	 * Draw the grid and axes of the graph
 	 */
 	void drawGrid() {
+
 		redrawGraph = false;
-
-		// X and Y axis zero
-		float yZero = 0, xZero = 0;
-		if ((minY > 0) || (maxY < 0)) yZero = minY;
-
-		int yOffset = round(map(yZero, minY, maxY, 0, yScale));
-		int xOffset = round(map(xZero, minX, maxX, 0, xScale));
-
-		float yDivUnit = abs((maxY - yZero) / float(yScale - yOffset));
-		float xDivUnit = abs((maxX - minX) / float(xScale));
-
-		// Text width and height
-		int padding = int(4 * uimult);
-		int yTextWidth = 0;
-		int xTextWidth = 0;
-		int yTextHeight = round(12 * uimult) + padding;
-		int xTextHeight = round(12 * uimult) + padding;
-
-		textSize(12 * uimult);
-		textFont(base_font);
-
-		// Find largest width, and use that as our width value
-		for (int i = 1; i < yScale; i++) {
-			if (textWidth(nfs(round(i * yDivUnit * 100) / 100.0,0,0)) + padding > yTextWidth) yTextWidth = round(textWidth(nfs(round(i * yDivUnit * 100) / 100.0,0,0)) + padding);
-		}
-		for (int i = 1; i < xScale; i++) {
-			if (textWidth(nfs(round(i * xDivUnit * 100) / 100.0,0,0)) + padding > xTextWidth) xTextWidth = round(textWidth(nfs(round(i * xDivUnit * 100) / 100.0,0,0)) + padding);
-		}
-
-		// Calculate graph area bounds
-		gL = cL + border + yTextWidth + graphMark + int(2 * uimult);
-		gT = cT + border;
-		gR = cR - border;
-		gB = cB - border - xTextHeight - graphMark;
-
-		if (squareGrid) {
-			if (gR - gL > gB - gT) gR -= ((gR - gL) - (gB - gT));
-			else gB -= ((gB - gT) - (gR - gL));
-		}
 
 		// Clear the content area
 		rectMode(CORNER);
@@ -527,135 +646,137 @@ class Graph {
 		fill(c_background);
 		rect(cL, cT, cR - cL, cB - cT);
 
-		// Setup drawing parameters
-		strokeWeight(1 * uimult);
-		fill(c_lightgrey);
-		textAlign(RIGHT, CENTER);
-		textFont(base_font);
-
 		// Add border and graph title
+		strokeWeight(1 * uimult);
 		stroke(c_darkgrey);
 		if (cT > round((tabHeight + 1) * uimult)) line(cL, cT, cR, cT);
 		if (cL > 1) line(cL, cT, cL, cB);
 		line(cL, cB, cR, cB);
-		line(cR, cT, cR, cB);
-		stroke(c_lightgrey);
+		line(cR, cT, cR, cB);		
 
 		textAlign(LEFT, TOP);
+		textFont(base_font);
+		fill(c_lightgrey);
 		if (highlighted) fill(c_red);
-		text(plotName, cL + int(10 * uimult), cT + int(10 * uimult));
+		text(plotName, cL + int(5 * uimult), cT + int(5 * uimult));
+
+		// X and Y axis zero
+		float yZero = 0;
+		float xZero = 0;
+		if (minY > 0) yZero = minY;
+		else if (maxY < 0) yZero = maxY;
+		if (minX > 0) xZero = minX;
+		else if (maxX < 0) xZero = maxX;
+
+		// Text width and height
+		textFont(mono_font);
+		int padding = int(5 * uimult);
+		int textHeight = int(textAscent() + textDescent() + padding);
+		float charWidth = textWidth("0");
+
+		// Calculate graph area bounds
+		gT = cT + border;
+		gB = cB - border - textHeight - graphMark;
+
+		// Calculate y-axis parameters
+		double y_segment = Math.abs(roundToIdeal((maxY - minY) * (textHeight * 2) / (gB - gT)));
+		double y_basePosition = yZero;
+		if (yZero > 0) y_basePosition = Math.ceil(minY / y_segment) * y_segment;
+		else if (yZero < 0) y_basePosition = -Math.ceil(-maxY / y_segment) * y_segment;
+		int y_precision = calculateRequiredPrecision(maxY, minY, y_segment);
+		double y_bottomPosition = y_basePosition - (Math.floor((y_basePosition - minY) / y_segment) * y_segment);
+		offsetBottom = map((float) y_bottomPosition, minY, maxY, gB, gT);
+		gridY = map((float) y_bottomPosition, minY, maxY, gB, gT) - map((float) (y_bottomPosition + y_segment), minY, maxY, gB, gT);;
+
+		int yTextWidth = int(max(String.format("%." + y_precision + "g", maxY).length(), 
+			String.format("%." + y_precision + "g", minY).length()) * charWidth);
+
+		gL = cL + border + yTextWidth + graphMark + padding;
+		gR = cR - border;
+
+		// Calculate x-axis parameters
+		double x_segment = Math.abs(roundToIdeal((maxX - minX) * (30 * 2) / (gR - gL)));
+		int x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
+		int xTextWidth = int(max(String.format("%." + x_precision + "g", maxX).length(), 
+			String.format("%." + x_precision + "g", minX).length()) * charWidth);
+
+		x_segment = Math.abs(roundToIdeal((maxX - minX) * (xTextWidth * 3) / (gR - gL)));
+		double x_basePosition = xZero;
+		if (xZero > 0) x_basePosition = Math.ceil(minX / x_segment) * x_segment;
+		else if (xZero < 0) x_basePosition = -Math.ceil(-maxX / x_segment) * x_segment;
+		x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
+		double x_leftPosition = x_basePosition - (Math.floor((x_basePosition - minX) / x_segment) * x_segment);
+		offsetLeft = map((float) x_leftPosition, minX, maxX, gL, gR);
+		gridX = map((float) (x_leftPosition + x_segment), minX, maxX, gL, gR) - map((float) x_leftPosition, minX, maxX, gL, gR);
+
 		fill(c_lightgrey);
 
-		textAlign(RIGHT, CENTER);
+		//if (yAxisName != "") {
+		//	textAlign(CENTER, CENTER);
+		//	pushMatrix();
+		//	translate(border / 2, (gB + gT) / 2);
+		//	rotate(-HALF_PI);
+		//	text("Some text here",0,0);
+		//	popMatrix();
+		//}
 
 		// ---------- Y-AXIS ----------
-		int labelsHeight = yScale * yTextHeight;
-		gridY = 0;
-		float gridYold = 0;
+		textAlign(RIGHT, CENTER);
 
-		// Draw each of the division markings
-		for (int i = 0;  i < yScale; i++){
+		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
+			float currentYpixel = map((float) i, minY, maxY, gB, gT);
 
-			float currentY = yZero;
-			if (i < yOffset) currentY -= yDivUnit * (yOffset - i);
-			else currentY += yDivUnit * (i - yOffset);
+			if (gridLines) {
+				stroke(c_darkgrey);
+				line(gL, currentYpixel, gR, currentYpixel);
+			}
 
-			float currentYpixel = map(currentY, minY, maxY, gB, gT);
+			String label = String.format("%." + y_precision + "g", i);
+			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
 
-			if (currentYpixel >= gT && currentYpixel <= gB) {
-				// Small inbetween mark
-				stroke(c_lightgrey);
-				line(gL - (graphMark * 0.6), currentYpixel, gL - round(1 * uimult), currentYpixel);
+			stroke(c_lightgrey);
+			text(label, gL - graphMark - padding, currentYpixel - (1 * uimult));
+			line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
 
-				if (squareGrid && gridLines) {
-					stroke(c_darkgrey);
-					line(gL, currentYpixel, gR, currentYpixel);
-				}
-
-				// Only show labels if there is enough room on screen
-				for (float j = 1; j <= yScale; j*=2){
-					
-				  
-					if ((i%j == 0) && (labelsHeight / j < gB - gT)) {
-
-						// Draw background grid line, if enabelled
-						if (gridLines) {
-							stroke(c_darkgrey);
-							line(gL, currentYpixel, gR, currentYpixel);
-							gridYold = gridY;
-							gridY = currentYpixel;
-						}
-
-						// Limit to 2 decimal places, but only show decimals if needed
-						String label = nf(int(currentY * 100) / 100.0,0,0);
-
-						// Draw axis labelling
-						stroke(c_lightgrey);
-						text(label, cL + border, currentYpixel - ((yTextHeight + padding) / 2), yTextWidth, yTextHeight);
-						line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
-						break;
-					}
-				}
+			// Minor graph lines
+			if (i > y_bottomPosition) {
+				float minorYpixel = map((float) (i - (y_segment / 2.0)), minY, maxY, gB, gT);
+				line(gL - (graphMark / 2.0), minorYpixel, gL - round(1 * uimult), minorYpixel);
 			}
 		}
 
-		gridY = abs(gridY - gridYold);
 
 		// ---------- X-AXIS ----------
-		textAlign(CENTER, CENTER);
-		textFont(base_font);
-		int labelsWidth = xScale * xTextWidth;
-		gridX = 0;
-		float gridXold = 0;
+		textAlign(CENTER, TOP);
+		if (xAxisName != "") text(xAxisName, (gL + gR) / 2, cB - border + padding);
 
-		// Draw each of the division markings
-		for (int i = 0;  i < xScale; i++){
+		// Move right first
+		for (double i = x_leftPosition; i <= maxX; i += x_segment) {
+			float currentXpixel = map((float) i, minX, maxX, gL, gR);
 
-			float currentX = xZero;
-			if (i < xOffset) currentX -= xDivUnit * (xOffset - i);
-			else currentX += xDivUnit * (i - xOffset);
-
-			float currentXpixel = map(currentX, minX, maxX, gL, gR);
-			float yZeroPixel = map(yZero, minY, maxY, gB, gT);
-
-			// Small inbetween mark
-			stroke(c_lightgrey);
-			line(currentXpixel, gB, currentXpixel, gB + (graphMark * 0.6));
-
-			if (squareGrid && gridLines) {
+			if (gridLines) {
 				stroke(c_darkgrey);
 				line(currentXpixel, gT, currentXpixel, gB);
 			}
 
-			// Only show labels if there is enough room on screen
-			for (int j = 1; j <= xScale; j*=2){
+			String label = String.format("%." + x_precision + "g", i);
+			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
 
-				if ((i%j == 0) && (labelsWidth / j < gR - gL)) {
+			stroke(c_lightgrey);
+			text(label, currentXpixel, gB + graphMark + padding);
+			line(currentXpixel, gB, currentXpixel, gB + graphMark);
 
-					// Draw background grid line, if enabelled
-					if (gridLines) {
-						stroke(c_darkgrey);
-						line(currentXpixel, gT, currentXpixel, gB);
-						gridXold = gridX;
-						gridX = currentXpixel;
-					}
-
-					// Limit to 2 decimal places, but only show decimals if needed
-					String label = nf(round(currentX * 100) / 100.0,0,0);
-
-					// Draw axis labelling
-					stroke(c_lightgrey);
-					text(label, currentXpixel - (xTextWidth / 2), gB + graphMark, xTextWidth, xTextHeight);
-					line(currentXpixel, gB, currentXpixel, gB + graphMark);
-					break;
-				}
+			// Minor graph lines
+			if (i > x_leftPosition) {
+				float minorXpixel = map((float) (i - (x_segment / 2.0)), minX, maxX, gL, gR);
+				line(minorXpixel, gB, minorXpixel, gB + (graphMark / 2.0));
 			}
 		}
 
-		gridX = abs(gridX - gridXold);
-
+		// The outer grid axes
 		stroke(c_lightgrey);
-		line(gL, gT, gL, gB);
+		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
 		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
+		textFont(base_font);
 	}
 }

@@ -3,8 +3,8 @@
  *
  * Code by: Simon Bluett
  * Email:   hello@chillibasket.com
- * Date:    6th August 2020
- * Version: 1.7
+ * Date:    25th August 2020
+ * Version: 1.8
  * Copyright (C) 2020, GPL v3
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -70,7 +70,7 @@ int tabWidth = 90;
 int tabHeight = 30;
 int sidebarWidth = 150;
 int sideItemHeight = 30;
-int bottombarHeight = 20;
+int bottombarHeight = 22;
 // -----------------------------------------------------------------------------
 
 // Serial Port Variables
@@ -79,16 +79,20 @@ int portNumber = 0;
 int baudRate = 9600;
 char lineEnding = '\n';
 boolean serialConnected = false;
+String currentPort = "";
+String[] portList;
 
 // Drawing Booleans
 boolean redrawUI = true;
 boolean redrawAlert = false;
 boolean redrawContent = true;
 boolean drawNewData = false;
+boolean preventDrawing = false;
 
 // Interaction Booleans
 boolean textInput = false;
 boolean controlKey = false;
+boolean scrollingActive = false;
 
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
@@ -112,33 +116,36 @@ int tabTop = round(tabHeight * uimult);
  *********************************************/
 void setup() {
 	size(1000, 700);
+
 	background(c_background);
 
 	// Draw a loading sign
 	textAlign(CENTER, CENTER);
-	textSize(18 * uimult);
+	textSize(int(18 * uimult));
 	fill(255);
 	text("Loading", 0, 0, width, height);
 	line(0, height/2 - (14 * uimult), width, height/2 - (14 * uimult));
 	line(0, height/2 - (18 * uimult), width, height/2 - (18 * uimult));
 	line(0, height/2 + (22 * uimult), width, height/2 + (22 * uimult));
 	line(0, height/2 + (26 * uimult), width, height/2 + (26 * uimult));
+	textSize(int(12 * uimult));
 
 	// These lines implement a minimum window size
 	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
 	JFrame jf = (JFrame) sc.getFrame();
-	Dimension d = new Dimension(500, 500);
+	Dimension d = new Dimension(500, 350);
 	jf.setMinimumSize(d);
-	
+
 	// Set up the canvas
 	surface.setResizable(true);
+
 	frameRate(60);
 
-
 	// Initialise the fonts
-	base_font = createFont(programFont, 12*uimult);
-	mono_font = createFont(terminalFont, 13*uimult);
-	
+	base_font = createFont(programFont, int(13*uimult), true);
+	mono_font = createFont(terminalFont, int(14*uimult), true);
+	textFont(base_font);
+
 	// Calculate screen size of the tab content area
 	int tabWidth2 = round(width - (sidebarWidth * uimult));
 	int tabBottom = round(height - (bottombarHeight * uimult));
@@ -147,8 +154,9 @@ void setup() {
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
-	
-	//delay(20);
+
+	portList = Serial.list();
+	thread("checkSerialPortList");
 }
 
 
@@ -162,8 +170,8 @@ void uiResize(float amount) {
 	uimult += amount;
 
 	// Resize fonts
-	base_font = createFont(programFont, 12*uimult);
-	mono_font = createFont(terminalFont, 13*uimult);
+	base_font = createFont(programFont, int(13*uimult), true);
+	mono_font = createFont(terminalFont, int(14*uimult), true);
 	tabTop = round(tabHeight * uimult);
 
 	// Update sizing on all tabs
@@ -181,7 +189,35 @@ void uiResize(float amount) {
  * Draw
  *********************************************/
 void draw() {
-	if (!alertActive) {
+
+	if (alertActive && (redrawContent || drawNewData || redrawUI)) {
+		redrawContent = true;
+		redrawUI = true;
+		redrawAlert = true;
+	}
+
+	// If the window is resized, redraw all elements at the new size
+	if ((lastWidth != width) || (lastHeight != height)){
+		if (width < 400 || height < 300) {
+			background(c_background);
+			textAlign(CENTER, CENTER);
+			text("Window Size too small !", width / 2, height / 2);
+			lastWidth = width;
+			lastHeight = height;
+			preventDrawing = true;
+		} else {
+			redrawUI = true;
+			redrawContent = true;
+			preventDrawing = false;
+			lastWidth = width;
+			lastHeight = height;
+			for (TabAPI curTab : tabObjects) {
+				curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
+			}
+		}
+	}
+
+	if (!preventDrawing) {
 		// Redraw the content area elements
 		if (redrawContent){
 			TabAPI curTab = tabObjects.get(currentTab);
@@ -203,25 +239,24 @@ void draw() {
 			redrawUI = false;
 		}
 
+		// Draw an FPS indicator
+		rectMode(CORNER);
+		noStroke();
+		textAlign(LEFT, TOP);
+		String frameRateText = "FPS: " + round(frameRate);
+		fill(c_tabbar);
+		rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
+		fill(c_white);
+		text(frameRateText, width - (10* uimult) - textWidth(frameRateText), 8*uimult);
+		if (alertActive && !redrawAlert) {
+			fill(c_white, 80);
+			rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
+		}
+
 		// Redraw the alert message
 		if(redrawAlert){
 			drawAlert();
 			redrawAlert = false;
-		}
-	}
-
-	// If the window is resized, redraw all elements at the new size
-	if ((lastWidth != width) || (lastHeight != height)){
-		redrawUI = true;
-		redrawContent = true;
-		if (alertActive) {
-			alertActive = false;
-			redrawAlert = true;
-		} 
-		lastWidth = width;
-		lastHeight = height;
-		for (TabAPI curTab : tabObjects) {
-			curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 		}
 	}
 }
@@ -238,7 +273,6 @@ void drawTabs (int highlight) {
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
 
 	// Tab Bar
 	fill(c_tabbar);
@@ -248,18 +282,23 @@ void drawTabs (int highlight) {
 
 	// Tab Buttons
 	int i = 0;
+	int calcWidth = int((tabWidth - 1) * uimult);
+
 	for(TabAPI curTab : tabObjects){
+		int calcXpos = int(i * tabWidth * uimult);
+
 		if(highlight == i){
 			fill(c_background);
-			rect((i * tabWidth) * uimult, 0, (tabWidth - 1) * uimult, (tabHeight) * uimult);
+			rect(calcXpos, 0, calcWidth, tabHeight * uimult);
 			fill(c_red);
-			rect((i * tabWidth) * uimult, 0, (tabWidth - 1) * uimult, 4 * uimult);
+			rect(calcXpos, 0, calcWidth, 4 * uimult);
 		} else {
 			fill(c_idletab);
-			rect((i * tabWidth) * uimult, 0, (tabWidth - 1) * uimult, (tabHeight - 1) * uimult);
+			rect(calcXpos, 0, calcWidth, (tabHeight - 1) * uimult);
 		}
+
 		fill(c_tabbar_text);
-		text(curTab.getName(), (i * tabWidth) * uimult, 0, (tabWidth - 1) * uimult, tabHeight * uimult);
+		text(curTab.getName(), calcXpos, 0, calcWidth, tabHeight * uimult);
 		i++;
 	}
 }
@@ -274,7 +313,6 @@ void drawSidebar () {
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
 
 	// Calculate sizing of sidebar
 	int sT = round(tabHeight * uimult);
@@ -284,15 +322,15 @@ void drawSidebar () {
 
 	// Bottom info area
 	fill(c_tabbar);
-	rect(0, height - (bottombarHeight * uimult), width - sW, bottombarHeight * uimult);
+	rect(0, height - (bottombarHeight * uimult), width - sW + 1, bottombarHeight * uimult);
 	fill(c_tabbar_h);
-	rect(0, height - (bottombarHeight * uimult), width - sW, 1 * uimult);
+	rect(0, height - (bottombarHeight * uimult), width - sW + 1, 1 * uimult);
 
 	// Sidebar
 	fill(c_sidebar);
 	rect(sL, sT, sW, sH);
 	fill(c_sidebar_h);
-	rect(sL, sT, 1 * uimult, sH);
+	rect(sL - 1, sT, 1 * uimult, sH);
 	
 	// Draw sidebar elements specific to the current tab
 	TabAPI curTab = tabObjects.get(currentTab);
@@ -317,7 +355,6 @@ void drawSidebar () {
 void drawText(String text, color textcolor, float lS, float tS, float iW, float tH) {
 	if (tS >= tabTop && tS <= height) {
 		textAlign(LEFT, CENTER);
-		textSize(12 * uimult);
 		textFont(base_font);
 		fill(textcolor);
 		text(text, lS, tS, iW, tH);
@@ -337,7 +374,6 @@ void drawText(String text, color textcolor, float lS, float tS, float iW, float 
 void drawHeading(String text, float lS, float tS, float iW, float tH){
 	if (tS >= tabTop && tS <= height) {
 		textAlign(CENTER, CENTER);
-		textSize(12 * uimult);
 		textFont(base_font);
 		fill(c_sidebar_heading);
 		text(text, lS, tS, iW, tH);
@@ -372,7 +408,6 @@ void drawButton(String text, color textcolor, color boxcolor, float lS, float tS
 		rectMode(CORNER);
 		noStroke();
 		textAlign(CENTER, CENTER);
-		textSize(12 * uimult);
 		textFont(base_font);
 		fill(boxcolor);
 		rect(lS, tS, iW, iH);
@@ -408,7 +443,6 @@ void drawDatabox(String text, color textcolor, float lS, float tS, float iW, flo
 		rectMode(CORNER);
 		noStroke();
 		textAlign(CENTER, CENTER);
-		textSize(12 * uimult);
 		textFont(base_font);
 		fill(c_sidebar_button);
 		rect(lS, tS, iW, iH);
@@ -469,7 +503,6 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	rectMode(CORNER);
 	noStroke();
 	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
 	textFont(base_font);
 
 	// Get text width
@@ -489,8 +522,8 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 		if ((textW + 2 * border > largestWidth) && (textW + 2 * border < boxWidth)) largestWidth = int(textW + 2 * border + 2 * uimult);
 		else if (textW + 2 * border > boxWidth) {
 			largestWidth = boxWidth;
-			boxHeight += int(20 * uimult * (ceil(textWidth(text[i]) / (boxWidth - 2 * border) - 1)));
-			itemHeight[i] += int(20 * uimult * (ceil(textWidth(text[i]) / (boxWidth - 2 * border) - 1)));
+			boxHeight += int(20 * uimult * (ceil(textW / (boxWidth - 2 * border) - 1)));
+			itemHeight[i] += int(20 * uimult * (ceil(textW / (boxWidth - 2 * border) - 1)));
 		}
 	}
 
@@ -551,27 +584,6 @@ void drawAlert () {
 	}
 	
 	drawMessageArea(heading, messages, 50 * uimult, width - 50 * uimult, (height / 2.5) - (alertHeight * uimult / 2), true);
-
-	// Setup drawing parameters
-	/*
-	rectMode(CORNER);
-	noStroke();
-	textAlign(CENTER, CENTER);
-	textSize(12 * uimult);
-	textFont(base_font);
-
-	// Slightly lighten the background content
-	fill(c_white, 50);
-	rect(0, 0, width, height);
-
-	// Draw the box and the text
-	fill(c_tabbar_h);
-	rect((width / 2) - (alertWidth * uimult / 2), (height / 2) - (alertHeight * uimult / 2), alertWidth * uimult, alertHeight * uimult);
-	fill(c_tabbar);
-	rect((width / 2) - ((alertWidth - 2) * uimult / 2), (height / 2) - ((alertHeight - 2) * uimult / 2), (alertWidth - 2) * uimult, (alertHeight - 2) * uimult);
-	fill(c_white);
-	text(alertHeading, (width / 2) - ((alertWidth - 2) * uimult / 2), (height / 2) - ((alertHeight - 2) * uimult / 2), (alertWidth - 2) * uimult, (alertHeight - 2) * uimult);
-	*/
 }
 
 
@@ -579,7 +591,6 @@ void drawAlert () {
  * Mouse Click Handler
  *********************************************/
 void mousePressed(){ 
-
 	if (!alertActive) {
 
 		// If mouse is hovering over the content area
@@ -600,8 +611,7 @@ void mousePressed(){
 
 		// If mouse is hovering over the side bar
 		if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.mclickSBar(mouseX, mouseY);
+			thread("menuClickEvent");
 		}
 
 	// If an alert is active, any mouse click hides the nofication
@@ -610,6 +620,17 @@ void mousePressed(){
 		redrawUI = true;
 		redrawContent = true;
 	}
+}
+
+// Handle menu click asynchronously in a separate thread
+void menuClickEvent() {
+	TabAPI curTab = tabObjects.get(currentTab);
+	curTab.mclickSBar(mouseX, mouseY);
+}
+
+
+void mouseReleased() {
+	if (scrollingActive) scrollingActive = false;
 }
 
 
@@ -628,7 +649,7 @@ void mouseWheel(MouseEvent event) {
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.scrollWheel(e);
 	}
-  
+
 	// If mouse is hovering over the side bar
 	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
 		TabAPI curTab = tabObjects.get(currentTab);
@@ -638,26 +659,42 @@ void mouseWheel(MouseEvent event) {
 }
 
 
+void scrollBarEvent() {
+	while (scrollingActive) {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.scrollBarUpdate(mouseX, mouseY);
+		delay(20);
+	}
+}
+
+
 /*****************************************//**
  * Keyboard Button Press Handler
  *********************************************/
+void keyTyped() {
+	//println("Typed: " + key + " " + (int)key + " " + keyCode);
+	TabAPI curTab = tabObjects.get(currentTab);
+	curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+}
+
 void keyPressed() {
+	//println("Pressed: " + key + " " + (int)key + " " + keyCode);
 
 	// Check for control key
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = true;
 
 	// Decrease UI scaling (CTRL and -)
-	} else if (controlKey && keyCode == 45) {
+	} else if (controlKey && (key == '-' || keyCode == 45)) {
 		uiResize(-0.1);
 	// Increase UI scaling (CTRL and +)
-	} else if (controlKey && key == '=') {
+	} else if (controlKey && (key == '=' || keyCode == 61)) {
 		uiResize(0.1);
 
 	// For all other keys, send them on to the active tab
-	} else {
+	} else if (key == CODED) {
 		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.keyboardInput(key);
+		curTab.keyboardInput(key, keyCode, true);
 	}
 
 	//print(key); print(", "); print(keyCode); print(", "); println(controlKey);
@@ -701,6 +738,7 @@ void setupSerial () {
 			try {
 				// Connect to the port
 				myPort = new Serial(this, Serial.list()[portNumber], baudRate);
+				currentPort = Serial.list()[portNumber];
 
 				// Trigger serial event once a line-ending is reached in the buffer
 				if (lineEnding != 0) {
@@ -720,8 +758,13 @@ void setupSerial () {
 
 	// Disconnect from serial port
 	} else {
+		try {
 		myPort.clear();
 		myPort.stop();
+		} catch (Exception e) {
+			println(e);
+		}
+		currentPort = "";
 		serialConnected = false;
 		redrawUI = true;
 	}
@@ -733,25 +776,31 @@ void setupSerial () {
  *
  * @param  myPort The selected serial COMs port
  *********************************************/
+
 void serialEvent (Serial myPort) {
 	try {
 		String inString;
 		if (lineEnding != 0) {
 			inString = myPort.readStringUntil(lineEnding);
-			inString = trim(inString);
 		} else {
 			inString = myPort.readString();
 		}
 
-		// Check if data is graphable
-		boolean graphable = numberMessage(inString);
+		//if (inString != null) {
+			inString = trim(inString);
 
-		// Send the data over to all the tabs
-		if (inString != null) {
+			// Remove line ending characters
+			inString = inString.replace("\n", "");
+			inString = inString.replace("\r", "");
+
+			// Check if data is graphable
+			boolean graphable = numberMessage(inString);
+
+			// Send the data over to all the tabs
 			for (TabAPI curTab : tabObjects) {
 				curTab.parsePortData(inString, graphable);
 			}
-		}
+		//}
 	} catch (Exception e) {
 		alertHeading = "Error\nUnable to read data from serial port:\n" + e;
 		println(e);
@@ -774,6 +823,49 @@ void serialSend (String message) {
 			println(e);
 			redrawAlert = true;
 		}
+	}
+}
+
+
+void serialSendDialog() {
+	final String message = showInputDialog("Serial Message:");
+	if (message != null){
+		serialSend(message);
+	}
+}
+
+
+void checkSerialPortList() {
+	while (true) {
+		boolean different = false;
+		boolean currentPortExists = false;
+
+		String[] currentList = Serial.list();
+		if (currentList.length != portList.length) different = true;
+
+		for (int i = 0; i < currentList.length; i++) {
+			if (i < portList.length) {
+				if (!currentList[i].equals(portList[i])) different = true;
+			}
+
+			if (currentPort.equals(currentList[i])) {
+				currentPortExists = true;
+				portNumber = i;
+			}
+		}
+
+		if (serialConnected && !currentPortExists) {
+			setupSerial();
+			alertHeading = "Error\nThe serial port has been disconnected";
+			redrawAlert = true;
+		}
+
+		if (different) {
+			redrawUI = true;
+		}
+
+		portList = currentList;
+		delay(1000);
 	}
 }
 
@@ -967,7 +1059,7 @@ String[] remove(String[] a, int index){
  * @return True if the character is a number
  */
 boolean charIsNum(char c) {
-	return 48<=c&&c<=57;
+	return 48 <= c && c <= 57;
 }
 
 
@@ -980,7 +1072,7 @@ boolean charIsNum(char c) {
 boolean numberMessage(String msg) {
 	for (int i = 0; i < msg.length() - 1; i++) {
 		char j = msg.charAt(i);
-		if (!charIsNum(j) && j != ',' && j != '-' && j != '+' && j != ' ' && j != '.' && j != '\n' && j != '\r') {
+		if ((j < 43 && j != ' ') || j > 57 || j == 47) {
 			return false;
 		}
 	}
@@ -1004,9 +1096,10 @@ interface TabAPI {
 	void mclickSBar (int xcoord, int ycoord);
 	void getContentClick (int xcoord, int ycoord);
 	void scrollWheel(float e);
+	void scrollBarUpdate(int xcoord, int ycoord);
 
 	// Keyboard input
-	void keyboardInput(char key);
+	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey);
 	
 	// Change content area size
 	void changeSize(int newL, int newR, int newT, int newB);

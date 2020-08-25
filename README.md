@@ -20,7 +20,7 @@ This is still a work in progress; please let me know if you come across any issu
 1. Serial terminal monitor
 	1. Connect to any serial port at any baud rate
 	1. Send and receive serial communication
-	1. Record the communication as a comma delimited file
+	1. Record all received messages in a text file
 	1. Change the colour of lines containing specific tags
 1. Live Graphing
 	1. Plot real-time data obtained from serial device on a graph
@@ -29,8 +29,7 @@ This is still a work in progress; please let me know if you come across any issu
 	1. Apply different colours and names to each input
 	1. Record the real-time data as a comma delimited file
 1. File Graphing
-	1. Opens comma delimited files for analysis
-	1. Apply different colours and names to each input
+	1. Opens comma delimited files for analysis (you can open the files recording using the "Live Graphing" tab)
 	1. Supports zooming into sections of the waveforms
 </br>
 </br>
@@ -39,7 +38,7 @@ This is still a work in progress; please let me know if you come across any issu
 1. Download and install the Processing IDE from [https://processing.org/](https://processing.org/).
 1. Clone/download all files in this repository.
 1. Open `ProcessingGrapher.pde` in the Processing editor.
-1. To change the size/scaling of all text and buttons, you can change the `uimult` multiplier on line 29.
+1. To change the size/scaling of all text and buttons, you can change the `uimult` multiplier on line 29. It is also possible to use the `CTRL+` and `CTRL-` keyboard combination while the program is active to increase/decrease the dynamically scaling factor. 
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
 	1. Go to the "Serial" or "Live Graph" tab of the program
@@ -71,6 +70,14 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 
 ## Changelog
+1. (23rd August 2020) Version 1.8
+	1. Added a file recording error recovery function, which deals with all possible error scenarios.
+	1. Optimised the Serial monitor text rendering to improve the frame rate.
+	1. Added menu button to turn off the automatic scrolling of the serial monitor.
+	1. Improved the menu UI to make it clearer when a button is disabled.
+	1. Menu clicks are no handled in a separate thread, meaning pop-ups etc. are no longer blocking.
+	1. Added a thread which updated the COM port list at regular intervals.
+	1. Overhauled the "Graph" drawing class to make it more robust to displaying a variety of data.
 1. (6th August 2020) Version 1.7
 	1. Revamped file saving process so that new entries are written to the output file the moment they are received.
 	1. When recording data for a long time, the entries are now automatically split into multiple files of maximum 100,000 rows.

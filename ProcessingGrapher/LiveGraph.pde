@@ -16,7 +16,6 @@ class LiveGraph implements TabAPI {
 	String name;
 
 	String outputfile;
-	PrintWriter outputObject;
 
 	String[] dataColumns = {};
 	int[] graphAssignment = {};
@@ -31,6 +30,7 @@ class LiveGraph implements TabAPI {
 	int selectedGraph;
 	boolean autoAxis;
 	int maxSamples;
+	int[] sampleWindow = {1000,1000,1000,1000};
 
 
 	/**
@@ -54,19 +54,28 @@ class LiveGraph implements TabAPI {
 		graphB = new Graph(cL, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 2");
 		graphC = new Graph((cL + cR) / 2, cR, cT, (cT + cB) / 2, 0, 10, 0, 1, "Graph 3");
 		graphD = new Graph((cL + cR) / 2, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 4");
-		graphA.setHighlight(true, false);
+		graphA.setHighlight(true);
+		graphA.setXaxisName("Time (s)");
+		graphB.setXaxisName("Time (s)");
+		graphC.setXaxisName("Time (s)");
+		graphD.setXaxisName("Time (s)");
+
 		graphMode = 1;
 		selectedGraph = 1;
+
 		outputfile = "No File Set";
 		recordData = false;
 		recordCounter = 0;
 		fileCounter = 0;
+
 		xRate = 100;
 		autoAxis = true;
+		
 		drawFrom = 0;
 		maxSamples = 10;
 
 		dataTable = new CustomTable();
+		
 		menuScroll = 0;
 		menuHeight = cB - cT - 1; 
 	}
@@ -118,59 +127,54 @@ class LiveGraph implements TabAPI {
 	 * Draw new tab data
 	 */
 	void drawNewData() {
-		// If there is content to draw
-		if (dataTable.getRowCount() > 0) {
-			
-			int samplesA = int(dataTable.getRowCount() - xRate * abs(graphA.getMinMax(1) - graphA.getMinMax(0)));
-			drawFrom = samplesA;
-			
-			int samplesB = dataTable.getRowCount();
-			int samplesC = samplesB;
-			int samplesD = samplesB;
+		int currentCount = dataTable.getRowCount();
 
+		// If there is content to draw
+		if (currentCount > 0) {
+			
+			int samplesA = currentCount - sampleWindow[0];
+			int samplesB = currentCount - sampleWindow[1];
+			int samplesC = currentCount - sampleWindow[2];
+			int samplesD = currentCount - sampleWindow[3];
+
+			drawFrom = samplesA;
 			graphA.clearGraph();
 			if (graphMode >= 2) {
 				graphB.clearGraph();
-				samplesB = int(dataTable.getRowCount() - xRate * abs(graphB.getMinMax(1) - graphB.getMinMax(0)));
 				if (samplesB < drawFrom) drawFrom = samplesB;
 			}
 			if (graphMode >= 3) {
 				graphC.clearGraph();
-				samplesC = int(dataTable.getRowCount() - xRate * abs(graphC.getMinMax(1) - graphC.getMinMax(0)));
 				if (samplesC < drawFrom) drawFrom = samplesC;
 			}
 			if (graphMode >= 4) {
 				graphD.clearGraph();
-				samplesD = int(dataTable.getRowCount() - xRate * abs(graphD.getMinMax(1) - graphD.getMinMax(0)));
 				if (samplesD < drawFrom) drawFrom = samplesD;
 			}
 
-			maxSamples = dataTable.getRowCount() - drawFrom;
+			maxSamples = currentCount - drawFrom;
 			if (drawFrom < 0) drawFrom = 0;
 
-			for (int j = drawFrom; j < dataTable.getRowCount() - 1; j++) {
+			for (int j = drawFrom; j < currentCount - 1; j++) {
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
 					try {
 						float dataPoint = dataTable.getFloat(j, i);
-						if(Float.isNaN(dataPoint)) dataPoint = 99999999;
+						if (dataPoint != dataPoint) dataPoint = 99999999;
 						if (graphAssignment[i] == 2 && graphMode >= 2 && samplesB <= drawFrom) {
-							checkGraphSize(dataPoint, 2);
-							graphB.plotData(dataPoint, -99999999, i);
+							checkGraphSize(dataPoint, graphB);
+							graphB.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 3 && graphMode >= 3 && samplesC <= drawFrom) {
-							checkGraphSize(dataPoint, 3);
-							graphC.plotData(dataPoint, -99999999, i);
+							checkGraphSize(dataPoint, graphC);
+							graphC.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 4 && graphMode >= 4 && samplesD <= drawFrom) {
-							checkGraphSize(dataPoint, 4);
-							graphD.plotData(dataPoint, -99999999, i);
+							checkGraphSize(dataPoint, graphD);
+							graphD.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 1 && samplesA <= drawFrom) {
-							checkGraphSize(dataPoint, 1);
-							graphA.plotData(dataPoint, -99999999, i);
+							checkGraphSize(dataPoint, graphA);
+							graphA.plotData(dataPoint, i);
 						}
 					} catch (Exception e) {
-						println("Error trying to plot file data.");
-						println(e);
-						println(drawFrom);
-						println(dataTable.getRowCount());
+						println("LiveGraph::drawNewData() - drawFrom: " + drawFrom + ", currentCount: " + currentCount + ", Error: " + e);
 					}
 				}
 				drawFrom++;
@@ -185,24 +189,18 @@ class LiveGraph implements TabAPI {
 	 * @param  dataPoint   Y-coordinate of new data point
 	 * @param  graphSelect Which if the 4 graphs to check
 	 */
-	void checkGraphSize(float dataPoint, int graphSelect) {
+	void checkGraphSize(float dataPoint, Graph currentGraph) {
 		
 		// If data exceeds graph size, resize the graph
 		if (autoAxis && dataPoint !=  99999999) {
 
-			Graph currentGraph;
-			if (graphSelect == 2) currentGraph = graphB;
-			else if (graphSelect == 3) currentGraph = graphC;
-			else if (graphSelect == 4) currentGraph = graphD;
-			else currentGraph = graphA;
-
-			if (dataPoint < currentGraph.getMinMax(2)) {
-				currentGraph.setMinMax(floorToSigFig(dataPoint, 2), 2);
+			if (dataPoint < currentGraph.getMinY()) {
+				currentGraph.setMinY(floorToSigFig(dataPoint, 1));
 				currentGraph.drawGrid();
 				redrawUI = true;
 			}
-			else if (dataPoint > currentGraph.getMinMax(3)) {
-				currentGraph.setMinMax(ceilToSigFig(dataPoint, 2), 3);
+			else if (dataPoint > currentGraph.getMaxY()) {
+				currentGraph.setMaxY(ceilToSigFig(dataPoint, 1));
 				currentGraph.drawGrid();
 				redrawUI = true;
 			}
@@ -257,7 +255,7 @@ class LiveGraph implements TabAPI {
 
 			// Test whether this file is actually accessible
 			if (saveFile(newoutput) == null) {
-				alertHeading = "Error\nUnable to access the selected output file location; is this actually a writable location?\n" + newoutput;
+				alertHeading = "Error\nUnable to access the selected output file location; perhaps this location is write-protected?\n" + newoutput;
 				newoutput = "No File Set";
 				redrawAlert = true;
 			}
@@ -289,7 +287,7 @@ class LiveGraph implements TabAPI {
 
 		// Open up the CSV output stream
 		if (!dataTable.openCSVoutput(outputfile)) {
-			alertHeading = "Error\nUnable to create the output file; is this actually a writable location?\n" + outputfile;
+			alertHeading = "Error\nUnable to create the output file; perhaps the location no longer exists?\n" + outputfile;
 			redrawAlert = true;
 		} else {
 			recordCounter = 0;
@@ -305,10 +303,68 @@ class LiveGraph implements TabAPI {
 	 */
 	void stopRecording(){
 		recordData = false;
-		dataTable.closeCSVoutput();
-		alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " samples to " + (fileCounter + 1) + " CSV file(s)";
+		if (dataTable.closeCSVoutput()) {
+			alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " samples to " + (fileCounter + 1) + " CSV file(s)";
+		} else {
+			emergencyOutputSave(false);
+		}
+		outputfile = "No File Set";
 		redrawAlert = true;
 		redrawUI = true;
+	}
+
+
+	/**
+	 * Recover from an rrror when recording data to file
+	 *
+	 * @param  continueRecording If we want to continue recording after dealing with the error
+	 */
+	void emergencyOutputSave(boolean continueRecording) {
+		dataTable.closeCSVoutput();
+
+		// Figure out name for new backup file
+		String[] tempSplit = split(outputfile, '/');
+		int dotPos = tempSplit[tempSplit.length - 1].lastIndexOf(".");
+		String nextoutputfile = tempSplit[tempSplit.length - 1].substring(0, dotPos);
+		outputfile = nextoutputfile + "-backup.csv";
+
+		String emergencysavefile = nextoutputfile + "-backup-" + (fileCounter + 1) + ".csv";
+
+		try {
+			// Backup the existing data
+			saveTable(dataTable, emergencysavefile);
+
+			// If we want to continue recording, try setting up a new output file
+			if (continueRecording) {
+				fileCounter++;
+				nextoutputfile = nextoutputfile + "-backup-" + (fileCounter + 1) + ".csv";
+
+				// If new output file was successfully opened, only show a Warning message
+				if (dataTable.openCSVoutput(nextoutputfile)) {
+					alertHeading = "Warning\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. Data is still being recorded (to a new file)\n3. The files are in the same directory as ProcessingGrapher.exe";
+				
+				// If not, show an error message that the recording has stopped
+				} else {
+					recordData = false;
+					redrawUI = true;
+					alertHeading = "Error - Recording Stopped\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. The files are in the same directory as ProcessingGrapher.exe";
+				}
+
+			// If we don't want to continue, show a simple error message
+			} else {
+				recordData = false;
+				alertHeading = "Error\nAn issue occurred when trying to save new data to the ouput file.\n1. Data recording has been stopped\n2. A backup of all the data has been created\n3. The backup is in the same directory as ProcessingGrapher.exe";
+			}
+
+			redrawAlert = true;
+
+		// If something went wrong in the error recovery process, show a critical error message
+		} catch (Exception e) {
+			dataTable.closeCSVoutput();
+			recordData = false;
+			redrawAlert = true;
+			alertHeading = "Critical Error\nAn issue occurred when trying to save new data to the ouput file.\nData backup was also unsuccessful, so some data may have been lost...\n" + e;
+		}
 	}
 
 
@@ -334,21 +390,29 @@ class LiveGraph implements TabAPI {
 	
 			// --- Data Recording ---
 			TableRow newRow = dataTable.addRow();
+			//float[] newData = new float[dataArray.length];
+
 			// Go through each data column, and try to parse and add to file
 			for(int i = 0; i < dataArray.length; i++){
 				try {
 					float dataPoint = Float.parseFloat(dataArray[i]);
 					newRow.setFloat(i, dataPoint);
+					//newData[i] = dataPoint;
+					//checkGraphSize(dataPoint, 0);
 				} catch (Exception e) {
 					print(e);
 					println(" - When parsing live graph data");
 				}
 			}
 
+			//graphA.bufferNewData(newData);
+
 			// Record data to file
 			if (recordData) {
 				recordCounter++;
-				dataTable.saveCSVentries(dataTable.lastRowIndex(), dataTable.lastRowIndex());
+				if (!dataTable.saveCSVentries(dataTable.lastRowIndex(), dataTable.lastRowIndex())) {
+					emergencyOutputSave(true);
+				}
 
 				// Separate data into files once the max number of rows has been reached
 				if (recordCounter >= maxFileRows) {
@@ -359,15 +423,21 @@ class LiveGraph implements TabAPI {
 					int dotPos = outputfile.lastIndexOf(".");
 					String nextoutputfile = outputfile.substring(0, dotPos);
 					nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".csv";
-					dataTable.openCSVoutput(nextoutputfile);
+					if (!dataTable.openCSVoutput(nextoutputfile)) {
+						emergencyOutputSave(true);
+					}
+
+					// Ensure table is empty
+					dataTable = new CustomTable();
+					drawFrom = 0;
 				}
-			}
-			
-			// Remove rows from table which don't need to be shown on the graphs anymore
-			while (dataTable.getRowCount() > maxSamples) {
-				dataTable.removeRow(0);
-				drawFrom--;
-				if (drawFrom < 0) drawFrom = 0;
+			} else {
+				// Remove rows from table which don't need to be shown on the graphs anymore
+				while (dataTable.getRowCount() > maxSamples) {
+					dataTable.removeRow(0);
+					drawFrom--;
+					if (drawFrom < 0) drawFrom = 0;
+				}
 			}
 	
 			drawNewData = true;
@@ -433,19 +503,29 @@ class LiveGraph implements TabAPI {
 			menuScroll = -1;
 		}
 
-		// Connect or Disconnect to COM Port
-		//drawHeading("COM Port", iL, sT + (uH * 0), iW, tH);
-		//String[] ports = Serial.list();
-		//if(ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
-		//else if(ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
-		//else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
-		//drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
-		//drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
-
 		// Save to File
 		drawHeading("Record Graph Data", iL, sT + (uH * 0), iW, tH);
-		drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
-		drawButton((recordData)? "Stop Recording":"Start Recording", (recordData)? c_red:c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+		if (outputfile == "No File Set" || outputfile == "") {
+			drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
+			drawDatabox("Start Recording", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+		} else {
+			String[] fileParts = split(outputfile, '/');
+			String fileName = fileParts[fileParts.length - 1];
+			if (textWidth(fileName) > iW - (20 * uimult)) {
+				while (textWidth(fileName) > iW - (20 * uimult)) {
+					fileName = fileName.substring(1, fileName.length());
+				}
+				fileName = "..." + fileName;
+			}
+
+			if (recordData) {
+				drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
+				drawButton("Stop Recording", c_red, iL, sT + (uH * 2), iW, iH, tH);
+			} else {
+				drawDatabox(fileName, c_white, iL, sT + (uH * 1), iW, iH, tH);
+				drawButton("Start Recording", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+			}
+		}
 
 		// Graph options
 		Graph currentGraph;
@@ -461,12 +541,12 @@ class LiveGraph implements TabAPI {
 		drawRectangle(c_grey, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.getMinMax(0)), c_sidebar_button, iL,                           sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("x",                             c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(1)),                   iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(2)),                   iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("y",                             c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMinMax(3)),                   iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinX()), c_sidebar_button, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("x",        c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMaxX()), iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinY()), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("y",        c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMaxY()), iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 8), iW, tH);
@@ -523,28 +603,30 @@ class LiveGraph implements TabAPI {
 	 *
 	 * @param  key The character of the key that was pressed
 	 */
-	void keyboardInput(char key) {
-		if (key == 's' && serialConnected) {
-			final String message = showInputDialog("Serial Message:");
-			if (message != null){
-				serialSend(message);
-			}
+	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey) {
+		if (!codedKey && key == 's' && serialConnected) {
+			thread("serialSendDialog");
 
-		} else if (keyCode == UP) {
-			// Scroll menu bar
-			if (mouseX >= cR && menuScroll != -1) {
-				menuScroll -= (12 * uimult);
-				if (menuScroll < 0) menuScroll = 0;
-			}
-			redrawUI = true;
+		} else if (codedKey) {
+			switch (keyCodeInt) {
+				case UP:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll -= (12 * uimult);
+						if (menuScroll < 0) menuScroll = 0;
+					}
+					redrawUI = true;
+					break;
 
-		} else if (keyCode == DOWN) {
-			// Scroll menu bar
-			if (mouseX >= cR && menuScroll != -1) {
-				menuScroll += (12 * uimult);
-				if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+				case DOWN:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll += (12 * uimult);
+						if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+					}
+					redrawUI = true;
+					break;
 			}
-			redrawUI = true;
 		}
 	}
 
@@ -558,32 +640,36 @@ class LiveGraph implements TabAPI {
 	void getContentClick (int xcoord, int ycoord) {
 		if ((graphMode == 1 || ycoord <= (cT + cB) / 2) && (graphMode < 3 || xcoord <= (cL + cR) / 2)) {
 			selectedGraph = 1;
-			graphA.setHighlight(true, true);
-			graphB.setHighlight(false, (graphMode > 1)? true:false);
-			graphC.setHighlight(false, (graphMode > 2)? true:false);
-			graphD.setHighlight(false, (graphMode > 3)? true:false);
+			graphA.setHighlight(true);
+			graphB.setHighlight(false);
+			graphC.setHighlight(false);
+			graphD.setHighlight(false);
 			redrawUI = true;
+			redrawContent = true;
 		} else if ((ycoord > (cT + cB) / 2 && graphMode > 1) && (xcoord <= (cL + cR) / 2 || graphMode < 4)) {
 			selectedGraph = 2;
+			graphA.setHighlight(false);
+			graphB.setHighlight(true);
+			graphC.setHighlight(false);
+			graphD.setHighlight(false);
 			redrawUI = true;
-			graphA.setHighlight(false, true);
-			graphB.setHighlight(true, true);
-			graphC.setHighlight(false, (graphMode > 2)? true:false);
-			graphD.setHighlight(false, (graphMode > 3)? true:false);
+			redrawContent = true;
 		} else if ((ycoord <= (cT + cB) / 2 && graphMode > 2) && (xcoord > (cL + cR) / 2)) {
 			selectedGraph = 3;
+			graphA.setHighlight(false);
+			graphB.setHighlight(false);
+			graphC.setHighlight(true);
+			graphD.setHighlight(false);
 			redrawUI = true;
-			graphA.setHighlight(false, true);
-			graphB.setHighlight(false, true);
-			graphC.setHighlight(true, true);
-			graphD.setHighlight(false, (graphMode > 3)? true:false);
+			redrawContent = true;
 		} else if ((ycoord > (cT + cB) / 2 && graphMode > 3) && (xcoord > (cL + cR) / 2)) {
 			selectedGraph = 4;
+			graphA.setHighlight(false);
+			graphB.setHighlight(false);
+			graphC.setHighlight(false);
+			graphD.setHighlight(true);
 			redrawUI = true;
-			graphA.setHighlight(false, true);
-			graphB.setHighlight(false, true);
-			graphC.setHighlight(false, true);
-			graphD.setHighlight(true, true);
+			redrawContent = true;
 		}
 	}
 
@@ -602,6 +688,17 @@ class LiveGraph implements TabAPI {
 		}
 
 		redrawUI = true;
+	}
+
+
+	/**
+	 * Scroll bar handler function
+	 *
+	 * @param  xcoord Current mouse x-coordinate position
+	 * @param  ycoord Current mouse y-coordinate position
+	 */
+	void scrollBarUpdate(int xcoord, int ycoord) {
+
 	}
 
 
@@ -626,51 +723,12 @@ class LiveGraph implements TabAPI {
 		int iL = round(sL + (10 * uimult));
 		int iW = int(sW - (20 * uimult));
 
-		// COM Port Number
-		/*
-		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
-			// Make a list of available serial ports and convert into string
-			String dialogOutput = "List of available ports:\n";
-			String[] ports = Serial.list();
-			if(ports.length == 0) dialogOutput += "No ports available!\n";
-			else {
-				for(int i = 0; i < ports.length; i++) dialogOutput += ("[" + i + "]: " + ports[i] + "\n");
-			}
-
-			final String id = showInputDialog(dialogOutput + "\nPlease enter a list number for the port:");
-
-			if (id != null){
-				try {
-					portNumber = Integer.parseInt(id);
-					redrawUI = true;
-				} catch (Exception e) {}
-			} 
-		}
-
-		// COM Port Baud Rate
-		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
-
-			final String rate = showInputDialog("Please enter a baud rate:");
-
-			if (rate != null){
-				try {
-					baudRate = Integer.parseInt(rate);
-					redrawUI = true;
-				} catch (Exception e) {}
-			} 
-		}
-
-		// Connect or disconnect COM port
-		else if ((mouseY > sT + (uH * 3)) && (mouseY < sT + (uH * 3) + iH)){
-
-			// Connect or disconnect from the port
-			setupSerial();
-		}*/
-
 		// Select output file name and directory
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
-			outputfile = "";
-			selectOutput("Select a location and name for the output *.csv file", "fileSelected");
+			if (!recordData) {
+				outputfile = "";
+				selectOutput("Select a location and name for the output *.csv file", "fileSelected");
+			}
 		}
 		
 		// Start recording data and saving it to a file
@@ -679,10 +737,11 @@ class LiveGraph implements TabAPI {
 				stopRecording();
 			} else if(outputfile != "" && outputfile != "No File Set"){
 				startRecording();
-			} else {
-				alertHeading = "Error\nPlease set an output file path.";
-				redrawAlert = true;
 			}
+			//else {
+			//	alertHeading = "Error\nPlease set an output file path.";
+			//	redrawAlert = true;
+			//}
 		}
 
 		// Change graph type
@@ -735,11 +794,14 @@ class LiveGraph implements TabAPI {
 
 			// Change X axis maximum value
 			if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String xMax = showInputDialog("Please enter new X-axis maximum value:");
+				final String xMax = showInputDialog("Please enter new X-axis maximum value:\nCurrent value = " + currentGraph.getMaxX());
 				if (xMax != null){
 					try {
-						currentGraph.setMinMax(Float.parseFloat(xMax), 1);
-					} catch (Exception e) {}
+						currentGraph.setMaxX(Float.parseFloat(xMax));
+						sampleWindow[selectedGraph - 1] = int(xRate * abs(currentGraph.getMaxX() - currentGraph.getMinX()));
+					} catch (Exception e) {
+						println("LiveGraph::mclickSBar() - X-axis max value error: " + e);
+					}
 				} 
 				redrawContent = redrawUI = true;
 			}
@@ -755,22 +817,26 @@ class LiveGraph implements TabAPI {
 
 			// Change Y axis minimum value
 			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String yMin = showInputDialog("Please enter new Y-axis minimum value:");
+				final String yMin = showInputDialog("Please enter new Y-axis minimum value:\nCurrent value = " + currentGraph.getMinY());
 				if (yMin != null){
 					try {
-						currentGraph.setMinMax(Float.parseFloat(yMin), 2);
-					} catch (Exception e) {}
+						currentGraph.setMinY(Float.parseFloat(yMin));
+					} catch (Exception e) {
+						println("FileGraph::mclickSBar() - Y-axis min value error: " + e);
+					}
 				} 
 				redrawContent = redrawUI = true;
 			}
 
 			// Change Y axis maximum value
 			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String yMax = showInputDialog("Please enter new Y-axis maximum value:");
+				final String yMax = showInputDialog("Please enter new Y-axis maximum value:\nCurrent value = " + currentGraph.getMaxY());
 				if (yMax != null){
 					try {
-						currentGraph.setMinMax(Float.parseFloat(yMax), 3);
-					} catch (Exception e) {}
+						currentGraph.setMaxY(Float.parseFloat(yMax));
+					} catch (Exception e) {
+						println("FileGraph::mclickSBar() - Y-axis max value error: " + e);
+					}
 				} 
 				redrawContent = redrawUI = true;
 			}
@@ -778,7 +844,7 @@ class LiveGraph implements TabAPI {
 
 		// Change the input data rate
 		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
-			final String newrate = showInputDialog("Set new data rate:");
+			final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graphA.getXrate());
 			if (newrate != null){
 				try {
 					int newXrate = Integer.parseInt(newrate);
@@ -787,6 +853,11 @@ class LiveGraph implements TabAPI {
 					graphB.setXrate(newXrate);
 					graphC.setXrate(newXrate);
 					graphD.setXrate(newXrate);
+					sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
+					sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
+					sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
+					sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
+
 					redrawUI = true;
 				} catch (Exception e) {}
 			}
@@ -803,10 +874,10 @@ class LiveGraph implements TabAPI {
 				redrawContent = true;
 				if (selectedGraph > 1) {
 					selectedGraph = 1;
-					graphA.setHighlight(true, true);
-					graphB.setHighlight(false, false);
-					graphC.setHighlight(false, false);
-					graphD.setHighlight(false, false);
+					graphA.setHighlight(true);
+					graphB.setHighlight(false);
+					graphC.setHighlight(false);
+					graphD.setHighlight(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) graphAssignment[i] = 1;
 			
@@ -819,10 +890,10 @@ class LiveGraph implements TabAPI {
 				graphB.changeSize(cL, cR, (cT + cB) / 2, cB);
 				if (selectedGraph > 2) {
 					selectedGraph = 2;
-					graphA.setHighlight(false, true);
-					graphB.setHighlight(true, true);
-					graphC.setHighlight(false, false);
-					graphD.setHighlight(false, false);
+					graphA.setHighlight(false);
+					graphB.setHighlight(true);
+					graphC.setHighlight(false);
+					graphD.setHighlight(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
@@ -838,10 +909,10 @@ class LiveGraph implements TabAPI {
 				graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
 				if (selectedGraph > 3) {
 					selectedGraph = 3;
-					graphA.setHighlight(false, true);
-					graphB.setHighlight(false, true);
-					graphC.setHighlight(true, true);
-					graphD.setHighlight(false, false);
+					graphA.setHighlight(false);
+					graphB.setHighlight(false);
+					graphC.setHighlight(true);
+					graphD.setHighlight(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;

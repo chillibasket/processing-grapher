@@ -100,7 +100,7 @@ class CustomTable extends Table {
 				csvWriter.println();
 			}
 
-			csvWriter.flush();
+			if (csvWriter.checkError()) return false;
 			return true;
 
 		} catch (Exception e) {
@@ -115,13 +115,19 @@ class CustomTable extends Table {
 	 * Close the CSV output stream
 	 */
 
-	public void closeCSVoutput() {
+	public boolean closeCSVoutput() {
 		if (csvStreamActive) {
-			csvWriter.flush();
-			csvWriter.close();
-
 			csvStreamActive = false;
+
+			if (csvWriter.checkError()) {
+				csvWriter.close();
+				return false;
+			}
+
+			csvWriter.close();
 		}
+
+		return true;
 	}
 	
 }
