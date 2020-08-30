@@ -1,12 +1,33 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * PROCESSING GRAPHER
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Date:    25th August 2020
- * Version: 1.8
- * Copyright (C) 2020, GPL v3
+ * @file     ProcessingGrapher.pde
+ * @brief    Serial monitor and real-time graphing program
+ * @author   Simon Bluett
+ *
+ * @date     30th August 2020
+ * @version  1.8
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -15,10 +36,10 @@ import processing.serial.*;
 // Advanced key inputs
 import java.awt.event.KeyEvent;
 
-// File dialog
+// File dialogue
 import java.io.File;
 
-// Resizable windows
+// Resizeable windows
 import javax.swing.JFrame;
 import java.awt.Dimension;
 import processing.awt.PSurfaceAWT.SmoothCanvas;
@@ -29,20 +50,20 @@ import processing.awt.PSurfaceAWT.SmoothCanvas;
 float uimult = 1.0;
 
 // Fonts
-String programFont = "Lucida Sans";
-String terminalFont = "Inconsolata-SemiBold.ttf";
+final String programFont = "Lucida Sans";
+final String terminalFont = "Inconsolata-SemiBold.ttf";
 
 // Predefined colors
-color c_white = color(255, 255, 255);
-color c_blue = color(96, 200, 220);
-color c_purple = color(147, 111, 212);
-color c_red = color(208, 38, 98);
-color c_yellow = color(215, 196, 96);
-color c_green = color(35, 205, 65);
-color c_orange = color(230, 85, 37);
-color c_lightgrey = color(134, 134, 138);
-color c_grey = color(111, 108, 90);
-color c_darkgrey = color(49, 50, 44);
+final color c_white = color(255, 255, 255);
+final color c_blue = color(96, 200, 220);
+final color c_purple = color(147, 111, 212);
+final color c_red = color(208, 38, 98);
+final color c_yellow = color(215, 196, 96);
+final color c_green = color(35, 205, 65);
+final color c_orange = color(230, 85, 37);
+final color c_lightgrey = color(134, 134, 138);
+final color c_grey = color(111, 108, 90);
+final color c_darkgrey = color(49, 50, 44);
 
 // UI colors
 color c_background = color(39, 40, 34);
@@ -66,11 +87,11 @@ int lastWidth = 1000;
 int lastHeight = 700;
 
 // Size Values
-int tabWidth = 90;
-int tabHeight = 30;
-int sidebarWidth = 150;
-int sideItemHeight = 30;
-int bottombarHeight = 22;
+final int tabWidth = 90;
+final int tabHeight = 30;
+final int sidebarWidth = 150;
+final int sideItemHeight = 30;
+final int bottombarHeight = 22;
 // -----------------------------------------------------------------------------
 
 // Serial Port Variables
@@ -87,6 +108,7 @@ boolean redrawUI = true;
 boolean redrawAlert = false;
 boolean redrawContent = true;
 boolean drawNewData = false;
+boolean drawFPS = true;
 boolean preventDrawing = false;
 
 // Interaction Booleans
@@ -97,38 +119,41 @@ boolean scrollingActive = false;
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
 int currentTab = 0;
+int tabTop = round(tabHeight * uimult);
 
 // Fonts
 PFont base_font;
 PFont mono_font;
 
 // Alert Messages
-int alertWidth = 300;
-int alertHeight = 150;
+final int alertWidth = 300;
+final int alertHeight = 150;
 String alertHeading = "";
 boolean alertActive = false;
 
-int tabTop = round(tabHeight * uimult);
 
 
-/*****************************************//**
- * Setup
- *********************************************/
+/******************************************************//**
+ * SETUP FUNCTIONS
+ *
+ * @info  Methods used to initialise all parts of the 
+ *        GUI and set the values of required variables
+ *********************************************************/
+
+/**
+ * Program Setup Function
+ *
+ * Initialise all screen drawing parameters and 
+ * instantiate the classes for each of the tabs. 
+ */
 void setup() {
+	final int startTime = millis();
+
+	// Set up the window and rendering engine
 	size(1000, 700);
 
-	background(c_background);
-
-	// Draw a loading sign
-	textAlign(CENTER, CENTER);
-	textSize(int(18 * uimult));
-	fill(255);
-	text("Loading", 0, 0, width, height);
-	line(0, height/2 - (14 * uimult), width, height/2 - (14 * uimult));
-	line(0, height/2 - (18 * uimult), width, height/2 - (18 * uimult));
-	line(0, height/2 + (22 * uimult), width, height/2 + (22 * uimult));
-	line(0, height/2 + (26 * uimult), width, height/2 + (26 * uimult));
-	textSize(int(12 * uimult));
+	// Draw the loading screen
+	drawLoadingScreen();
 
 	// These lines implement a minimum window size
 	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
@@ -136,9 +161,10 @@ void setup() {
 	Dimension d = new Dimension(500, 350);
 	jf.setMinimumSize(d);
 
-	// Set up the canvas
+	// All window to be resized
 	surface.setResizable(true);
 
+	// Set the desired frame rate (FPS)
 	frameRate(60);
 
 	// Initialise the fonts
@@ -147,24 +173,28 @@ void setup() {
 	textFont(base_font);
 
 	// Calculate screen size of the tab content area
-	int tabWidth2 = round(width - (sidebarWidth * uimult));
-	int tabBottom = round(height - (bottombarHeight * uimult));
+	final int tabWidth2 = round(width - (sidebarWidth * uimult));
+	final int tabBottom = round(height - (bottombarHeight * uimult));
 
 	// Define all the tabs here
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
 
+	// Start serial port checking thread
 	portList = Serial.list();
 	thread("checkSerialPortList");
+
+	// Make sure the loading screen is always shown for at least 2 seconds
+	while(millis() < startTime + 2000);
 }
 
 
-/*****************************************//**
+/**
  * Resize scaling of all UI elements
  *
  * @param  amount The quantity by which to change the scaling multiplier
- *********************************************/
+ */
 void uiResize(float amount) {
 	// Resize UI scaler
 	uimult += amount;
@@ -185,9 +215,31 @@ void uiResize(float amount) {
 }
 
 
-/*****************************************//**
- * Draw
- *********************************************/
+
+/******************************************************//**
+ * WINDOW DRAWING FUNCTIONS
+ *
+ * @info  Functions used to manage the drawing of all
+ *        elements shown in the program window
+ *********************************************************/
+
+/**
+ * Main Program Draw Function
+ *
+ * This function manages all the screen drawing operations, 
+ * and is looped at a frequency up to 60Hz (this will drop 
+ * to a lower FPS under load). The function only updates the
+ * areas of the program window which need to be redrawn, as 
+ * dictated by these boolean variables:
+ *
+ * @info redrawContent  - Draw the entire tab content area
+ * @info drawNewData    - Only redraw parts affected by new serial data
+ * @info redrawUI       - Draw the tab-bar, menu area and bottom status bar
+ * @info drawFPS        - Draw a frame rate indicator at the top-right
+ * @info redrawAlert    - Draw the alert message box
+ * @info preventDrawing - Overrides above variables, preventing the screen
+ *                        from being redrawn (eg. when window is too small)
+ */
 void draw() {
 
 	if (alertActive && (redrawContent || drawNewData || redrawUI)) {
@@ -240,17 +292,19 @@ void draw() {
 		}
 
 		// Draw an FPS indicator
-		rectMode(CORNER);
-		noStroke();
-		textAlign(LEFT, TOP);
-		String frameRateText = "FPS: " + round(frameRate);
-		fill(c_tabbar);
-		rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
-		fill(c_white);
-		text(frameRateText, width - (10* uimult) - textWidth(frameRateText), 8*uimult);
-		if (alertActive && !redrawAlert) {
-			fill(c_white, 80);
+		if (drawFPS) {
+			rectMode(CORNER);
+			noStroke();
+			textAlign(LEFT, TOP);
+			String frameRateText = "FPS: " + round(frameRate);
+			fill(c_tabbar);
 			rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
+			fill(c_white);
+			text(frameRateText, width - (10* uimult) - textWidth(frameRateText), 8*uimult);
+			if (alertActive && !redrawAlert) {
+				fill(c_white, 80);
+				rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
+			}
 		}
 
 		// Redraw the alert message
@@ -262,11 +316,11 @@ void draw() {
 }
 
 
-/*****************************************//**
- * Draw the Tabs Top-Bar
+/**
+ * Draw the top Tab navigation bar
  *
  * @param  highlight The current active tab
- *********************************************/
+ */
 void drawTabs (int highlight) {
 
 	// Setup drawing parameters
@@ -282,7 +336,7 @@ void drawTabs (int highlight) {
 
 	// Tab Buttons
 	int i = 0;
-	int calcWidth = int((tabWidth - 1) * uimult);
+	final int calcWidth = int((tabWidth - 1) * uimult);
 
 	for(TabAPI curTab : tabObjects){
 		int calcXpos = int(i * tabWidth * uimult);
@@ -304,9 +358,12 @@ void drawTabs (int highlight) {
 }
 
 
-/******************************************//**
- * Draw the Side Bar & Bottom Bar
- *********************************************/
+/**
+ * Draw the Side Bar and Bottom Bar
+ *
+ * This function draws the right-side menu area
+ * for the current tab and the bottom status bar
+ */
 void drawSidebar () {
 
 	// Setup drawing parameters
@@ -315,10 +372,10 @@ void drawSidebar () {
 	textAlign(CENTER, CENTER);
 
 	// Calculate sizing of sidebar
-	int sT = round(tabHeight * uimult);
-	int sL = round(width - (sidebarWidth * uimult) + 1);
-	int sW = round(sidebarWidth * uimult);
-	int sH = height - sT;
+	final int sT = round(tabHeight * uimult);
+	final int sL = round(width - (sidebarWidth * uimult) + 1);
+	final int sW = round(sidebarWidth * uimult);
+	final int sH = height - sT;
 
 	// Bottom info area
 	fill(c_tabbar);
@@ -338,9 +395,42 @@ void drawSidebar () {
 }
 
 
-/*****************************************//**
- * Sidebar Drawing Functions
- *********************************************/
+/**
+ * Draw the loading screen which is shown during start-up
+ */
+void drawLoadingScreen() {
+	// Clear the background
+	background(c_background);
+
+	// Set up text drawing parameters
+	textAlign(CENTER, CENTER);
+	textSize(int(20 * uimult));
+	fill(255);
+
+	// Draw text
+	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
+	textSize(int(14 * uimult));
+	text("Loading", width / 2, (height / 2) + int(10 * uimult));
+	//textSize(int(14 * uimult));
+	fill(180);
+	text("(C) Copyright 2018-2020 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
+	text("Free Software - GNU General Public License V.3", width / 2, (height / 2) + int(90 * uimult));
+
+	// Draw lines
+	line(0, height/2, width, height/2 - (78 * uimult));
+	line(0, height/2 - (78 * uimult), width, height/2);
+	line(0, height/2, width, height/2 - (46 * uimult));
+	line(0, height/2 - (46 * uimult), width, height/2);
+}
+
+
+
+/******************************************************//**
+ * SIDEBAR MENU DRAWING FUNCTIONS
+ *
+ * @info  Functions used to draw the text, buttons and
+ *        data-boxes on the sidebar menu of each tab
+ *********************************************************/
 
 /**
  * Draw sidebar text
@@ -401,7 +491,7 @@ void drawButton(String text, color boxcolor, float lS, float tS, float iW, float
  * @param  tS        Top-left Y-coordinate of the button
  * @param  iW        Width of the button
  * @param  iH        Height of the button
- * @param  tH        Hieght of the text area on the button
+ * @param  tH        Height of the text area on the button
  */
 void drawButton(String text, color textcolor, color boxcolor, float lS, float tS, float iW, float iH, float tH){
 	if (tS >= tabTop && tS <= height) {
@@ -436,7 +526,7 @@ void drawDatabox(String text, float lS, float tS, float iW, float iH, float tH){
  * @param  tS        Top-left Y-coordinate of the button
  * @param  iW        Width of the button
  * @param  iH        Height of the button
- * @param  tH        Hieght of the text area on the button
+ * @param  tH        Height of the text area on the button
  */
 void drawDatabox(String text, color textcolor, float lS, float tS, float iW, float iH, float tH){
 	if (tS >= tabTop && tS <= height) {
@@ -496,6 +586,7 @@ boolean menuYclick(int yPos, int topPos, int unitH, int itemH, float n) {
  * @param  lS       Left X-coordinate of the display area
  * @param  rS       Right X-coordinate of the display area
  * @param  tS       Top Y-coordinate of the display area
+ * @param  alert    Whether or not this is an alert message (reduce opacity of background)
  */ 
 
 void drawMessageArea(String heading, String[] text, float lS, float rS, float tS, boolean alert) {
@@ -506,7 +597,7 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	textFont(base_font);
 
 	// Get text width
-	int border = int(uimult * 15);
+	final int border = int(uimult * 15);
 
 	// Approximate how many rows of text are needed
 	int boxHeight = int(30 * uimult) + 2 * border;
@@ -562,14 +653,29 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	}
 }
 
+
+/**
+ * Draw a message box on the screen (overload function)
+ *
+ * This is a simplified version of the function call
+ * when the message is not an alert
+ *
+ * @see void drawMessageArea(String, String[], float, float, float, boolean)
+ */
 void drawMessageArea(String heading, String[] text, float lS, float rS, float tS) {
 	drawMessageArea(heading, text, lS, rS, tS, false);
 }
 
 
-/*****************************************//**
- * Draw the Alert Box
- *********************************************/
+/**
+ * Draw an Alert message box
+ *
+ * This is a special instance of the message box which
+ * is drawn when there is an error/notification message
+ * which needs to be shown to the user
+ *
+ * @see void drawMessageArea(String, String[], float, float, float, boolean)
+ */
 void drawAlert () {
 	alertActive = true;
 
@@ -587,21 +693,35 @@ void drawAlert () {
 }
 
 
-/*****************************************//**
- * Mouse Click Handler
- *********************************************/
+
+/******************************************************//**
+ * KEYBOARD AND MOUSE INTERACTION FUNCTIONS
+ *
+ * @info  Functions to manage user input and interaction
+ *        using the keyboard or mouse
+ *********************************************************/
+
+/**
+ * Mouse click event handler
+ *
+ * This function figures out which region of the
+ * screen was clicked and passes the information 
+ * on to the current tab
+ */
 void mousePressed(){ 
 	if (!alertActive) {
 
 		// If mouse is hovering over the content area
-		if((mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) && (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult)))){
+		if ((mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) 
+			&& (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult))))
+		{
 			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.getContentClick(mouseX, mouseY);
+			curTab.contentClick(mouseX, mouseY);
 		} else cursor(ARROW);
 
 		// If mouse is hovering over a tab button
-		if ((mouseY > 0) && (mouseY < tabHeight*uimult)){
-			for(int i = 0; i < tabObjects.size(); i++){
+		if ((mouseY > 0) && (mouseY < tabHeight*uimult)) {
+			for (int i = 0; i < tabObjects.size(); i++) {
 				if ((mouseX > i*tabWidth*uimult) && (mouseX < (i+1)*tabWidth*uimult)) {
 					currentTab = i;
 					redrawUI = redrawContent = true;
@@ -610,11 +730,11 @@ void mousePressed(){
 		}
 
 		// If mouse is hovering over the side bar
-		if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
+		if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
 			thread("menuClickEvent");
 		}
 
-	// If an alert is active, any mouse click hides the nofication
+	// If an alert is active, any mouse click hides the notification
 	} else {
 		alertActive = false;
 		redrawUI = true;
@@ -622,36 +742,53 @@ void mousePressed(){
 	}
 }
 
-// Handle menu click asynchronously in a separate thread
+
+/**
+ * Thread to manages clicks on the menu
+ *
+ * This thread asynchronously deals with mouse
+ * clicks on the right-hand menu. Running this 
+ * in a separate thread allows the main functions
+ * of the program to continue working even when
+ * blocking user-input pop-up dialogs are used.
+ */
 void menuClickEvent() {
 	TabAPI curTab = tabObjects.get(currentTab);
-	curTab.mclickSBar(mouseX, mouseY);
+	curTab.menuClick(mouseX, mouseY);
 }
 
 
+/**
+ * Mouse release handler
+ *
+ * This is only used to track and figure out the
+ * end of mouse drag and drop operations
+ */
 void mouseReleased() {
 	if (scrollingActive) scrollingActive = false;
 }
 
 
-/*****************************************//**
+/**
  * Mouse Wheel Scroll Handler
  *
  * @param  event Details of the mouse-scroll event
- *********************************************/
+ */
 void mouseWheel(MouseEvent event) {
   float e = event.getCount();
   
   if (abs(e) > 0) {
 	
 	// If mouse is hovering over the content area
-	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) && (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult)))){
+	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) 
+		&& (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult))))
+	{
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.scrollWheel(e);
 	}
 
 	// If mouse is hovering over the side bar
-	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)){
+	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.scrollWheel(e);
 	}
@@ -659,6 +796,11 @@ void mouseWheel(MouseEvent event) {
 }
 
 
+/**
+ * Thread to manage scrollbar drag operations
+ *
+ * This function is not currently in use
+ */
 void scrollBarEvent() {
 	while (scrollingActive) {
 		TabAPI curTab = tabObjects.get(currentTab);
@@ -668,18 +810,27 @@ void scrollBarEvent() {
 }
 
 
-/*****************************************//**
- * Keyboard Button Press Handler
- *********************************************/
+/**
+ * Keyboard Button Typed Handler
+ * 
+ * This function returns non-coded ASCII keys
+ * which were typed. It does not track modifier
+ * keys such as SHIFT and CONTROL
+ */
 void keyTyped() {
-	//println("Typed: " + key + " " + (int)key + " " + keyCode);
 	TabAPI curTab = tabObjects.get(currentTab);
 	curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
 }
 
-void keyPressed() {
-	//println("Pressed: " + key + " " + (int)key + " " + keyCode);
 
+/**
+ * Keyboard Button Pressed Handler
+ *
+ * This function deals with button presses for
+ * all coded keys, which are not handled by the
+ * keyTyped() function
+ */
+void keyPressed() {
 	// Check for control key
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = true;
@@ -696,14 +847,15 @@ void keyPressed() {
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.keyboardInput(key, keyCode, true);
 	}
-
-	//print(key); print(", "); print(keyCode); print(", "); println(controlKey);
 }
 
 
-/*****************************************//**
+/**
  * Keyboard Button Release Handler
- *********************************************/
+ *
+ * This is mainly used for tracking the use
+ * of key combinations using the Control key
+ */
 void keyReleased() {
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = false;
@@ -711,9 +863,20 @@ void keyReleased() {
 }
 
 
-/*****************************************//**
+
+/******************************************************//**
+ * SERIAL COMMUNICATION FUNCTIONS
+ *
+ * @info  Functions to manage the serial communications
+ *        with UART devices and micro-controllers
+ *********************************************************/
+
+/**
  * Setup Serial Communication
- *********************************************/
+ *
+ * This function manages the serial device 
+ * connection and disconnection process 
+ */
 void setupSerial () {
 
 	if (!serialConnected) {
@@ -747,7 +910,14 @@ void setupSerial () {
 				} else {
 					myPort.buffer(1);
 				}
+
 				serialConnected = true;
+
+				// Tell all the tabs that a serial device has connected
+				for (TabAPI curTab : tabObjects) {
+					curTab.connectionEvent(true);
+				}
+
 				redrawUI = true;
 			} catch (Exception e){
 				alertHeading = "Error\nUnable to connect to the port:\n" + e;
@@ -758,24 +928,26 @@ void setupSerial () {
 
 	// Disconnect from serial port
 	} else {
-		try {
 		myPort.clear();
 		myPort.stop();
-		} catch (Exception e) {
-			println(e);
-		}
 		currentPort = "";
 		serialConnected = false;
+
+		// Tell all the tabs that a device has disconnected
+		for (TabAPI curTab : tabObjects) {
+			curTab.connectionEvent(false);
+		}
+
 		redrawUI = true;
 	}
 }
 
 
-/*****************************************//**
+/**
  * Receive Serial Message Handler
  *
  * @param  myPort The selected serial COMs port
- *********************************************/
+ */
 
 void serialEvent (Serial myPort) {
 	try {
@@ -786,21 +958,20 @@ void serialEvent (Serial myPort) {
 			inString = myPort.readString();
 		}
 
-		//if (inString != null) {
-			inString = trim(inString);
+		inString = trim(inString);
 
-			// Remove line ending characters
-			inString = inString.replace("\n", "");
-			inString = inString.replace("\r", "");
+		// Remove line ending characters... is this needed?
+		//inString = inString.replace("\n", "");
+		//inString = inString.replace("\r", "");
 
-			// Check if data is graphable
-			boolean graphable = numberMessage(inString);
+		// Check if data is graphable
+		boolean graphable = numberMessage(inString);
 
-			// Send the data over to all the tabs
-			for (TabAPI curTab : tabObjects) {
-				curTab.parsePortData(inString, graphable);
-			}
-		//}
+		// Send the data over to all the tabs
+		for (TabAPI curTab : tabObjects) {
+			curTab.parsePortData(inString, graphable);
+		}
+
 	} catch (Exception e) {
 		alertHeading = "Error\nUnable to read data from serial port:\n" + e;
 		println(e);
@@ -809,11 +980,11 @@ void serialEvent (Serial myPort) {
 }
 
 
-/*****************************************//**
+/**
  * Send Serial Message
  *
  * @param  message The message to be sent
- *********************************************/
+ */
 void serialSend (String message) {
 	if (serialConnected) {
 		try {
@@ -827,6 +998,12 @@ void serialSend (String message) {
 }
 
 
+/**
+ * Serial Message Pop-up Dialog
+ *
+ * Pop-up dialog to allow user to send a serial
+ * message from the live graph tab
+ */
 void serialSendDialog() {
 	final String message = showInputDialog("Serial Message:");
 	if (message != null){
@@ -835,6 +1012,14 @@ void serialSendDialog() {
 }
 
 
+/**
+ * Serial Port List Update Thread
+ *
+ * This thread is started in the setup() method
+ * and checks the serial list every 1 second
+ * to see if there are any changes which need
+ * to be taken into account
+ */
 void checkSerialPortList() {
 	while (true) {
 		boolean different = false;
@@ -870,11 +1055,19 @@ void checkSerialPortList() {
 }
 
 
-/*****************************************//**
+
+/******************************************************//**
+ * FILE SELECTION FUNCTIONS
+ *
+ * @info  Functions to deal with callbacks from file the
+ *        native file selection pop-up dialog
+ *********************************************************/
+
+/**
  * Get the File Selected in the Input Dialog
  *
  * @param  selection The selected file path
- *********************************************/
+ */
 void fileSelected(File selection) {
 
 	// If a file was actually selected
@@ -900,46 +1093,13 @@ void fileSelected(File selection) {
 }
 
 
-/*****************************************//**
- * Variable Modification Functions
- *********************************************/
-// Increment a number
-/*
-float increment(float number){
-	if (abs(number) >= 10 && abs(number) < 100) {
-		number = round(number + 1);
-	} else if (abs(number) < 10) {
-		number *= 10;
-		number = increment(number);
-		number /= 10;
-	} else {
-		number /= 10;
-		number = increment(number);
-		number *= 10;
-	}
-	return number;
-}*/
 
-// Decrement a number
-/*
-float decrement(float number, boolean zero){
-	if (zero && (number < 0)) number = 0;
-	else {
-		if (abs(number) > 10 && abs(number) <= 100) {
-			number = round(number - 1);
-		} else if (abs(number) <= 10) {
-			number *= 10;
-			number = decrement(number,false);
-			number /= 10;
-		} else {
-			number /= 10;
-			number = decrement(number,false);
-			number *= 10;
-		}
-	}
-	return number;
-}*/
-
+/******************************************************//**
+ * UTILITY AND DATA OPERATION FUNCTIONS
+ *
+ * @info  Functions used to perform common data
+ *        manipulation operations
+ *********************************************************/
 
 /**
  * Ceil number up to 'n' significant figure (overload function)
@@ -1058,9 +1218,9 @@ String[] remove(String[] a, int index){
  * @param  c The character to be tested
  * @return True if the character is a number
  */
-boolean charIsNum(char c) {
-	return 48 <= c && c <= 57;
-}
+//boolean charIsNum(char c) {
+//	return 48 <= c && c <= 57;
+//}
 
 
 /**
@@ -1071,7 +1231,7 @@ boolean charIsNum(char c) {
  */
 boolean numberMessage(String msg) {
 	for (int i = 0; i < msg.length() - 1; i++) {
-		char j = msg.charAt(i);
+		final char j = msg.charAt(i);
 		if ((j < 43 && j != ' ') || j > 57 || j == 47) {
 			return false;
 		}
@@ -1082,6 +1242,11 @@ boolean numberMessage(String msg) {
 
 /**************************************************************************************//**
  * Abstracted TAB API Interface
+ *
+ * These are functions which each "Tab" in the GUI
+ * need to have. This makes it easier to add new tabs
+ * later on which use the same interface and serial
+ * features available from the core program.
  ******************************************************************************************/
 interface TabAPI {
 	// Name of the tab
@@ -1093,8 +1258,8 @@ interface TabAPI {
 	void drawSidebar();
 	
 	// Mouse clicks
-	void mclickSBar (int xcoord, int ycoord);
-	void getContentClick (int xcoord, int ycoord);
+	void menuClick (int xcoord, int ycoord);
+	void contentClick (int xcoord, int ycoord);
 	void scrollWheel(float e);
 	void scrollBarUpdate(int xcoord, int ycoord);
 
@@ -1109,5 +1274,6 @@ interface TabAPI {
 	void setOutput(String newoutput);
 	
 	// Serial communication
+	void connectionEvent(boolean status);
 	void parsePortData(String inputData, boolean graphable);
 }

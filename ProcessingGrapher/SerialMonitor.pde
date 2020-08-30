@@ -2,10 +2,34 @@
  * SERIAL MONITOR CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Copyright (C) 2020, GPL v3
+ * @file    SerialMonitor.pde
+ * @brief   A serial monitor tab for UART comms
+ * @author  Simon Bluett
+ *
+ * @class   SerialMonitor
+ * @see     TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 
 class SerialMonitor implements TabAPI {
 
@@ -23,20 +47,23 @@ class SerialMonitor implements TabAPI {
 
 	String name;
 	String outputfile;
+
 	boolean recordData;
 	int recordCounter;
 	int fileCounter;
-	int maxFileRows = 100000;
-	int displayRows;
+	final int maxFileRows = 100000;
 	String[] tagColumns = {"SENT:","[Info]"};
-	String msgText= "";
-	int maxBuffer;
+	
+	int displayRows;
+	final int maxBuffer = 50000;
 	int scrollUp;
+
+	String msgText= "";
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
 
-	int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
+	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
 	StringList serialBuffer;
 
 
@@ -68,7 +95,6 @@ class SerialMonitor implements TabAPI {
 		recordData = false;
 		recordCounter = 0;
 		fileCounter = 0;
-		maxBuffer = 10000;
 		scrollUp = 0;
 		displayRows = 0;
 		cursorPosition = 0;
@@ -133,7 +159,7 @@ class SerialMonitor implements TabAPI {
 
 		// Message text button
 		String msgBtnText = "Send:";
-		int msgBtnSize = int(textWidth(msgBtnText)); 
+		final int msgBtnSize = int(textWidth(msgBtnText)); 
 
 		fill(c_terminal_text);
 		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + 9 * uimult);
@@ -150,8 +176,8 @@ class SerialMonitor implements TabAPI {
 		// Figure out where the cursor is and how much of the message to show
 		textFont(mono_font);
 
-		float charWidth = textWidth("a");
-		int maxChars = floor((cR -cL - 6*msgBorder - msgBtnSize) / charWidth);
+		final float charWidth = textWidth("a");
+		final int maxChars = floor((cR -cL - 6*msgBorder - msgBtnSize) / charWidth);
 
 		if (cursorPosition > msgTextBounds[1]) {
 			msgTextBounds[0] += cursorPosition - msgTextBounds[1];
@@ -184,10 +210,10 @@ class SerialMonitor implements TabAPI {
 
 		// Draw arrows to indicate if there is any hidden text
 		if (msgTextBounds[0] > 0) {
-			int halfWay = cT + msgBorder + round(15 * uimult);
-			int frontPos = cL + round(3.25*msgBorder) + msgBtnSize;
-			int dist4 = round(4 * uimult);
-			int dist2 = round(2 * uimult);
+			final int halfWay = cT + msgBorder + round(15 * uimult);
+			final int frontPos = cL + round(3.25*msgBorder) + msgBtnSize;
+			final int dist4 = round(4 * uimult);
+			final int dist2 = round(2 * uimult);
 
 			fill(c_terminal_text);
 			stroke(c_terminal_text);
@@ -195,10 +221,10 @@ class SerialMonitor implements TabAPI {
 		}
 
 		if (msgTextBounds[1] < msgText.length()) {
-			int halfWay = cT + msgBorder + round(15 * uimult);
-			int backPos = cR - round(1.25*msgBorder);
-			int dist4 = round(4 * uimult);
-			int dist2 = round(2 * uimult);
+			final int halfWay = cT + msgBorder + round(15 * uimult);
+			final int backPos = cR - round(1.25*msgBorder);
+			final int dist4 = round(4 * uimult);
+			final int dist2 = round(2 * uimult);
 
 			fill(c_terminal_text);
 			stroke(c_terminal_text);
@@ -246,8 +272,8 @@ class SerialMonitor implements TabAPI {
 
 			totalHeight -= yTextHeight;
 
-			float charWidth = textWidth("a");
-			int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
+			final float charWidth = textWidth("a");
+			final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
 
 			// Now print the text
 			for (int i = 0; i < displayRows; i++) {
@@ -324,7 +350,7 @@ class SerialMonitor implements TabAPI {
 	void setOutput(String newoutput) {
 		if (newoutput != "No File Set") {
 			// Ensure file type is *.csv
-			int dotPos = newoutput.lastIndexOf(".");
+			final int dotPos = newoutput.lastIndexOf(".");
 			if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
 			newoutput = newoutput + ".txt";
 
@@ -396,6 +422,20 @@ class SerialMonitor implements TabAPI {
 
 
 	/**
+	 * Function called when a serial device has connected/disconnected
+	 *
+	 * @param  status True if a device has connected, false if disconnected
+	 */
+	void connectionEvent (boolean status) {
+
+		// On disconnect
+		if (!status) {
+			// Stop recording any data
+			if (recordData) stopRecording();
+		}
+	}
+
+	/**
 	 * Parse new data points received from serial port
 	 *
 	 * @param  inputData String containing data points separated by commas
@@ -422,9 +462,8 @@ class SerialMonitor implements TabAPI {
 					fileCounter++;
 					recordCounter = 0;
 
-					int dotPos = outputfile.lastIndexOf(".");
-					String nextoutputfile = outputfile.substring(0, dotPos);
-					nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".txt";
+					final int dotPos = outputfile.lastIndexOf(".");
+					final String nextoutputfile = outputfile.substring(0, dotPos) + "-" + (fileCounter + 1) + ".txt";
 					File filePath = saveFile(nextoutputfile);
 					dataWriter = createWriter(filePath);
 
@@ -522,14 +561,14 @@ class SerialMonitor implements TabAPI {
 		// Do this here so commands below are simplified
 		int sT = cT;
 		int sL = cR;
-		int sW = width - cR;
-		int sH = height - cT;
+		final int sW = width - cR;
+		final int sH = height - cT;
 
-		int uH = round(sideItemHeight * uimult);
-		int tH = round((sideItemHeight - 8) * uimult);
-		int iH = round((sideItemHeight - 5) * uimult);
+		final int uH = round(sideItemHeight * uimult);
+		final int tH = round((sideItemHeight - 8) * uimult);
+		final int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
-		int iW = round(sW - (20 * uimult));
+		final int iW = round(sW - (20 * uimult));
 
 		String[] ports = Serial.list();
 
@@ -755,13 +794,13 @@ class SerialMonitor implements TabAPI {
 					if (mouseX >= cR && menuScroll != -1) {
 						menuScroll -= (12 * uimult);
 						if (menuScroll < 0) menuScroll = 0;
+						redrawUI = true;
 					// Scroll serial monitor
 					} else {
 						if (scrollUp < serialBuffer.size() - displayRows) scrollUp++;
 						else scrollUp = serialBuffer.size() - displayRows;
 						drawNewData = true;
 					}
-					redrawUI = true;
 					break;
 
 				case DOWN:
@@ -769,38 +808,65 @@ class SerialMonitor implements TabAPI {
 					if (mouseX >= cR && menuScroll != -1) {
 						menuScroll += (12 * uimult);
 						if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
 					// Scroll serial monitor
 					} else {
 						if (scrollUp > 0) scrollUp--;
 						else scrollUp = 0;
 						drawNewData = true;
 					}
-					redrawUI = true;
 					break;
 
 				case KeyEvent.VK_PAGE_UP:
-					if (scrollUp < serialBuffer.size() - displayRows) scrollUp += displayRows;
-					if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
-					//redrawUI = true;
-					drawNewData = true;
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll -= height - cT;
+						if (menuScroll < 0) menuScroll = 0;
+						redrawUI = true;
+					// Scroll serial monitor
+					} else {
+						if (scrollUp < serialBuffer.size() - displayRows) scrollUp += displayRows;
+						if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
+						drawNewData = true;
+					}
 					break;
 
 				case KeyEvent.VK_PAGE_DOWN:
-					if (scrollUp > 0) scrollUp -= displayRows;
-					if (scrollUp < 0) scrollUp = 0;
-					//redrawUI = true;
-					drawNewData = true;
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll += height - cT;
+						if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					// Scroll serial monitor
+					} else {
+						if (scrollUp > 0) scrollUp -= displayRows;
+						if (scrollUp < 0) scrollUp = 0;
+						drawNewData = true;
+					}
 					break;
 
 				case KeyEvent.VK_END:
-					scrollUp = 0;
-					//redrawUI = true;
-					drawNewData = true;
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					// Scroll serial monitor
+					} else {
+						scrollUp = 0;
+						drawNewData = true;
+					}
 					break;
 
 				case KeyEvent.VK_HOME:
-					scrollUp = serialBuffer.size() - displayRows;
-					drawNewData = true;
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = 0;
+						redrawUI = true;
+					// Scroll serial monitor
+					} else {
+						scrollUp = serialBuffer.size() - displayRows;
+						drawNewData = true;
+					}
 					break;
 
 				default:
@@ -820,7 +886,7 @@ class SerialMonitor implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void getContentClick (int xcoord, int ycoord) {
+	void contentClick (int xcoord, int ycoord) {
 		// Nothing here yet  
 	}
 
@@ -831,20 +897,20 @@ class SerialMonitor implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void mclickSBar (int xcoord, int ycoord) {
+	void menuClick (int xcoord, int ycoord) {
 
 		// Coordinate calculation
 		int sT = cT;
 		if (menuScroll > 0) sT -= menuScroll;
-		int sL = cR;
-		int sW = width - cR;
-		int sH = height - sT;
+		final int sL = cR;
+		final int sW = width - cR;
+		final int sH = height - sT;
 
-		int uH = round(sideItemHeight * uimult);
-		int tH = round((sideItemHeight - 8) * uimult);
-		int iH = round((sideItemHeight - 5) * uimult);
-		int iL = round(sL + (10 * uimult));
-		int iW = round(sW - (20 * uimult));
+		final int uH = round(sideItemHeight * uimult);
+		final int tH = round((sideItemHeight - 8) * uimult);
+		final int iH = round((sideItemHeight - 5) * uimult);
+		final int iL = round(sL + (10 * uimult));
+		final int iW = round(sW - (20 * uimult));
 
 		String[] ports = Serial.list();
 
@@ -907,8 +973,8 @@ class SerialMonitor implements TabAPI {
 
 			// Add a new colour tag column
 			else if (menuYclick(mouseY, sT, uH, iH, 12.5)) {
-				final String colname = showInputDialog("New Tag Keyword Text:");
-				if (colname != null){
+				final String colname = trim(showInputDialog("New Tag Keyword Text:"));
+				if (colname != null && colname.length() > 0){
 					tagColumns = append(tagColumns, colname);
 					redrawUI = true;
 					drawNewData = true;
@@ -943,8 +1009,8 @@ class SerialMonitor implements TabAPI {
 
 						// Change name of column
 						else {
-							final String colname = showInputDialog("Change Tag Keyword:");
-							if (colname != null){
+							final String colname = trim(showInputDialog("Please enter the new tag text\nCurrent Tag = " + tagColumns[i]));
+							if (colname != null && colname.length() > 0){
 								tagColumns[i] = colname;
 								redrawUI = true;
 								drawNewData = true;

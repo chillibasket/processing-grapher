@@ -2,10 +2,33 @@
  * FILE GRAPH PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Copyright (C) 2020, GPL v3
+ * @file    FileGraph.pde
+ * @brief   Tab to plot CSV file data on a graph
+ * @author  Simon Bluett
+ *
+ * @class   FileGraph
+ * @see     TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 class FileGraph implements TabAPI {
 
@@ -36,7 +59,7 @@ class FileGraph implements TabAPI {
 	 * @param  top     Tab area top y-coordinate
 	 * @param  bottom  Tab area bottom y-coordinate
 	 */
-	FileGraph(String setname, int left, int right, int top, int bottom) {
+	FileGraph (String setname, int left, int right, int top, int bottom) {
 		name = setname;
 		
 		cL = left;
@@ -64,7 +87,7 @@ class FileGraph implements TabAPI {
 	 *
 	 * @return Tab name
 	 */
-	String getName() {
+	String getName () {
 		return name;
 	}
 
@@ -72,7 +95,7 @@ class FileGraph implements TabAPI {
 	/**
 	 * Redraw all tab content
 	 */
-	void drawContent() {
+	void drawContent () {
 		graph.drawGrid();
 		plotFileData();
 
@@ -89,7 +112,7 @@ class FileGraph implements TabAPI {
 	/**
 	 * Draw new tab data
 	 */
-	void drawNewData() {
+	void drawNewData () {
 		// Not being used yet 
 	}
 
@@ -102,7 +125,7 @@ class FileGraph implements TabAPI {
 	 * @param  newT New top y-coordinate
 	 * @param  newB new bottom y-coordinate
 	 */
-	void changeSize(int newL, int newR, int newT, int newB) {
+	void changeSize (int newL, int newR, int newT, int newB) {
 		cL = newL;
 		cR = newR;
 		cT = newT;
@@ -118,7 +141,7 @@ class FileGraph implements TabAPI {
 	 *
 	 * @param  newoutput Absolute path to the new file location
 	 */
-	void setOutput(String newoutput) {
+	void setOutput (String newoutput) {
 		
 		if (newoutput != "No File Set") {
 			// Check whether file is of type *.csv
@@ -151,7 +174,7 @@ class FileGraph implements TabAPI {
 	/**
 	 * Plot CSV data from file onto a graph
 	 */
-	void plotFileData() {
+	void plotFileData () {
 		if(outputfile != "No File Set" && outputfile != "" && dataTable.getColumnCount() > 0) {
 			xData = -1;
 
@@ -279,7 +302,7 @@ class FileGraph implements TabAPI {
 	 *
 	 * @return Absolute path to the data file
 	 */
-	String getOutput() {
+	String getOutput () {
 		return outputfile;
 	}
 
@@ -287,7 +310,7 @@ class FileGraph implements TabAPI {
 	/**
 	 * Save any new changes to the current CSV data file
 	 */
-	void saveData() {
+	void saveData () {
 		if(outputfile != "No File Set" && outputfile != "") {
 			try {
 				saveTable(dataTable, outputfile, "csv");
@@ -426,7 +449,7 @@ class FileGraph implements TabAPI {
 	 *
 	 * @param  key The character of the key that was pressed
 	 */
-	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey) {
+	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
 		if (codedKey) {
 			switch (keyCodeInt) {
 				case UP:
@@ -446,6 +469,40 @@ class FileGraph implements TabAPI {
 					}
 					redrawUI = true;
 					break;
+
+				case KeyEvent.VK_PAGE_UP:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll -= height - cT;
+						if (menuScroll < 0) menuScroll = 0;
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_PAGE_DOWN:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll += height - cT;
+						if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_END:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_HOME:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = 0;
+						redrawUI = true;
+					}
+					break;
 			}
 		}
 	}
@@ -457,7 +514,7 @@ class FileGraph implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void getContentClick (int xcoord, int ycoord) {
+	void contentClick (int xcoord, int ycoord) {
 		if (labelling) {
 			if(outputfile != "" && outputfile != "No File Set"){
 
@@ -537,7 +594,7 @@ class FileGraph implements TabAPI {
 	 * @param  xcoord Current mouse x-coordinate position
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
-	void scrollBarUpdate(int xcoord, int ycoord) {
+	void scrollBarUpdate (int xcoord, int ycoord) {
 
 	}
 
@@ -548,7 +605,7 @@ class FileGraph implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void mclickSBar (int xcoord, int ycoord) {
+	void menuClick (int xcoord, int ycoord) {
 
 		// Coordinate calculation
 		int sT = cT;
@@ -699,7 +756,7 @@ class FileGraph implements TabAPI {
 		// Change the input data rate
 		else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
 			if (xData == -1) {
-				final String newrate = showInputDialog("Set new data rate:");
+				final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graph.getXrate());
 				if (newrate != null){
 					try {
 						graph.setXrate(Integer.parseInt(newrate));
@@ -708,16 +765,6 @@ class FileGraph implements TabAPI {
 				}
 			}
 		}
-		
-		// Add a data column
-		/*
-		else if ((mouseY > sT + (uH * 12.5)) && (mouseY < sT + (uH * 12.5) + iH)){
-			final String colname = showInputDialog("Column Name:");
-			if (colname != null){
-				dataColumns = append(dataColumns, colname);
-				redrawUI = true;
-			}
-		}*/
 		
 		// Edit data column
 		else {
@@ -768,5 +815,15 @@ class FileGraph implements TabAPI {
 	 */
 	void parsePortData(String inputData, boolean graphable) {
 		// Empty as this tab is not using serial comms 
+	}
+
+
+	/**
+	 * Function called when a serial device has connected/disconnected
+	 *
+	 * @param  status True if a device has connected, false if disconnected
+	 */
+	void connectionEvent (boolean status) {
+		// Empty as this tab is not using serial comms
 	}
 }

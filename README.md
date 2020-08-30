@@ -2,7 +2,7 @@
 [![Issues](https://img.shields.io/github/issues-raw/chillibasket/processing-grapher.svg?maxAge=25000)](https://github.com/chillibasket/processing-grapher/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/chillibasket/processing-grapher.svg?style=flat)](https://github.com/chillibasket/processing-grapher/commits/master)
 
-# Serial Monitor and Realtime Graphing Program
+# Serial Monitor and Real-time Graphing Program
 This project is a Processing-based serial terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. This program is designed as a replacement for the serial monitor contained within the Arduino IDE. The program contains easy-to-use tools to record data received from serial devices, and to plot numerical data on up to 4 separate graphs in real-time. This makes it useful for quickly analysing sensor data from a micro-controller. 
 
 This is still a work in progress; please let me know if you come across any issues or bugs which need to be fixed!
@@ -81,8 +81,8 @@ This is still a work in progress; please let me know if you come across any issu
 	1. Optimised the Serial monitor text rendering to improve the frame rate.
 	1. Added menu button to turn off the automatic scrolling of the serial monitor.
 	1. Improved the menu UI to make it clearer when a button is disabled.
-	1. Menu clicks are no handled in a separate thread, meaning pop-ups etc. are no longer blocking.
-	1. Added a thread which updated the COM port list at regular intervals.
+	1. Menu clicks are now handled in a separate thread, meaning pop-ups etc. are no longer blocking.
+	1. Added a new thread which updates the COM port list at regular intervals.
 	1. Overhauled the "Graph" drawing class to make it more robust to displaying a variety of data.
 1. (6th August 2020) Version 1.7
 	1. Revamped file saving process so that new entries are written to the output file the moment they are received.

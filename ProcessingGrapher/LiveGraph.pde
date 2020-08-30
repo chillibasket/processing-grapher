@@ -2,10 +2,33 @@
  * LIVE GRAPH PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Copyright (C) 2020, GPL v3
+ * @file    LiveGraph.pde
+ * @brief   Real-time serial data plotter tab
+ * @author  Simon Bluett
+ *
+ * @class   LiveGraph
+ * @see     TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 class LiveGraph implements TabAPI {
 
@@ -31,6 +54,7 @@ class LiveGraph implements TabAPI {
 	boolean autoAxis;
 	int maxSamples;
 	int[] sampleWindow = {1000,1000,1000,1000};
+	int signalListChange;
 
 
 	/**
@@ -42,7 +66,7 @@ class LiveGraph implements TabAPI {
 	 * @param  top     Tab area top y-coordinate
 	 * @param  bottom  Tab area bottom y-coordinate
 	 */
-	LiveGraph(String setname, int left, int right, int top, int bottom) {
+	LiveGraph (String setname, int left, int right, int top, int bottom) {
 		name = setname;
 		
 		cL = left;
@@ -73,6 +97,7 @@ class LiveGraph implements TabAPI {
 		
 		drawFrom = 0;
 		maxSamples = 10;
+		signalListChange = 0;
 
 		dataTable = new CustomTable();
 		
@@ -86,7 +111,7 @@ class LiveGraph implements TabAPI {
 	 *
 	 * @return Tab name
 	 */
-	String getName() {
+	String getName () {
 		return name;
 	}
 
@@ -94,7 +119,7 @@ class LiveGraph implements TabAPI {
 	/**
 	 * Redraw all tab content
 	 */
-	void drawContent() {
+	void drawContent () {
 		graphA.drawGrid();
 		graphA.resetGraph();
 		if (graphMode > 1) {
@@ -126,7 +151,7 @@ class LiveGraph implements TabAPI {
 	/**
 	 * Draw new tab data
 	 */
-	void drawNewData() {
+	void drawNewData () {
 		int currentCount = dataTable.getRowCount();
 
 		// If there is content to draw
@@ -189,7 +214,7 @@ class LiveGraph implements TabAPI {
 	 * @param  dataPoint   Y-coordinate of new data point
 	 * @param  graphSelect Which if the 4 graphs to check
 	 */
-	void checkGraphSize(float dataPoint, Graph currentGraph) {
+	void checkGraphSize (float dataPoint, Graph currentGraph) {
 		
 		// If data exceeds graph size, resize the graph
 		if (autoAxis && dataPoint !=  99999999) {
@@ -216,7 +241,7 @@ class LiveGraph implements TabAPI {
 	 * @param  newT New top y-coordinate
 	 * @param  newB new bottom y-coordinate
 	 */
-	void changeSize(int newL, int newR, int newT, int newB) {
+	void changeSize (int newL, int newR, int newT, int newB) {
 		cL = newL;
 		cR = newR;
 		cT = newT;
@@ -246,7 +271,7 @@ class LiveGraph implements TabAPI {
 	 *
 	 * @param  newoutput Absolute path to the new file location
 	 */
-	void setOutput(String newoutput) {
+	void setOutput (String newoutput) {
 		if (newoutput != "No File Set") {
 			// Ensure file type is *.csv
 			int dotPos = newoutput.lastIndexOf(".");
@@ -269,7 +294,7 @@ class LiveGraph implements TabAPI {
 	 *
 	 * @return Absolute path to the data file
 	 */
-	String getOutput(){
+	String getOutput () {
 		return outputfile;
 	}
 
@@ -277,7 +302,7 @@ class LiveGraph implements TabAPI {
 	/** 
 	 * Start recording new serial data points to file
 	 */
-	void startRecording() {
+	void startRecording () {
 		// Ensure table is empty
 		dataTable = new CustomTable();
 		drawFrom = 0;
@@ -369,12 +394,38 @@ class LiveGraph implements TabAPI {
 
 
 	/**
+	 * Function called when a serial device has connected/disconnected
+	 *
+	 * @param  status True if a device has connected, false if disconnected
+	 */
+	void connectionEvent (boolean status) {
+
+		// If port has disconnected
+		if (!status) {
+			// Stop recording any data
+			if (recordData) stopRecording();
+
+			// Reset the signal list
+			dataTable.clearRows();
+			
+			while (dataColumns.length > 0) {
+				dataColumns = shorten(dataColumns);
+				graphAssignment = shorten(graphAssignment);
+			}
+			while (dataTable.getColumnCount() > 0) dataTable.removeColumn(0);
+			drawFrom = 0;
+			redrawContent = true;
+		}
+	}
+
+
+	/**
 	 * Parse new data points received from serial port
 	 *
 	 * @param  inputData String containing data points separated by commas
 	 * @param  graphable True if data in message can be plotted on a graph
 	 */
-	void parsePortData(String inputData, boolean graphable) {
+	void parsePortData (String inputData, boolean graphable) {
 
 		// Check that the starts with a number
 		if (graphable) {
@@ -386,6 +437,19 @@ class LiveGraph implements TabAPI {
 				graphAssignment = append(graphAssignment, 1);
 				dataTable.addColumn("Signal-" + (dataColumns.length + 1));
 				redrawUI = true;
+			}
+
+			// Only remove extra columns if not recording and
+			// the last 10 input data samples didn't contain the signal
+			if (dataColumns.length > dataArray.length) {
+				signalListChange++;
+				if (signalListChange >= 10 && !recordData) {
+					dataColumns = shorten(dataColumns);
+					graphAssignment = shorten(graphAssignment);
+					dataTable.removeColumn(dataColumns.length);
+					signalListChange = 0;
+					redrawUI = true;
+				}
 			}
 	
 			// --- Data Recording ---
@@ -449,22 +513,6 @@ class LiveGraph implements TabAPI {
 	 * Draw the sidebar menu for the current tab
 	 */
 	void drawSidebar () {
-
-		// Check if serial port has recently been disconnected
-		if (!serialConnected && dataColumns.length > 0) {
-			// Stop recording any data
-			if (recordData) stopRecording();
-
-			// Reset the signal list
-			dataTable.clearRows();
-			while (dataColumns.length > 0) {
-				dataColumns = shorten(dataColumns);
-				graphAssignment = shorten(graphAssignment);
-			}
-			while (dataTable.getColumnCount() > 0) dataTable.removeColumn(0);
-			drawFrom = 0;
-			redrawContent = true;
-		}
 		
 		// Calculate sizing of sidebar
 		// Do this here so commands below are simplified
@@ -603,7 +651,7 @@ class LiveGraph implements TabAPI {
 	 *
 	 * @param  key The character of the key that was pressed
 	 */
-	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey) {
+	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
 		if (!codedKey && key == 's' && serialConnected) {
 			thread("serialSendDialog");
 
@@ -626,6 +674,40 @@ class LiveGraph implements TabAPI {
 					}
 					redrawUI = true;
 					break;
+
+				case KeyEvent.VK_PAGE_UP:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll -= height - cT;
+						if (menuScroll < 0) menuScroll = 0;
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_PAGE_DOWN:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll += height - cT;
+						if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_END:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = menuHeight - (height - cT);
+						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_HOME:
+					// Scroll menu bar
+					if (mouseX >= cR && menuScroll != -1) {
+						menuScroll = 0;
+						redrawUI = true;
+					}
+					break;
 			}
 		}
 	}
@@ -637,7 +719,7 @@ class LiveGraph implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void getContentClick (int xcoord, int ycoord) {
+	void contentClick (int xcoord, int ycoord) {
 		if ((graphMode == 1 || ycoord <= (cT + cB) / 2) && (graphMode < 3 || xcoord <= (cL + cR) / 2)) {
 			selectedGraph = 1;
 			graphA.setHighlight(true);
@@ -697,7 +779,7 @@ class LiveGraph implements TabAPI {
 	 * @param  xcoord Current mouse x-coordinate position
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
-	void scrollBarUpdate(int xcoord, int ycoord) {
+	void scrollBarUpdate (int xcoord, int ycoord) {
 
 	}
 
@@ -708,7 +790,7 @@ class LiveGraph implements TabAPI {
 	 * @param  xcoord X-coordinate of the mouse click
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
-	void mclickSBar (int xcoord, int ycoord) {
+	void menuClick (int xcoord, int ycoord) {
 
 		// Coordinate calculation
 		int sT = cT;
@@ -972,8 +1054,8 @@ class LiveGraph implements TabAPI {
 
 							// Change name of column
 							else {
-								final String colname = showInputDialog("New Column Name:");
-								if (colname != null){
+								final String colname = showInputDialog("Enter a new Signal name\nCurrent name = " + dataColumns[i]);
+								if (colname != null && colname != ""){
 									dataColumns[i] = colname;
 									redrawUI = true;
 								}

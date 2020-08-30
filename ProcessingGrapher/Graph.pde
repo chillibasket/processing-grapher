@@ -1,10 +1,32 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * GRAPH CLASS
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Copyright (C) 2020, GPL v3
+ * @file    Graph.pde
+ * @brief   Class to draw graphs in Processing
+ * @author  Simon Bluett
+ *
+ * @class   Graph
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 class Graph {
 
@@ -18,7 +40,6 @@ class Graph {
 	float[] lastX = {0}, lastY = {-99999999};   // Array containing previous x and y values
 	float xStep;
 
-	int xScale, yScale;
 	int xRate;
 	int plotType;
 	String plotName;
@@ -66,8 +87,6 @@ class Graph {
 		minY = miny;
 		maxY = maxy;
 
-		xScale = 40;
-		yScale = 40;
 		xRate = 100;
 		xStep = 1 / float(xRate);
 
@@ -97,43 +116,11 @@ class Graph {
 		cR = newR;
 		cT = newT;
 		cB = newB;
+		graphMark = round(8 * uimult);
+		border = round(30 * uimult);
 
 		for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
 		redrawGraph = true;
-	}
-
-
-	/**
-	 * Change number of divisions on graph scales
-	 *
-	 * @param  newx Number of X-axis divisions
-	 * @param  newy Number of Y-axis divisions
-	 */
-	void changeGraphDiv(int newx, int newy) {
-		xScale = newx;
-		yScale = newy;
-		for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
-		drawGrid();
-	}
-
-
-	/**
-	 * Get the number of divisions on graph scales
-	 *
-	 * @return Number of X-axis divisions
-	 */
-	int getXscale() {
-		return xScale;
-	}
-
-
-	/**
-	 * Get the number of divisions on graph scales
-	 *
-	 * @return Number of Y-axis divisions
-	 */
-	int getYscale() {
-		return yScale;
 	}
 
 
@@ -289,7 +276,9 @@ class Graph {
 	 * @return True if valid, false is number is NaN or Infinity
 	 */
 	boolean validFloat(float newNumber) {
-		if ((newNumber != newNumber) || newNumber == Float.POSITIVE_INFINITY || newNumber == Float.NEGATIVE_INFINITY) return false;
+		if ((newNumber != newNumber) || newNumber == Float.POSITIVE_INFINITY || newNumber == Float.NEGATIVE_INFINITY) {
+			return false;
+		}
 		return true;
 	}
 
@@ -344,7 +333,7 @@ class Graph {
 	 * to show that it has been selected.
 	 *
 	 * @param  state
-	 * @param  update
+	 * ---@param  update--- removed
 	 */
 	void setHighlight(boolean state) {
 		highlighted = state;
@@ -352,14 +341,13 @@ class Graph {
 
 
 	/**
-	 * Check if a window coordinate is on the graph area
+	 * Check if a window coordinate is in the graph area
 	 *
 	 * @param  xCoord The window X-coordinate
 	 * @param  yCoord The window Y-coordinate
-	 * @return True if coordinate is within the graph area
+	 * @return True if coordinate is within the content area
 	 */
 	boolean onGraph(int xCoord, int yCoord) {
-		//if (xCoord >= gL && xCoord <= gR && yCoord >= gT && yCoord <= gB) return true;
 		if (xCoord >= cL && xCoord <= cR && yCoord >= cT && yCoord <= cB) return true;
 		else return false;
 	}
@@ -391,6 +379,12 @@ class Graph {
 	}
 
 
+	/**
+	 * Plot a new data point using default y-increment
+	 *
+	 * @note   This is an overload function
+	 * @see    void plotData(float, float, int)
+	 */
 	void plotData(float dataY, int type) {
 	
 		// Ensure that the element actually exists in data arrays
@@ -674,33 +668,62 @@ class Graph {
 		int textHeight = int(textAscent() + textDescent() + padding);
 		float charWidth = textWidth("0");
 
-		// Calculate graph area bounds
-		gT = cT + border;
+		/* -----------------------------------
+		 *     Define graph top and bottom
+		 * -----------------------------------*/
+		gT = cT + border + textHeight / 3;
 		gB = cB - border - textHeight - graphMark;
 
-		// Calculate y-axis parameters
+		/* -----------------------------------
+		 *     Calculate y-axis parameters 
+		 * -----------------------------------*/
+		// Figure out how many segments to divide the data into
 		double y_segment = Math.abs(roundToIdeal((maxY - minY) * (textHeight * 2) / (gB - gT)));
+
+		// Figure out a base reference for all the segments
 		double y_basePosition = yZero;
 		if (yZero > 0) y_basePosition = Math.ceil(minY / y_segment) * y_segment;
 		else if (yZero < 0) y_basePosition = -Math.ceil(-maxY / y_segment) * y_segment;
+
+		// Figure out how many decimal places need to be shown on the labels
 		int y_precision = calculateRequiredPrecision(maxY, minY, y_segment);
+
+		// Figure out where each of the labels should be drawn
 		double y_bottomPosition = y_basePosition - (Math.floor((y_basePosition - minY) / y_segment) * y_segment);
 		offsetBottom = map((float) y_bottomPosition, minY, maxY, gB, gT);
 		gridY = map((float) y_bottomPosition, minY, maxY, gB, gT) - map((float) (y_bottomPosition + y_segment), minY, maxY, gB, gT);;
 
-		int yTextWidth = int(max(String.format("%." + y_precision + "g", maxY).length(), 
-			String.format("%." + y_precision + "g", minY).length()) * charWidth);
+		// Figure out the width of the largest label so we know how much room to make
+		int yTextWidth = 0;
+		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
+			int labelWidth = int(String.format("%." + y_precision + "g", i).length() * charWidth);
+			if (labelWidth > yTextWidth) yTextWidth = labelWidth;
+		}
 
+		/* -----------------------------------
+		 *     Define graph left and right
+		 * -----------------------------------*/
 		gL = cL + border + yTextWidth + graphMark + padding;
 		gR = cR - border;
 
-		// Calculate x-axis parameters
-		double x_segment = Math.abs(roundToIdeal((maxX - minX) * (30 * 2) / (gR - gL)));
+		/* -----------------------------------
+		 *     Calculate x-axis parameters 
+		 * -----------------------------------*/
+		// Figure out an approximate number of segments to divide the data
+		double x_segment = Math.abs(roundToIdeal((maxX - minX) * (10 * 2) / (gR - gL)));
+
+		// Figure out approximately the precision required
 		int x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
-		int xTextWidth = int(max(String.format("%." + x_precision + "g", maxX).length(), 
+
+		// 
+		int xTextWidth = int(max(String.format("%." + x_precision + "g", (maxX - x_segment)).length(), 
 			String.format("%." + x_precision + "g", minX).length()) * charWidth);
 
+		//println(x_segment + " " + xTextWidth);
+
 		x_segment = Math.abs(roundToIdeal((maxX - minX) * (xTextWidth * 3) / (gR - gL)));
+		//println(x_segment);
+
 		double x_basePosition = xZero;
 		if (xZero > 0) x_basePosition = Math.ceil(minX / x_segment) * x_segment;
 		else if (xZero < 0) x_basePosition = -Math.ceil(-maxX / x_segment) * x_segment;
@@ -731,7 +754,7 @@ class Graph {
 				line(gL, currentYpixel, gR, currentYpixel);
 			}
 
-			String label = String.format("%." + y_precision + "g", i);
+			String label = String.format("%." + (y_precision +1) + "g", i);
 			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
 
 			stroke(c_lightgrey);
@@ -763,7 +786,7 @@ class Graph {
 			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
 
 			stroke(c_lightgrey);
-			text(label, currentXpixel, gB + graphMark + padding);
+			if (i != maxX) text(label, currentXpixel, gB + graphMark + padding);
 			line(currentXpixel, gB, currentXpixel, gB + graphMark);
 
 			// Minor graph lines

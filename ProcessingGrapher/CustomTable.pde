@@ -1,11 +1,34 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * CUSTOM-TABLE CLASS
- * extends Table with additional file saving options
+ * extends Processing Table Class
  *
- * Code by: Simon Bluett
- * Email:   hello@chillibasket.com
- * Copyright (C) 2020, GPL v3
+ * @file    CustomTable.pde
+ * @brief   Extend Table class with additional saving options
+ * @author  Simon Bluett
+ *
+ * @class   CustomTable
+ * @see     Table <Processing core/data/Table.java>
  * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ *
+ * This file is part of ProcessingGrapher 
+ * <https://github.com/chillibasket/processing-grapher>
+ * 
+ * ProcessingGrapher is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 class CustomTable extends Table {
 
