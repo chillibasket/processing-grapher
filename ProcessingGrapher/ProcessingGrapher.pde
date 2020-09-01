@@ -161,6 +161,8 @@ void setup() {
 	Dimension d = new Dimension(500, 350);
 	jf.setMinimumSize(d);
 
+	surface.setIcon(loadImage("icon-36.png"));
+
 	// All window to be resized
 	surface.setResizable(true);
 
@@ -407,6 +409,7 @@ void drawLoadingScreen() {
 	textSize(int(20 * uimult));
 	fill(255);
 
+	image(loadImage("icon-48.png"), (width / 2) - 24, (height / 2) - int(180 * uimult));
 	// Draw text
 	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
 	textSize(int(14 * uimult));
