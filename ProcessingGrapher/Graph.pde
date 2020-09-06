@@ -459,7 +459,7 @@ class Graph {
 						else y2 = round(map(minY, minY, maxY, gB, gT));
 
 						// Figure out how wide the bar should be
-						int oneSegment = ceil((x2 - x1) / float(lastX.length));
+						final int oneSegment = ceil((x2 - x1) / float(lastX.length));
 						x1 += oneSegment * type;
 						if (lastX.length > 1) x2 = x1 + oneSegment;
 						else x2 = x1 + ceil(oneSegment / 1.5);
@@ -510,10 +510,10 @@ class Graph {
 				strokeWeight(1 * uimult);
 
 				// Determine x and y coordinates
-				int x1 = round(map(dataX1, minX, maxX, gL, gR));
-				int x2 = round(map(dataX2, minX, maxX, gL, gR));
-				int y1 = round(map(dataY1, minY, maxY, gB, gT));
-				int y2 = round(map(dataY2, minY, maxY, gB, gT));
+				final int x1 = round(map(dataX1, minX, maxX, gL, gR));
+				final int x2 = round(map(dataX2, minX, maxX, gL, gR));
+				final int y1 = round(map(dataY1, minY, maxY, gB, gT));
+				final int y2 = round(map(dataY2, minY, maxY, gB, gT));
 				
 				rectMode(CORNERS);
 				rect(x1, y1, x2, y2);
@@ -581,7 +581,7 @@ class Graph {
 			return 0;
 		}
 
-		int n = 2;
+		final int n = 2;
 
 		final double d = Math.ceil(Math.log10(num < 0 ? -num: num));
 		final int power = n - (int) d;
@@ -614,16 +614,41 @@ class Graph {
 		double largeValue = (maxValue < 0) ? -maxValue : maxValue;
 		if (maxValue == 0 || -minValue > largeValue) largeValue = (minValue < 0) ? -minValue : minValue;
 
-		final double d1 = Math.ceil(Math.log10((segments < 0) ? -segments : segments));
-		final double d2 = Math.ceil(Math.log10(largeValue));
-		final double removeMSN = segments % Math.pow( 10, Math.floor( d1 ) ) ;
+		final double d1 = Math.floor( Math.log10( (segments < 0) ? -segments : segments ) );
+		final double d2 = Math.floor( Math.log10( largeValue ) );
+		final double removeMSN = Math.floor( (segments % Math.pow( 10, d1 )) * 10 );
 
-		int value = abs((int) d2 - (int) d1);
+		int value = abs((int) d2 - (int) d1) + 1;
 		if (removeMSN > 0) value++;
 
-		//println(maxValue + " - " + minValue + "(" + d2 + ") - " + segments + "(" + d1 + ") - " + value + " " + removeMSN);
+		//println(maxValue + "min " + minValue + "max (" + d2 + ")\t - \t" + segments + " seg (" + d1 + ")\t - \t" + value + "val, " + removeMSN + "segMSD");
 
 		return  value;
+	}
+
+
+	/**
+	 * Determine what type of axis label text to display
+	 *
+	 * In general, the text will be in decimal notation if the number has
+	 * less than 5 characters. It will be in scientifiic notation otherwise.
+	 *
+	 * @param  labelNumber The number to be displayed on the label
+	 * @param  precision   The number of significant digits to display
+	 * @return The formatted label text
+	 */
+	String formatLabelText(double labelNumber, int precision) {
+		// Scientific notation
+		String labelScientific = String.format("%." + precision + "g", labelNumber);
+		if (labelScientific.contains(".")) labelScientific = labelScientific.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
+
+		// Decimal notation
+		String labelDecimal = String.format("%." + precision + "f", labelNumber);
+		if (labelDecimal.contains(".")) labelDecimal = labelDecimal.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
+
+		// If decimal notation is shorter than 5 characters, use it
+		if (labelDecimal.length() < 5 || (labelDecimal.charAt(0) == '-' && labelDecimal.length() < 6)) return labelDecimal;
+		return labelScientific;
 	}
 
 
@@ -664,9 +689,9 @@ class Graph {
 
 		// Text width and height
 		textFont(mono_font);
-		int padding = int(5 * uimult);
-		int textHeight = int(textAscent() + textDescent() + padding);
-		float charWidth = textWidth("0");
+		final int padding = int(5 * uimult);
+		final int textHeight = int(textAscent() + textDescent() + padding);
+		final float charWidth = textWidth("0");
 
 		/* -----------------------------------
 		 *     Define graph top and bottom
@@ -696,7 +721,8 @@ class Graph {
 		// Figure out the width of the largest label so we know how much room to make
 		int yTextWidth = 0;
 		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
-			int labelWidth = int(String.format("%." + y_precision + "g", i).length() * charWidth);
+			String label = formatLabelText(i, y_precision);
+			int labelWidth = int(label.length() * charWidth);
 			if (labelWidth > yTextWidth) yTextWidth = labelWidth;
 		}
 
@@ -715,9 +741,8 @@ class Graph {
 		// Figure out approximately the precision required
 		int x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
 
-		// 
-		int xTextWidth = int(max(String.format("%." + x_precision + "g", (maxX - x_segment)).length(), 
-			String.format("%." + x_precision + "g", minX).length()) * charWidth);
+		int xTextWidth = int(max(formatLabelText((maxX - x_segment), x_precision).length(), 
+			formatLabelText(minX, x_precision).length()) * charWidth);
 
 		//println(x_segment + " " + xTextWidth);
 
@@ -747,15 +772,14 @@ class Graph {
 		textAlign(RIGHT, CENTER);
 
 		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
-			float currentYpixel = map((float) i, minY, maxY, gB, gT);
+			final float currentYpixel = map((float) i, minY, maxY, gB, gT);
 
 			if (gridLines) {
 				stroke(c_darkgrey);
 				line(gL, currentYpixel, gR, currentYpixel);
 			}
 
-			String label = String.format("%." + (y_precision +1) + "g", i);
-			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
+			String label = formatLabelText(i, y_precision);
 
 			stroke(c_lightgrey);
 			text(label, gL - graphMark - padding, currentYpixel - (1 * uimult));
@@ -763,7 +787,7 @@ class Graph {
 
 			// Minor graph lines
 			if (i > y_bottomPosition) {
-				float minorYpixel = map((float) (i - (y_segment / 2.0)), minY, maxY, gB, gT);
+				final float minorYpixel = map((float) (i - (y_segment / 2.0)), minY, maxY, gB, gT);
 				line(gL - (graphMark / 2.0), minorYpixel, gL - round(1 * uimult), minorYpixel);
 			}
 		}
@@ -775,15 +799,14 @@ class Graph {
 
 		// Move right first
 		for (double i = x_leftPosition; i <= maxX; i += x_segment) {
-			float currentXpixel = map((float) i, minX, maxX, gL, gR);
+			final float currentXpixel = map((float) i, minX, maxX, gL, gR);
 
 			if (gridLines) {
 				stroke(c_darkgrey);
 				line(currentXpixel, gT, currentXpixel, gB);
 			}
 
-			String label = String.format("%." + x_precision + "g", i);
-			if (label.contains(".")) label = label.replaceAll("[0]+$", "").replaceAll("[.]+$", "");
+			String label = formatLabelText(i, x_precision);
 
 			stroke(c_lightgrey);
 			if (i != maxX) text(label, currentXpixel, gB + graphMark + padding);
@@ -791,7 +814,7 @@ class Graph {
 
 			// Minor graph lines
 			if (i > x_leftPosition) {
-				float minorXpixel = map((float) (i - (x_segment / 2.0)), minX, maxX, gL, gR);
+				final float minorXpixel = map((float) (i - (x_segment / 2.0)), minX, maxX, gL, gR);
 				line(minorXpixel, gB, minorXpixel, gB + (graphMark / 2.0));
 			}
 		}

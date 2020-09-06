@@ -369,11 +369,11 @@ class FileGraph implements TabAPI {
 		// Open, close and save files
 		drawHeading("Analyse Data", iL, sT + (uH * 0), iW, tH);
 		drawButton("Open CSV File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
-		if (outputfile != ""  && outputfile != "No File Set" && changesMade) {
-			drawButton("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
-		} else {
+		//if (outputfile != ""  && outputfile != "No File Set" && changesMade) {
+		//	drawButton("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+		//} else {
 			drawDatabox("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
-		}
+		//}
 
 		// Add labels to data
 		drawHeading("Data Labels", iL, sT + (uH * 3.5), iW, tH);
@@ -626,11 +626,11 @@ class FileGraph implements TabAPI {
 			selectInput("Select CSV data file to open", "fileSelected");
 		}
 
-		// Save data
+		// Save data - currently disabled
 		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
-			if (outputfile != "" && outputfile != "No File Set" && changesMade){
-				saveData();
-			}
+			//if (outputfile != "" && outputfile != "No File Set" && changesMade){
+			//	saveData();
+			//}
 		}
 
 		// Add label

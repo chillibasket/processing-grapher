@@ -839,11 +839,11 @@ void keyPressed() {
 		controlKey = true;
 
 	// Decrease UI scaling (CTRL and -)
-	} else if (controlKey && (key == '-' || keyCode == 45)) {
-		uiResize(-0.1);
+	} else if (controlKey && (key == '-' || key == '_' || keyCode == 45)) {
+		if (uimult > 0.5) uiResize(-0.1);
 	// Increase UI scaling (CTRL and +)
-	} else if (controlKey && (key == '=' || keyCode == 61)) {
-		uiResize(0.1);
+	} else if (controlKey && (key == '=' || key == '+' || keyCode == 61)) {
+		if (uimult < 2.0) uiResize(0.1);
 
 	// For all other keys, send them on to the active tab
 	} else if (key == CODED) {
