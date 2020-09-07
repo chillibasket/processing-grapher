@@ -6,7 +6,7 @@
  * @author   Simon Bluett
  *
  * @date     30th August 2020
- * @version  1.8
+ * @version  1.0.9
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -542,7 +542,7 @@ void drawDatabox(String text, color textcolor, float lS, float tS, float iW, flo
 		fill(c_sidebar);
 		rect(lS + (1 * uimult), tS + (1 * uimult), iW - (2 * uimult), iH - (2 * uimult));
 		fill(textcolor);
-		text(text, lS, tS, iW, tH);
+		text(constrainString(text, iW - (20 * uimult)), lS, tS, iW, tH);
 	}
 }
 
@@ -1240,6 +1240,27 @@ boolean numberMessage(String msg) {
 		}
 	}
 	return true;
+}
+
+
+/**
+ * Constrain text length to fit within a certain width
+ *
+ * The function removes characters from the front of the string
+ * until it fits into the designated width
+ *
+ * @param  inputText The text to be constrained
+ * @param  maxWidth  The maximum width in pixels of the text
+ * @return The shortened string
+ */
+String constrainString(String inputText, float maxWidth) {
+	boolean textModified = false;
+	while (textWidth(inputText) > maxWidth && inputText.length() > 1) {
+		inputText = inputText.substring(1, inputText.length());
+		textModified = true;
+	}
+	if (textModified) inputText = "..." + inputText;
+	return inputText;
 }
 
 

@@ -559,12 +559,6 @@ class LiveGraph implements TabAPI {
 		} else {
 			String[] fileParts = split(outputfile, '/');
 			String fileName = fileParts[fileParts.length - 1];
-			if (textWidth(fileName) > iW - (20 * uimult)) {
-				while (textWidth(fileName) > iW - (20 * uimult)) {
-					fileName = fileName.substring(1, fileName.length());
-				}
-				fileName = "..." + fileName;
-			}
 
 			if (recordData) {
 				drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
@@ -589,12 +583,12 @@ class LiveGraph implements TabAPI {
 		drawRectangle(c_grey, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.getMinX()), c_sidebar_button, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("x",        c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMaxX()), iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(currentGraph.getMinY()), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("y",        c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMaxY()), iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), c_sidebar_button, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
+		drawDatabox(str(currentGraph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 8), iW, tH);
@@ -642,7 +636,7 @@ class LiveGraph implements TabAPI {
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_lightgrey);
-		text("Output File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
+		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 
@@ -930,18 +924,28 @@ class LiveGraph implements TabAPI {
 			if (newrate != null){
 				try {
 					int newXrate = Integer.parseInt(newrate);
-					xRate = newXrate;
-					graphA.setXrate(newXrate);
-					graphB.setXrate(newXrate);
-					graphC.setXrate(newXrate);
-					graphD.setXrate(newXrate);
-					sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
-					sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
-					sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
-					sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
 
-					redrawUI = true;
-				} catch (Exception e) {}
+					if (newXrate > 0 && newXrate < 10000) {
+						xRate = newXrate;
+						graphA.setXrate(newXrate);
+						graphB.setXrate(newXrate);
+						graphC.setXrate(newXrate);
+						graphD.setXrate(newXrate);
+						sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
+						sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
+						sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
+						sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
+
+						redrawContent = true;
+						redrawUI = true;
+					} else {
+						alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
+						redrawAlert = true;
+					}
+				} catch (Exception e) {
+					alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
+					redrawAlert = true;
+				}
 			}
 		}
 

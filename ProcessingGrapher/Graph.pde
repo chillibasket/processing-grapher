@@ -140,13 +140,17 @@ class Graph {
 	 * of the live serial data graph
 	 *
 	 * @param  newrate Data rate in samples per second
+	 * @return True if update is successful, false it number is invalid
 	 */
-	void setXrate(int newrate) {
-		if (newrate > 0 && validFloat(newrate)) {
+	boolean setXrate(int newrate) {
+		if ((newrate > 0) && (newrate < 10000) && validFloat(newrate)) {
 			xRate = newrate;
 			xStep = 1 / float(xRate);
-
-		} else println("Graph::setXrate() - Invalid number: " + newrate);
+			return true;
+		} else {
+			println("Graph::setXrate() - Invalid number: " + newrate);
+			return false;
+		}
 	}
 
 

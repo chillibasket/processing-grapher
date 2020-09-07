@@ -394,12 +394,12 @@ class FileGraph implements TabAPI {
 		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		// Graph scaling / segmentation
-		drawDatabox(str(graph.getMinX()), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(graph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 9), 12 * uimult, iH, tH);
-		drawDatabox(str(graph.getMaxX()), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(graph.getMinY()), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(graph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(graph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
-		drawDatabox(str(graph.getMaxY()), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(graph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
 
 		// Zoom Options
 		if (outputfile != ""  && outputfile != "No File Set") {
@@ -440,7 +440,7 @@ class FileGraph implements TabAPI {
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_lightgrey);
-		text("Input File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
+		text("Input: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Input: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 
@@ -759,9 +759,20 @@ class FileGraph implements TabAPI {
 				final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graph.getXrate());
 				if (newrate != null){
 					try {
-						graph.setXrate(Integer.parseInt(newrate));
-						redrawContent = redrawUI = true;
-					} catch (Exception e) {}
+						int newXrate = Integer.parseInt(newrate);
+
+						if (newXrate > 0 && newXrate < 10000) {
+							graph.setXrate(newXrate);
+							redrawContent = true;
+							redrawUI = true;
+						} else {
+							alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
+							redrawAlert = true;
+						}
+					} catch (Exception e) {
+						alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
+						redrawAlert = true;
+					}
 				}
 			}
 		}

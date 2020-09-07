@@ -605,7 +605,7 @@ class SerialMonitor implements TabAPI {
 			drawHeading("Serial Port", iL, sT + (uH * 0), iW, tH);
 			if (ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
 			else if (ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
-			else drawDatabox("Port: " + ports[portNumber], iL, sT + (uH * 1), iW, iH, tH);
+			else drawDatabox("Port: " + constrainString(ports[portNumber], iW - textWidth("Port: ") - (20 * uimult)), iL, sT + (uH * 1), iW, iH, tH);
 			drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
 			drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
@@ -617,12 +617,6 @@ class SerialMonitor implements TabAPI {
 			} else {
 				String[] fileParts = split(outputfile, '/');
 				String fileName = fileParts[fileParts.length - 1];
-				if (textWidth(fileName) > iW - (20 * uimult)) {
-					while (textWidth(fileName) > iW - (20 * uimult)) {
-						fileName = fileName.substring(1, fileName.length());
-					}
-					fileName = "..." + fileName;
-				}
 
 				if (recordData) {
 					drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
@@ -695,7 +689,7 @@ class SerialMonitor implements TabAPI {
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_lightgrey);
-		text("Output File: " + outputfile, round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult), width - sW - round(10 * uimult), round(bottombarHeight * uimult));
+		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 

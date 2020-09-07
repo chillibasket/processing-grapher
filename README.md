@@ -76,7 +76,11 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 
 ## Changelog
-1. (23rd August 2020) Version 1.8
+1. (7th September 2020) Version 1.1.0 [Release]
+	1. Updated all version number to differentiate between minor updates and larger releases.
+	1. Improved the way in which the axis labels are displayed on the graphs.
+	1. Constrain strings which are too long so they appear correctly in the right-hand menu.
+1. (23rd August 2020) Version 1.0.8
 	1. Added a file recording error recovery function, which deals with all possible error scenarios.
 	1. Optimised the Serial monitor text rendering to improve the frame rate.
 	1. Added menu button to turn off the automatic scrolling of the serial monitor.
@@ -84,32 +88,32 @@ This is still a work in progress; please let me know if you come across any issu
 	1. Menu clicks are now handled in a separate thread, meaning pop-ups etc. are no longer blocking.
 	1. Added a new thread which updates the COM port list at regular intervals.
 	1. Overhauled the "Graph" drawing class to make it more robust to displaying a variety of data.
-1. (6th August 2020) Version 1.7
+1. (6th August 2020) Version 1.0.7
 	1. Revamped file saving process so that new entries are written to the output file the moment they are received.
 	1. When recording data for a long time, the entries are now automatically split into multiple files of maximum 100,000 rows.
 	1. Updated live graphs to show a continuous running data stream, rather than drawing the data from left to right.
-1. (3rd August 2020) Version 1.6
+1. (3rd August 2020) Version 1.0.6
 	1. Added "Getting Started" boxes to help new users.
 	1. Updated error-handling of the CSV file saving process.
 	1. Added variable which can be used to change the serial comms line-ending character.
 	1. File open/save path strings are now properly cleaned to prevent backslash "\" errors.
-1. (20th July 2020) Version 1.5
+1. (20th July 2020) Version 1.0.5
 	1. Streamlined the Serial devices connection process by adding COM port and Baud rate options into sub menus on the right-hand sidebar (instead of blocking pop-ups).
 	1. Removed the duplicate serial connection code from the "Live Graph" tab, so that future improvements to the serial connection process will be easier.
 	1. Added loading screen on start-up.
 	1. CTRL+ and CTRL- keyboard combinations can be used to increase and decrease the UI scaling factor.
-1. (19th July 2020) Version 1.4
+1. (19th July 2020) Version 1.0.4
 	1. Added scrolling support to the right-hand menu bar using the mouse scroll wheel or up/down arrow keys. This solves the issue where menu items could be hidden when the window size is too small.
 	1. Finished updating all code function commenting to a more consistent Doxygen-style format.
-1. (18th July 2020) Version 1.3
+1. (18th July 2020) Version 1.0.3
 	1. Added usage instructions which appear in the serial monitor on start-up
 	1. Added the "Inconsolata" font which is used in the serial monitor
 	1. Fixed issue where serial messages which are longer than the window width would not appear. Now the visible portion of the text is shown, and a double arrow ">>" icon is used to show that some text is hidden. However, there is not any way to see that text yet, other than resizing the entire window.
 	1. Added support for "Page Up" and "Page Down" keys to quickly scroll through text in the serial monitor.
-1. (17th July 2020) Version 1.2
+1. (17th July 2020) Version 1.0.2
 	1. Fixed live graph bug which plotted erroneous data when graph y-axis was resized.
 	1. Added code which reset the live graph signal list when serial device is disconnected.
-1. (19th April 2020) Version 1.1
+1. (19th April 2020) Version 1.0.1
 	1. Added ability to display live serial data on up to four separate graphs.
 	1. Graphs now support the display of linecharts, dotcharts and barcharts.
 	1. Updated zooming options on the "Live Graph" and "File Graph" tabs.
