@@ -44,7 +44,7 @@ class Graph {
 	int plotType;
 	String plotName;
 	String xAxisName;
-	String yAxisName;
+	//String yAxisName;
 
 	// Ui variables
 	int graphMark;
@@ -99,7 +99,7 @@ class Graph {
 		highlighted = false;
 
 		xAxisName = "";
-		yAxisName = "";
+		//yAxisName = "";
 	}
 	
 
@@ -179,9 +179,9 @@ class Graph {
 	 *
 	 * @param  newName The text to be displayed beside the axis
 	 */
-	void setYaxisName(String newName) {
-		yAxisName = newName;
-	}
+	//void setYaxisName(String newName) {
+	//	yAxisName = newName;
+	//}
 
 
 	/**
@@ -620,12 +620,12 @@ class Graph {
 
 		final double d1 = Math.floor( Math.log10( (segments < 0) ? -segments : segments ) );
 		final double d2 = Math.floor( Math.log10( largeValue ) );
-		final double removeMSN = Math.floor( (segments % Math.pow( 10, d1 )) * 10 );
+		final double removeMSN = Math.round( (segments % Math.pow( 10, d1 )) / Math.pow( 10, d1 - 1 ) );
 
 		int value = abs((int) d2 - (int) d1) + 1;
-		if (removeMSN > 0) value++;
+		if (removeMSN > 0 && removeMSN < 10) value++;
 
-		//println(maxValue + "min " + minValue + "max (" + d2 + ")\t - \t" + segments + " seg (" + d1 + ")\t - \t" + value + "val, " + removeMSN + "segMSD");
+		//println(maxValue + "min " + minValue + "max (" + d2 + ")\t - \t" + segments + " seg (" + d1 + ")\t - \t" + value + "val, " + removeMSN + "segMSD " + Math.pow( 10, d1 ) + " " + ((segments % Math.pow( 10, d1 )) ));
 
 		return  value;
 	}
@@ -739,27 +739,44 @@ class Graph {
 		/* -----------------------------------
 		 *     Calculate x-axis parameters 
 		 * -----------------------------------*/
-		// Figure out an approximate number of segments to divide the data
-		double x_segment = Math.abs(roundToIdeal((maxX - minX) * (10 * 2) / (gR - gL)));
+		boolean solved = false;
+		double x_segment;
+		int x_precision;
+		int xTextWidth = int(charWidth * 3);
+		double x_basePosition;
+		double x_leftPosition;
 
-		// Figure out approximately the precision required
-		int x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
+		// Since the solution of the calculations determines the width of the labels,
+		// which in turn influences the calculations, set up a loop so that the label
+		// widths are increased in length until they all fit in the axis area.
+		do {
+			// Figure out how many segments to divide the data into
+			x_segment = Math.abs(roundToIdeal((maxX - minX) * (xTextWidth * 3) / (gR - gL)));
 
-		int xTextWidth = int(max(formatLabelText((maxX - x_segment), x_precision).length(), 
-			formatLabelText(minX, x_precision).length()) * charWidth);
+			// Figure out a base reference for all the segments
+			x_basePosition = xZero;
+			if (xZero > 0) x_basePosition = Math.ceil(minX / x_segment) * x_segment;
+			else if (xZero < 0) x_basePosition = -Math.ceil(-maxX / x_segment) * x_segment;
 
-		//println(x_segment + " " + xTextWidth);
+			// Figure out how many decimal places need to be shown on the labels
+			x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
 
-		x_segment = Math.abs(roundToIdeal((maxX - minX) * (xTextWidth * 3) / (gR - gL)));
-		//println(x_segment);
+			// Figure out where each of the labels should be drawn
+			x_leftPosition = x_basePosition - (Math.floor((x_basePosition - minX) / x_segment) * x_segment);
+			offsetLeft = map((float) x_leftPosition, minX, maxX, gL, gR);
+			gridX = map((float) (x_leftPosition + x_segment), minX, maxX, gL, gR) - map((float) x_leftPosition, minX, maxX, gL, gR);
 
-		double x_basePosition = xZero;
-		if (xZero > 0) x_basePosition = Math.ceil(minX / x_segment) * x_segment;
-		else if (xZero < 0) x_basePosition = -Math.ceil(-maxX / x_segment) * x_segment;
-		x_precision = calculateRequiredPrecision(maxX, minX, x_segment);
-		double x_leftPosition = x_basePosition - (Math.floor((x_basePosition - minX) / x_segment) * x_segment);
-		offsetLeft = map((float) x_leftPosition, minX, maxX, gL, gR);
-		gridX = map((float) (x_leftPosition + x_segment), minX, maxX, gL, gR) - map((float) x_leftPosition, minX, maxX, gL, gR);
+			// Figure out the width of the largest label so we know how much room to make
+			int newxTextWidth = 0;
+			for (double i = x_leftPosition; i <= maxX; i += x_segment) {
+				String label = formatLabelText(i, x_precision);
+				int labelWidth = int(label.length() * charWidth);
+				if (labelWidth > newxTextWidth) newxTextWidth = labelWidth;
+			}
+
+			if (newxTextWidth <= xTextWidth) solved = true;
+			else xTextWidth = newxTextWidth;
+		} while (!solved);
 
 		fill(c_lightgrey);
 

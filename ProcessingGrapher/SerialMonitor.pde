@@ -605,7 +605,7 @@ class SerialMonitor implements TabAPI {
 			drawHeading("Serial Port", iL, sT + (uH * 0), iW, tH);
 			if (ports.length == 0) drawDatabox("Port: None", iL, sT + (uH * 1), iW, iH, tH);
 			else if (ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
-			else drawDatabox("Port: " + constrainString(ports[portNumber], iW - textWidth("Port: ") - (20 * uimult)), iL, sT + (uH * 1), iW, iH, tH);
+			else drawDatabox("Port: " + constrainString(ports[portNumber], iW - textWidth("Port: ") - (15 * uimult)), iL, sT + (uH * 1), iW, iH, tH);
 			drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
 			drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
@@ -665,7 +665,7 @@ class SerialMonitor implements TabAPI {
 				tHnow += 1;
 			} else {
 				for (int i = 0; i < ports.length; i++) {
-					drawButton(ports[i], c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+					drawButton(constrainString(ports[i], iW - (10 * uimult)), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 					tHnow += 1;
 				}
 			}

@@ -542,7 +542,7 @@ void drawDatabox(String text, color textcolor, float lS, float tS, float iW, flo
 		fill(c_sidebar);
 		rect(lS + (1 * uimult), tS + (1 * uimult), iW - (2 * uimult), iH - (2 * uimult));
 		fill(textcolor);
-		text(constrainString(text, iW - (20 * uimult)), lS, tS, iW, tH);
+		text(constrainString(text, iW - (10 * uimult)), lS, tS, iW, tH);
 	}
 }
 
@@ -609,15 +609,15 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	int largestWidth = 0;
 
 	for (int i = 0; i < text.length; i++) {
-		itemHeight[i] = int(20 * uimult);
-		boxHeight += int(20 * uimult);
+		itemHeight[i] = int(22 * uimult);
+		boxHeight += int(22 * uimult);
 		int textW = int(textWidth(text[i]));
 
 		if ((textW + 2 * border > largestWidth) && (textW + 2 * border < boxWidth)) largestWidth = int(textW + 2 * border + 2 * uimult);
 		else if (textW + 2 * border > boxWidth) {
 			largestWidth = boxWidth;
-			boxHeight += int(20 * uimult * (ceil(textW / (boxWidth - 2 * border) - 1)));
-			itemHeight[i] += int(20 * uimult * (ceil(textW / (boxWidth - 2 * border) - 1)));
+			boxHeight += int(22 * uimult * (ceil(textW / (boxWidth - 2 * border))));
+			itemHeight[i] += int(22 * uimult * (ceil(textW / (boxWidth - 2 * border))));
 		}
 	}
 
@@ -684,13 +684,14 @@ void drawAlert () {
 
 	String heading = "Info Message";
 	String[] messages = split(alertHeading, '\n');
-	messages = append(messages, "");
-	messages = append(messages, "[Click to dismiss]");
 
 	if (messages.length > 1) {
 		heading = messages[0];
 		messages = remove(messages, 0);
 	}
+
+	messages = append(messages, "");
+	messages = append(messages, "[Click to dismiss]");
 	
 	drawMessageArea(heading, messages, 50 * uimult, width - 50 * uimult, (height / 2.5) - (alertHeight * uimult / 2), true);
 }
@@ -1254,12 +1255,12 @@ boolean numberMessage(String msg) {
  * @return The shortened string
  */
 String constrainString(String inputText, float maxWidth) {
-	boolean textModified = false;
-	while (textWidth(inputText) > maxWidth && inputText.length() > 1) {
-		inputText = inputText.substring(1, inputText.length());
-		textModified = true;
+	if (textWidth(inputText) > maxWidth) {
+		while (textWidth(".." + inputText) > maxWidth && inputText.length() > 1) {
+			inputText = inputText.substring(1, inputText.length());
+		}
+		inputText = ".." + inputText;
 	}
-	if (textModified) inputText = "..." + inputText;
 	return inputText;
 }
 

@@ -35,11 +35,28 @@ This is still a work in progress; please let me know if you come across any issu
 </br>
 </br>
 
-## Usage
+
+## Installation/Setup Guide
+
+### Basic Usage in the Processing IDE
 1. Download and install the Processing IDE from [https://processing.org/](https://processing.org/).
-1. Clone/download all files in this repository.
-1. Open `ProcessingGrapher.pde` in the Processing editor.
-1. Press the `Run` button on the top-left of the Processing editor to start the program.
+1. Clone or download all files in this repository.
+1. Open the main program file `ProcessingGrapher.pde` in the Processing editor. All the other files should automatically open in separate tabs in the Processing IDE.
+1. Press the `Run` button in the top-left of the Processing editor to start the program.
+</br>
+</br>
+
+### Creating a Stand-alone Program
+It is possible to create a stand-alone version of the program, which does not require the Processing IDE to run.
+
+1. Open the code in the Processing IDE, as described in the previous steps.
+1. In the top bar, click on `File > Export Application...`
+1. In the *Export Options* window that pops up, select the platform you want to export for and make sure that the *Embed Java* option is ticked. Finally, click *Export*.
+1. This will create an application folder which will include either an `*.exe` file (Windows), shell script (Linux) or `*.app` launch file (OS X) which you can use to run the program.
+</br>
+</br>
+
+## Getting Started
 1. To change the size/scaling of all text and buttons, press the `CTRL+` or `CTRL-` keyboard combinations.
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
@@ -60,6 +77,8 @@ This is still a work in progress; please let me know if you come across any issu
 	1. To plot different signals on separate graphs, click on the number of graphs (1 to 4) in the "Split" section of the right-hand sidebar.
 	1. You can then press the up or down buttons on each signal in the sidebar to move it to a different graph.
 	1. To change options (such as graph type, x-axis and y-axis scaling) for a specific graph, click on the graph you want to edit. The options for that graph are then shown in the sidebar.
+
+I will publish a full set of instructions and documentation on my website soon...
 </br>
 </br>
 
