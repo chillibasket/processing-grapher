@@ -866,8 +866,10 @@ void scrollBarEvent() {
  * keys such as SHIFT and CONTROL
  */
 void keyTyped() {
-	TabAPI curTab = tabObjects.get(currentTab);
-	curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+	if (!controlKey) {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+	}
 }
 
 
