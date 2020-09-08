@@ -5,8 +5,8 @@
  * @brief    Serial monitor and real-time graphing program
  * @author   Simon Bluett
  *
- * @date     30th August 2020
- * @version  1.0.9
+ * @date     8th September 2020
+ * @version  1.1.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -110,6 +110,7 @@ boolean redrawContent = true;
 boolean drawNewData = false;
 boolean drawFPS = true;
 boolean preventDrawing = false;
+int state = 0;
 
 // Interaction Booleans
 boolean textInput = false;
@@ -141,19 +142,30 @@ boolean alertActive = false;
  *********************************************************/
 
 /**
+ * Processing Setup function
+ *
+ * This sets up the window and rendering engine.
+ * All other loading is done later from the draw() 
+ * function after the loading screen is drawn.
+ */
+void setup() {
+	// Set up the window and rendering engine
+	size(1000, 700);
+	background(c_background);
+
+	// Set the desired frame rate (FPS)
+	frameRate(60);
+}
+
+
+/**
  * Program Setup Function
  *
  * Initialise all screen drawing parameters and 
  * instantiate the classes for each of the tabs. 
  */
-void setup() {
+void setupProgram() {
 	final int startTime = millis();
-
-	// Set up the window and rendering engine
-	size(1000, 700);
-
-	// Draw the loading screen
-	drawLoadingScreen();
 
 	// These lines implement a minimum window size
 	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
@@ -161,13 +173,11 @@ void setup() {
 	Dimension d = new Dimension(500, 350);
 	jf.setMinimumSize(d);
 
-	surface.setIcon(loadImage("icon-36.png"));
+	surface.setIcon(loadImage("icon-48.png"));
+	surface.setTitle("Processing Grapher");
 
 	// All window to be resized
 	surface.setResizable(true);
-
-	// Set the desired frame rate (FPS)
-	frameRate(60);
 
 	// Initialise the fonts
 	base_font = createFont(programFont, int(13*uimult), true);
@@ -225,14 +235,46 @@ void uiResize(float amount) {
  *        elements shown in the program window
  *********************************************************/
 
+
 /**
- * Main Program Draw Function
+ * Processing Draw Function
  *
  * This function manages all the screen drawing operations, 
  * and is looped at a frequency up to 60Hz (this will drop 
- * to a lower FPS under load). The function only updates the
- * areas of the program window which need to be redrawn, as 
- * dictated by these boolean variables:
+ * to a lower FPS under load). After the program has 
+ * finished the setup process, this function will always 
+ * call the drawProgram() method
+ *
+ * @see void drawProgram()
+ */
+void draw() {
+
+	switch (state) {
+		// Draw loading screen
+		case 0: 
+			drawLoadingScreen();
+			state++;
+			break;
+
+		// Setup the program
+		case 1: 
+			setupProgram();
+			state++;
+			break;
+
+		// Normal drawing operations of the program
+		default:
+			drawProgram();
+			break;
+	}
+}
+
+
+/**
+ * Main Program Draw Function
+ *
+ * The function only updates the areas of the program window 
+ * which need to be redrawn, as dictated by these boolean variables:
  *
  * @info redrawContent  - Draw the entire tab content area
  * @info drawNewData    - Only redraw parts affected by new serial data
@@ -242,8 +284,8 @@ void uiResize(float amount) {
  * @info preventDrawing - Overrides above variables, preventing the screen
  *                        from being redrawn (eg. when window is too small)
  */
-void draw() {
-
+void drawProgram() {
+	// Some logic to allow the screen to be updated behind alerts
 	if (alertActive && (redrawContent || drawNewData || redrawUI)) {
 		redrawContent = true;
 		redrawUI = true;
@@ -265,6 +307,7 @@ void draw() {
 			preventDrawing = false;
 			lastWidth = width;
 			lastHeight = height;
+			if (alertActive) redrawAlert = true;
 			for (TabAPI curTab : tabObjects) {
 				curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 			}
@@ -409,15 +452,16 @@ void drawLoadingScreen() {
 	textSize(int(20 * uimult));
 	fill(255);
 
+	// Draw icon
 	image(loadImage("icon-48.png"), (width / 2) - 24, (height / 2) - int(180 * uimult));
+
 	// Draw text
 	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
 	textSize(int(14 * uimult));
-	text("Loading", width / 2, (height / 2) + int(10 * uimult));
-	//textSize(int(14 * uimult));
+	text("Loading v1.1.0", width / 2, (height / 2) + int(10 * uimult));
 	fill(180);
 	text("(C) Copyright 2018-2020 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
-	text("Free Software - GNU General Public License V.3", width / 2, (height / 2) + int(90 * uimult));
+	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 
 	// Draw lines
 	line(0, height/2, width, height/2 - (78 * uimult));
