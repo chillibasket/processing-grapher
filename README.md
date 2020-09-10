@@ -6,6 +6,7 @@
 This project is a Processing-based serial terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. This program is designed as a replacement for the serial monitor contained within the Arduino IDE. The program contains easy-to-use tools to record data received from serial devices, and to plot numerical data on up to 4 separate graphs in real-time. This makes it useful for quickly analysing sensor data from a micro-controller. 
 
 This is still a work in progress; please let me know if you come across any issues or bugs which need to be fixed!
+A full description and set of instructions can be found on my website: [https://wired.chillibasket.com/processing-grapher/](https://wired.chillibasket.com/processing-grapher/)
 </br>
 </br>
 
@@ -78,7 +79,7 @@ It is possible to create a stand-alone version of the program, which does not re
 	1. You can then press the up or down buttons on each signal in the sidebar to move it to a different graph.
 	1. To change options (such as graph type, x-axis and y-axis scaling) for a specific graph, click on the graph you want to edit. The options for that graph are then shown in the sidebar.
 
-I will publish a full set of instructions and documentation on my website soon...
+A full set of instructions and documentation can be found on my website at: [https://wired.chillibasket.com/processing-grapher/](https://wired.chillibasket.com/processing-grapher/)
 </br>
 </br>
 

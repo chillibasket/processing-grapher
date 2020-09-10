@@ -4,6 +4,7 @@
  * @file     ProcessingGrapher.pde
  * @brief    Serial monitor and real-time graphing program
  * @author   Simon Bluett
+ * @website  https://wired.chillibasket.com/processing-grapher/
  *
  * @date     8th September 2020
  * @version  1.1.0
