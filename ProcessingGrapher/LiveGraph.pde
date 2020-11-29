@@ -2,12 +2,13 @@
  * LIVE GRAPH PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
- * @file    LiveGraph.pde
- * @brief   Real-time serial data plotter tab
- * @author  Simon Bluett
+ * @file     LiveGraph.pde
+ * @brief    Real-time serial data plotter tab
+ * @author   Simon Bluett
  *
- * @class   LiveGraph
- * @see     TabAPI <ProcessingGrapher.pde>
+ * @license  GNU General Public License v3
+ * @class    LiveGraph
+ * @see      TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -137,10 +138,12 @@ class LiveGraph implements TabAPI {
 
 		// Show message if no serial device is connected
 		if (!serialConnected) {
-			String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
-							    "2. Each line sent by the device should only contain numbers separated with commas",
-							    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
-			drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+			if (showInstructions) {
+				String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
+								    "2. Each line sent by the device should only contain numbers separated with commas",
+								    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
+				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+			}
 
 		} else if (dataTable.getRowCount() > 0) {
 			drawNewData();
@@ -526,7 +529,7 @@ class LiveGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		menuHeight = round((11 + dataColumns.length + (graphMode * 0.75)) * uH);
+		menuHeight = round((12.5 + dataColumns.length + ((graphMode + 1) * 0.75)) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -534,7 +537,7 @@ class LiveGraph implements TabAPI {
 			else if (menuScroll > menuHeight - sH) menuScroll = menuHeight - sH;
 
 			// Draw left bar
-			fill(c_darkgrey);
+			fill(c_serial_message_box);
 			rect(width - round(15 * uimult) / 2, sT, round(15 * uimult) / 2, sH);
 
 			// Figure out size and position of scroll bar indicator
@@ -562,9 +565,9 @@ class LiveGraph implements TabAPI {
 
 			if (recordData) {
 				drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
-				drawButton("Stop Recording", c_red, iL, sT + (uH * 2), iW, iH, tH);
+				drawButton("Stop Recording", c_sidebar_accent, iL, sT + (uH * 2), iW, iH, tH);
 			} else {
-				drawDatabox(fileName, c_white, iL, sT + (uH * 1), iW, iH, tH);
+				drawDatabox(fileName, c_sidebar_text, iL, sT + (uH * 1), iW, iH, tH);
 				drawButton("Start Recording", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
 			}
 		}
@@ -577,11 +580,11 @@ class LiveGraph implements TabAPI {
 		else currentGraph = graphA;
 
 		drawHeading("Graph " + selectedGraph + " - Options",                                     iL,                sT + (uH * 3.5),         iW, tH);
-		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL,                sT + (uH * 4.5), iW / 3, iH, tH);
-		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_red:c_sidebar_button,  iL + (iW / 3),     sT + (uH * 4.5), iW / 3, iH, tH);
-		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_red:c_sidebar_button,   iL + (iW * 2 / 3), sT + (uH * 4.5), iW / 3, iH, tH);
-		drawRectangle(c_grey, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL,                sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button,  iL + (iW / 3),     sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button,   iL + (iW * 2 / 3), sT + (uH * 4.5), iW / 3, iH, tH);
+		drawRectangle(c_sidebar_divider, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		drawDatabox(str(currentGraph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), c_sidebar_button, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
@@ -589,29 +592,31 @@ class LiveGraph implements TabAPI {
 		drawDatabox(str(currentGraph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
 		drawDatabox(str(currentGraph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawButton((autoAxis)? "Scale: Auto":"Scale: Manual", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
 
 		// Input Data Columns
-		drawHeading("Data Format", iL, sT + (uH * 8), iW, tH);
-		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 9), iW, iH, tH);
+		drawHeading("Data Format", iL, sT + (uH * 9), iW, tH);
+		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
-		drawDatabox("Split", c_sidebar_button, iL, sT + (uH * 10), iW - (80 * uimult), iH, tH);
-		drawButton("1", (graphMode == 1)? c_red:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		drawButton("2", (graphMode == 2)? c_red:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		drawButton("3", (graphMode == 3)? c_red:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		drawButton("4", (graphMode == 4)? c_red:c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 10), 20 * uimult, iH, tH);
-		drawRectangle(c_grey, iL + iW - (60 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + iW - (40 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * 10) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawDatabox("Split", c_sidebar_button, iL, sT + (uH * 11), iW - (80 * uimult), iH, tH);
+		drawButton("1", (graphMode == 1)? c_sidebar_accent:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
+		drawButton("2", (graphMode == 2)? c_sidebar_accent:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
+		drawButton("3", (graphMode == 3)? c_sidebar_accent:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
+		drawButton("4", (graphMode == 4)? c_sidebar_accent:c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
+		drawRectangle(c_sidebar_divider, iL + iW - (60 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + iW - (40 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		float tHnow = 11;
+		float tHnow = 12;
 
-		for (int j = 0; j < graphMode; j++) {
-			drawText("Graph " + (j + 1), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
+		for (int j = 0; j < graphMode + 1; j++) {
+			if (j < graphMode) drawText("Graph " + (j + 1), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
+			else drawText("Hidden", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
 			tHnow += 0.75;
 			int itemCount = 0;
 
 			// List of Data Columns
-			for(int i = 0; i < dataColumns.length; i++){
+			for(int i = 0; i < dataColumns.length; i++) {
 
 				if (graphAssignment[i] == j + 1) {
 					// Column name
@@ -622,9 +627,9 @@ class LiveGraph implements TabAPI {
 					drawButton((graphAssignment[i] > 1)? "▲":"", c_sidebar, buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
 					// Down button
-					drawButton((graphAssignment[i] < graphMode)? "▼":"", c_sidebar, buttonColor, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+					drawButton((graphAssignment[i] < graphMode + 1)? "▼":"", c_sidebar, buttonColor, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-					drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+					drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 					tHnow++;
 					itemCount++;
 				}
@@ -635,7 +640,7 @@ class LiveGraph implements TabAPI {
 
 		textAlign(LEFT, TOP);
 		textFont(base_font);
-		fill(c_lightgrey);
+		fill(c_status_bar);
 		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
@@ -918,8 +923,14 @@ class LiveGraph implements TabAPI {
 			}
 		}
 
+		// Turn auto-scaling on/off
+		else if ((mouseY > sT + (uH * 7.5)) && (mouseY < sT + (uH * 7.5) + iH)) {
+			autoAxis = !autoAxis;
+			redrawUI = true;
+		}
+
 		// Change the input data rate
-		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
+		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
 			final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graphA.getXrate());
 			if (newrate != null){
 				try {
@@ -950,7 +961,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Add a new input data column
-		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
+		else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
 			
 			// Graph mode 1
 			if ((mouseX >= iL + iW - (80 * uimult)) && (mouseX < iL + iW - (60 * uimult))) {
@@ -965,7 +976,9 @@ class LiveGraph implements TabAPI {
 					graphC.setHighlight(false);
 					graphD.setHighlight(false);
 				}
-				for (int i = 0; i < graphAssignment.length; i++) graphAssignment[i] = 1;
+				for (int i = 0; i < graphAssignment.length; i++) {
+					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
+				}
 			
 			// Graph mode 2
 			} else if ((mouseX >= iL + iW - (60 * uimult)) && (mouseX < iL + iW - (40 * uimult))) {
@@ -982,7 +995,7 @@ class LiveGraph implements TabAPI {
 					graphD.setHighlight(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
-					if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
+					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 				}
 
 			// Graph mode 3
@@ -1001,7 +1014,7 @@ class LiveGraph implements TabAPI {
 					graphD.setHighlight(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
-					if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
+					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 				}
 
 			// Graph mode 4
@@ -1014,7 +1027,7 @@ class LiveGraph implements TabAPI {
 				graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
 				graphD.changeSize((cL + cR) / 2, cR, (cT + cB) / 2, cB);
 				for (int i = 0; i < graphAssignment.length; i++) {
-					if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
+					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 				}
 			}
 
@@ -1028,9 +1041,9 @@ class LiveGraph implements TabAPI {
 		}
 		
 		else {
-			float tHnow = 11;
+			float tHnow = 12;
 
-			for (int j = 0; j < graphMode; j++) {
+			for (int j = 0; j < graphMode + 1; j++) {
 				tHnow += 0.75;
 
 				// List of Data Columns
@@ -1043,7 +1056,7 @@ class LiveGraph implements TabAPI {
 							// Down arrow
 							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
 								graphAssignment[i]++;
-								if (graphAssignment[i] > graphMode) graphAssignment[i] = graphMode;
+								if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 								redrawUI = true;
 								redrawContent = true;
 							}

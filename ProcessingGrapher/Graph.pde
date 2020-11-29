@@ -1,11 +1,12 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * GRAPH CLASS
  *
- * @file    Graph.pde
- * @brief   Class to draw graphs in Processing
- * @author  Simon Bluett
+ * @file     Graph.pde
+ * @brief    Class to draw graphs in Processing
+ * @author   Simon Bluett
  *
- * @class   Graph
+ * @license  GNU General Public License v3
+ * @class    Graph
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -538,7 +539,7 @@ class Graph {
 
 		// Setup drawing parameters
 		strokeWeight(1 * uimult);
-		stroke(c_darkgrey);
+		stroke(c_graph_gridlines);
 
 		// Draw X-axis grid lines
 		if (gridLines && gridX != 0) {
@@ -562,7 +563,7 @@ class Graph {
 		else if (maxX < 0) xZero = maxX;
 
 		// Draw the graph axis lines
-		stroke(c_lightgrey);
+		stroke(c_graph_axis);
 		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
 		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
 
@@ -623,9 +624,10 @@ class Graph {
 		final double removeMSN = Math.round( (segments % Math.pow( 10, d1 )) / Math.pow( 10, d1 - 1 ) );
 
 		int value = abs((int) d2 - (int) d1) + 1;
+		//if (d1 < 0) value = (int) d2;
 		if (removeMSN > 0 && removeMSN < 10) value++;
 
-		//println(maxValue + "min " + minValue + "max (" + d2 + ")\t - \t" + segments + " seg (" + d1 + ")\t - \t" + value + "val, " + removeMSN + "segMSD " + Math.pow( 10, d1 ) + " " + ((segments % Math.pow( 10, d1 )) ));
+		//println(maxValue + "max " + minValue + "min (" + d2 + ")\t - \t" + segments + " seg (" + d1 + ")\t - \t" + value + "val, " + removeMSN + "segMSD " + Math.pow( 10, d1 ) + " " + ((segments % Math.pow( 10, d1 )) ));
 
 		return  value;
 	}
@@ -671,7 +673,7 @@ class Graph {
 
 		// Add border and graph title
 		strokeWeight(1 * uimult);
-		stroke(c_darkgrey);
+		stroke(c_graph_border);
 		if (cT > round((tabHeight + 1) * uimult)) line(cL, cT, cR, cT);
 		if (cL > 1) line(cL, cT, cL, cB);
 		line(cL, cB, cR, cB);
@@ -796,13 +798,13 @@ class Graph {
 			final float currentYpixel = map((float) i, minY, maxY, gB, gT);
 
 			if (gridLines) {
-				stroke(c_darkgrey);
+				stroke(c_graph_gridlines);
 				line(gL, currentYpixel, gR, currentYpixel);
 			}
 
 			String label = formatLabelText(i, y_precision);
 
-			stroke(c_lightgrey);
+			stroke(c_graph_axis);
 			text(label, gL - graphMark - padding, currentYpixel - (1 * uimult));
 			line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
 
@@ -823,13 +825,13 @@ class Graph {
 			final float currentXpixel = map((float) i, minX, maxX, gL, gR);
 
 			if (gridLines) {
-				stroke(c_darkgrey);
+				stroke(c_graph_gridlines);
 				line(currentXpixel, gT, currentXpixel, gB);
 			}
 
 			String label = formatLabelText(i, x_precision);
 
-			stroke(c_lightgrey);
+			stroke(c_graph_axis);
 			if (i != maxX) text(label, currentXpixel, gB + graphMark + padding);
 			line(currentXpixel, gB, currentXpixel, gB + graphMark);
 
@@ -841,7 +843,7 @@ class Graph {
 		}
 
 		// The outer grid axes
-		stroke(c_lightgrey);
+		stroke(c_graph_axis);
 		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
 		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
 		textFont(base_font);

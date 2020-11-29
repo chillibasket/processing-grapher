@@ -17,7 +17,7 @@ A full description and set of instructions can be found on my website: [https://
 </br>
 
 ## Features
-1. Easy UI scaling
+1. Easy UI scale and colour theme changing 
 1. Serial terminal monitor
 	1. Connect to any serial port at any baud rate
 	1. Send and receive serial communication
@@ -96,6 +96,11 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (29th November 2020) Version 1.1.1
+	1. Added button on "Live Graph" tab to toggle automatic y-axis scaling on/off.
+	2. Added a "Hidden" section on the "Live Graph" tab so that unwanted signals can be hidden from the real-time graphs.
+	3. Added a "Settings" sidebar menu to make changing program preferences easier.
+	4. Added two additional program colour schemes.
 1. (7th September 2020) Version 1.1.0 [Release]
 	1. Updated all version number to differentiate between minor updates and larger releases.
 	1. Improved the way in which the axis labels are displayed on the graphs.

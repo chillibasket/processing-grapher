@@ -2,12 +2,13 @@
  * CUSTOM-TABLE CLASS
  * extends Processing Table Class
  *
- * @file    CustomTable.pde
- * @brief   Extend Table class with additional saving options
- * @author  Simon Bluett
+ * @file     CustomTable.pde
+ * @brief    Extend Table class with additional saving options
+ * @author   Simon Bluett
  *
- * @class   CustomTable
- * @see     Table <Processing core/data/Table.java>
+ * @license  GNU General Public License v3
+ * @class    CustomTable
+ * @see      Table <Processing core/data/Table.java>
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*

@@ -2,12 +2,13 @@
  * FILE GRAPH PLOTTER CLASS
  * implements TabAPI for Processing Grapher
  *
- * @file    FileGraph.pde
- * @brief   Tab to plot CSV file data on a graph
- * @author  Simon Bluett
+ * @file     FileGraph.pde
+ * @brief    Tab to plot CSV file data on a graph
+ * @author   Simon Bluett
  *
- * @class   FileGraph
- * @see     TabAPI <ProcessingGrapher.pde>
+ * @license  GNU General Public License v3
+ * @class    FileGraph
+ * @see      TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -101,10 +102,12 @@ class FileGraph implements TabAPI {
 
 		// Show message if no serial device is connected
 		if (outputfile == "No File Set") {
-			String[] message = {"1. Click 'Open Data' to open and plot the signals from a *.CSV file",
-							    "2. The first row of the file should contain headings for each of the signal",
-							    "3. If the heading starts with 'x:', this column will be used as the x-axis"};
-			drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+			if (showInstructions) {
+				String[] message = {"1. Click 'Open CSV File' to open and plot the signals from a *.CSV file",
+								    "2. The first row of the file should contain headings for each of the signal",
+								    "3. If the heading starts with 'x:', this column will be used as the x-axis"};
+				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+			}
 		}
 	}
 
@@ -341,7 +344,7 @@ class FileGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		menuHeight = round((14.5 + dataColumns.length) * uH);
+		menuHeight = round((15 + dataColumns.length) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -349,7 +352,7 @@ class FileGraph implements TabAPI {
 			else if (menuScroll > menuHeight - sH) menuScroll = menuHeight - sH;
 
 			// Draw left bar
-			fill(c_darkgrey);
+			fill(c_serial_message_box);
 			rect(width - round(15 * uimult) / 2, sT, round(15 * uimult) / 2, sH);
 
 			// Figure out size and position of scroll bar indicator
@@ -387,11 +390,11 @@ class FileGraph implements TabAPI {
 		
 		// Graph type
 		drawHeading("Graph Options", iL, sT + (uH * 7), iW, tH);
-		drawButton("Line", (graph.getGraphType() == "linechart")? c_red:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
-		drawButton("Dots", (graph.getGraphType() == "dotchart")? c_red:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
-		drawButton("Bar", (graph.getGraphType() == "barchart")? c_red:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
-		drawRectangle(c_grey, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_grey, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawButton("Line", (graph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
+		drawButton("Dots", (graph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
+		drawButton("Bar", (graph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
+		drawRectangle(c_sidebar_divider, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 		// Graph scaling / segmentation
 		drawDatabox(str(graph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
@@ -405,7 +408,7 @@ class FileGraph implements TabAPI {
 		if (outputfile != ""  && outputfile != "No File Set") {
 			drawButton("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
 			drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
-			drawRectangle(c_grey, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		} else {
 			drawDatabox("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
 			drawDatabox("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
@@ -432,14 +435,14 @@ class FileGraph implements TabAPI {
 				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
 				drawButton("", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-				drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+				drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 				tHnow++;
 			}
 		}
 
 		textAlign(LEFT, TOP);
 		textFont(base_font);
-		fill(c_lightgrey);
+		fill(c_status_bar);
 		text("Input: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Input: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
@@ -532,7 +535,7 @@ class FileGraph implements TabAPI {
 			if (graph.onGraph(xcoord, ycoord)) {
 				zoomCoordOne[0] = (graph.xGraphPos(xcoord) * (graph.getMaxX() - graph.getMinX())) + graph.getMinX();
 				zoomCoordOne[1] = ((1 - graph.yGraphPos(ycoord)) * (graph.getMaxY() - graph.getMinY())) + graph.getMinY();
-				stroke(c_white);
+				stroke(c_graph_axis);
 				strokeWeight(1 * uimult);
 				line(xcoord - (5 * uimult), ycoord, xcoord + (5 * uimult), ycoord);
 				line(xcoord, ycoord - (5 * uimult), xcoord, ycoord + (5 * uimult));

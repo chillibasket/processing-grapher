@@ -2,12 +2,13 @@
  * SERIAL MONITOR CLASS
  * implements TabAPI for Processing Grapher
  *
- * @file    SerialMonitor.pde
- * @brief   A serial monitor tab for UART comms
- * @author  Simon Bluett
+ * @file     SerialMonitor.pde
+ * @brief    A serial monitor tab for UART comms
+ * @author   Simon Bluett
  *
- * @class   SerialMonitor
- * @see     TabAPI <ProcessingGrapher.pde>
+ * @license  GNU General Public License v3
+ * @class    SerialMonitor
+ * @see      TabAPI <ProcessingGrapher.pde>
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -106,28 +107,30 @@ class SerialMonitor implements TabAPI {
 		serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 		serialBuffer.append("");
-		serialBuffer.append("[Info] Connecting to a Serial Device");
-		serialBuffer.append("1. In the right sidebar, select the COM port");
-		serialBuffer.append("2. Set the correct baud rate for the communication");
-		serialBuffer.append("3. Click the 'Connect' button to begin communication");
-		serialBuffer.append("");
-		serialBuffer.append("[Info] Using the Serial Monitor");
-		serialBuffer.append("1. To send a message, start typing; press the enter key to send");
-		serialBuffer.append("2. Scroll using the scroll wheel, up/down arrow and page up/down keys");
-		serialBuffer.append("3. Press 'Clear Terminal' to remove all serial monitor messages");
-		serialBuffer.append("4. Press CTRL+ or CTRL- to increase or decrease interface size");
-		serialBuffer.append("");
-		serialBuffer.append("[Info] Recording Serial Communication");
-		serialBuffer.append("1. Click 'Set Output File' to set the save file location");
-		serialBuffer.append("2. Press 'Start Recording' button to initiate the recording");
-		serialBuffer.append("3. Press 'Stop Recording' to stop and save the recording");
-		serialBuffer.append("");
-		serialBuffer.append("[Info] Adding Visual Colour Tags");
-		serialBuffer.append("Tags can be used to highlight lines containing specific text");
-		serialBuffer.append("1. Click 'Add New Tag' and type the text to be detected");
-		serialBuffer.append("2. Now any line containing this text will change colour");
-		serialBuffer.append("3. In the right sidebar, Tags can be deleted and modified");
-		serialBuffer.append("");
+		if (showInstructions) {
+			serialBuffer.append("[Info] Connecting to a Serial Device");
+			serialBuffer.append("1. In the right sidebar, select the COM port");
+			serialBuffer.append("2. Set the correct baud rate for the communication");
+			serialBuffer.append("3. Click the 'Connect' button to begin communication");
+			serialBuffer.append("");
+			serialBuffer.append("[Info] Using the Serial Monitor");
+			serialBuffer.append("1. To send a message, start typing; press the enter key to send");
+			serialBuffer.append("2. Scroll using the scroll wheel, up/down arrow and page up/down keys");
+			serialBuffer.append("3. Press 'Clear Terminal' to remove all serial monitor messages");
+			serialBuffer.append("4. Press CTRL+ or CTRL- to increase or decrease interface size");
+			serialBuffer.append("");
+			serialBuffer.append("[Info] Recording Serial Communication");
+			serialBuffer.append("1. Click 'Set Output File' to set the save file location");
+			serialBuffer.append("2. Press 'Start Recording' button to initiate the recording");
+			serialBuffer.append("3. Press 'Stop Recording' to stop and save the recording");
+			serialBuffer.append("");
+			serialBuffer.append("[Info] Adding Visual Colour Tags");
+			serialBuffer.append("Tags can be used to highlight lines containing specific text");
+			serialBuffer.append("1. Click 'Add New Tag' and type the text to be detected");
+			serialBuffer.append("2. Now any line containing this text will change colour");
+			serialBuffer.append("3. In the right sidebar, Tags can be deleted and modified");
+			serialBuffer.append("");
+		}
 	}
 
 
@@ -151,7 +154,7 @@ class SerialMonitor implements TabAPI {
 		noStroke();
 		fill(c_background);
 		rect(cL, cT, cR, cT + msgB);
-		fill(c_darkgrey);
+		fill(c_serial_message_box);
 		rect(cL + msgBorder, cT + msgBorder, cR - msgBorder, msgB - msgBorder);
 
 		textFont(base_font);
@@ -257,7 +260,7 @@ class SerialMonitor implements TabAPI {
 		int totalHeight = displayRows * yTextHeight;
 
 		// Draw left bar
-		fill(c_darkgrey);
+		fill(c_serial_message_box);
 		rect(cL, msgB, border/2, totalHeight);
 		textAlign(LEFT, TOP);
 		textFont(mono_font);
@@ -572,9 +575,9 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
-		if (menuLevel == 0)	menuHeight = round((13.5 + tagColumns.length) * uH);
-		else if (menuLevel == 1) menuHeight = round((2.5 + ports.length) * uH);
-		else if (menuLevel == 2) menuHeight = round((2.5 + baudRateList.length) * uH);
+		if (menuLevel == 0)	menuHeight = round((14 + tagColumns.length) * uH);
+		else if (menuLevel == 1) menuHeight = round((3 + ports.length) * uH);
+		else if (menuLevel == 2) menuHeight = round((3 + baudRateList.length) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -582,7 +585,7 @@ class SerialMonitor implements TabAPI {
 			else if (menuScroll > menuHeight - sH) menuScroll = menuHeight - sH;
 
 			// Draw left bar
-			fill(c_darkgrey);
+			fill(c_serial_message_box);
 			rect(width - round(15 * uimult) / 2, sT, round(15 * uimult) / 2, sH);
 
 			// Figure out size and position of scroll bar indicator
@@ -607,7 +610,7 @@ class SerialMonitor implements TabAPI {
 			else if (ports.length <= portNumber) drawDatabox("Port: Invalid", iL, sT + (uH * 1), iW, iH, tH);
 			else drawDatabox("Port: " + constrainString(ports[portNumber], iW - textWidth("Port: ") - (15 * uimult)), iL, sT + (uH * 1), iW, iH, tH);
 			drawDatabox("Baud: " + baudRate, iL, sT + (uH * 2), iW, iH, tH);
-			drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_red:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
+			drawButton((serialConnected)? "Disconnect":"Connect", (serialConnected)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 3), iW, iH, tH);
 
 			// Save to File
 			drawHeading("Record Messages", iL, sT + (uH * 4.5), iW, tH);
@@ -620,9 +623,9 @@ class SerialMonitor implements TabAPI {
 
 				if (recordData) {
 					drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-					drawButton("Stop Recording", c_red, iL, sT + (uH * 6.5), iW, iH, tH);
+					drawButton("Stop Recording", c_sidebar_accent, iL, sT + (uH * 6.5), iW, iH, tH);
 				} else {
-					drawDatabox(fileName, c_white, iL, sT + (uH * 5.5), iW, iH, tH);
+					drawDatabox(fileName, c_sidebar_text, iL, sT + (uH * 5.5), iW, iH, tH);
 					drawButton("Start Recording", c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
 				}
 			}
@@ -651,7 +654,7 @@ class SerialMonitor implements TabAPI {
 				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
 				drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
-				drawRectangle(c_grey, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+				drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 				tHnow++;
 			}
 
@@ -670,7 +673,7 @@ class SerialMonitor implements TabAPI {
 				}
 			}
 			tHnow += 0.5;
-			drawButton("Cancel", c_red, iL, sT + (uH * tHnow), iW, iH, tH);
+			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
 
 		// Baud rate selection menu
 		} else if (menuLevel == 2) {
@@ -682,13 +685,13 @@ class SerialMonitor implements TabAPI {
 				tHnow += 1;
 			}
 			tHnow += 0.5;
-			drawButton("Cancel", c_red, iL, sT + (uH * tHnow), iW, iH, tH);
+			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
 
 		// Draw bottom info bar
 		textAlign(LEFT, TOP);
 		textFont(base_font);
-		fill(c_lightgrey);
+		fill(c_status_bar);
 		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 

@@ -6,8 +6,9 @@
  * @author   Simon Bluett
  * @website  https://wired.chillibasket.com/processing-grapher/
  *
- * @date     8th September 2020
- * @version  1.1.0
+ * @license  GNU General Public License v3
+ * @date     29th November 2020
+ * @version  1.1.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -66,19 +67,11 @@ final color c_lightgrey = color(134, 134, 138);
 final color c_grey = color(111, 108, 90);
 final color c_darkgrey = color(49, 50, 44);
 
-// UI colors
-color c_background = color(39, 40, 34);
-color c_tabbar = color(23, 24, 20);
-color c_tabbar_h = color(19, 19, 18);
-color c_idletab = color(61, 61, 59);
-color c_tabbar_text = c_white;
-color c_sidebar = color(87, 87, 87);
-color c_sidebar_h = color(125, 125, 125);
-color c_sidebar_heading = c_yellow;
-color c_sidebar_text = c_white;
-color c_sidebar_button = c_lightgrey;
-color c_terminal_text = c_lightgrey;
-color c_message_text = c_white;
+// Select current colour scheme
+// 0 = light (Celeste)
+// 1 - dark (One Dark Gravity)
+// 2 = dark (Monokai) - default
+int colorScheme = 2;
 
 // Graph color list
 color[] c_colorlist = {c_blue, c_purple, c_red, c_yellow, c_green, c_orange};
@@ -95,6 +88,31 @@ final int sideItemHeight = 30;
 final int bottombarHeight = 22;
 // -----------------------------------------------------------------------------
 
+// Define UI colour variables
+color c_background;
+color c_tabbar;
+color c_tabbar_h;
+color c_idletab;
+color c_tabbar_text;
+color c_idletab_text;
+color c_sidebar;
+color c_sidebar_h;
+color c_sidebar_heading;
+color c_sidebar_text;
+color c_sidebar_button;
+color c_sidebar_divider;
+color c_sidebar_accent;
+color c_terminal_text;
+color c_message_text;
+color c_graph_axis;
+color c_graph_gridlines;
+color c_graph_border;
+color c_serial_message_box;
+color c_message_box_outline;
+color c_alert_message_box;
+color c_info_message_box;
+color c_status_bar;
+
 // Serial Port Variables
 Serial myPort;
 int portNumber = 0;
@@ -109,8 +127,10 @@ boolean redrawUI = true;
 boolean redrawAlert = false;
 boolean redrawContent = true;
 boolean drawNewData = false;
-boolean drawFPS = true;
+boolean drawFPS = false;
 boolean preventDrawing = false;
+boolean settingsMenuActive = false;
+boolean showInstructions = true;
 int state = 0;
 
 // Interaction Booleans
@@ -120,6 +140,7 @@ boolean scrollingActive = false;
 
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
+TabAPI settings;
 int currentTab = 0;
 int tabTop = round(tabHeight * uimult);
 
@@ -152,6 +173,8 @@ boolean alertActive = false;
 void setup() {
 	// Set up the window and rendering engine
 	size(1000, 700);
+
+	loadColorScheme(colorScheme);
 	background(c_background);
 
 	// Set the desired frame rate (FPS)
@@ -193,6 +216,8 @@ void setupProgram() {
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
+	settings = new Settings("Settings", 0, tabWidth2, tabTop, tabBottom);
+	settings.drawContent();
 
 	// Start serial port checking thread
 	portList = Serial.list();
@@ -212,6 +237,15 @@ void uiResize(float amount) {
 	// Resize UI scaler
 	uimult += amount;
 
+	uiResize();
+}
+
+
+/**
+ * Resize scaling of all UI elements
+ */
+void uiResize() {
+
 	// Resize fonts
 	base_font = createFont(programFont, int(13*uimult), true);
 	mono_font = createFont(terminalFont, int(14*uimult), true);
@@ -221,6 +255,9 @@ void uiResize(float amount) {
 	for (TabAPI curTab : tabObjects) {
 		curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 	}
+
+	// Settings menu
+	settings.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 
 	// Redraw all content
 	redrawUI = true;
@@ -312,6 +349,7 @@ void drawProgram() {
 			for (TabAPI curTab : tabObjects) {
 				curTab.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 			}
+			settings.changeSize(0, round(width - (sidebarWidth * uimult)), round(tabHeight * uimult), round(height - (bottombarHeight * uimult)));
 		}
 	}
 
@@ -339,17 +377,17 @@ void drawProgram() {
 
 		// Draw an FPS indicator
 		if (drawFPS) {
-			rectMode(CORNER);
+			rectMode(CORNERS);
 			noStroke();
-			textAlign(LEFT, TOP);
+			textAlign(CENTER, CENTER);
 			String frameRateText = "FPS: " + round(frameRate);
 			fill(c_tabbar);
-			rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
-			fill(c_white);
-			text(frameRateText, width - (10* uimult) - textWidth(frameRateText), 8*uimult);
+			rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
+			fill(c_idletab_text);
+			text(frameRateText, width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height - 3);
 			if (alertActive && !redrawAlert) {
 				fill(c_white, 80);
-				rect(width - (20* uimult) - textWidth(frameRateText), 0, width, tabHeight * uimult);
+				rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
 			}
 		}
 
@@ -392,14 +430,43 @@ void drawTabs (int highlight) {
 			rect(calcXpos, 0, calcWidth, tabHeight * uimult);
 			fill(c_red);
 			rect(calcXpos, 0, calcWidth, 4 * uimult);
+			fill(c_tabbar_text);
 		} else {
 			fill(c_idletab);
 			rect(calcXpos, 0, calcWidth, (tabHeight - 1) * uimult);
+			fill(c_idletab_text);
 		}
 
-		fill(c_tabbar_text);
 		text(curTab.getName(), calcXpos, 0, calcWidth, tabHeight * uimult);
 		i++;
+	}
+
+	// Settings button
+	if (!settingsMenuActive) {
+		fill(c_idletab);
+		rect(width - int(40 * uimult), 0, 40 * uimult, (tabHeight - 1) * uimult);
+		fill(c_idletab_text);
+		rect(width - int(28 * uimult), tabHeight * uimult * 2 / 6 - 1 * uimult, 10 * uimult, 1.5 * uimult);
+		circle(width - int(14 * uimult), tabHeight * uimult * 2 / 6, 4 * uimult);
+		rect(width - int(28 * uimult), tabHeight * uimult * 3 / 6 - 1 * uimult, 2 * uimult, 1.5 * uimult);
+		circle(width - int(22 * uimult), tabHeight * uimult * 3 / 6, 4 * uimult);
+		rect(width - int(18 * uimult), tabHeight * uimult * 3 / 6 - 1 * uimult, 6 * uimult, 1.5 * uimult);
+		rect(width - int(28 * uimult), tabHeight * uimult * 4 / 6 - 1 * uimult, 10 * uimult, 1.5 * uimult);
+		circle(width - int(14 * uimult), tabHeight * uimult * 4 / 6, 4 * uimult);
+	} else {
+		fill(c_background);
+		rect(round(width - (sidebarWidth * uimult) + 1), 0, sidebarWidth * uimult, (tabHeight - 1) * uimult);
+		fill(c_tabbar_text);
+		//text("X", width - int(20 * uimult), (tabHeight - 1) / 2 * uimult);
+		text("Settings", width - ((sidebarWidth + 20) * uimult) / 2, (tabHeight - 1) / 2 * uimult);
+		fill(c_background);
+		rect(width - int(40 * uimult), 0, 40 * uimult, (tabHeight - 1) * uimult);
+		fill(c_tabbar_text);
+		
+		stroke(c_tabbar_text);
+		strokeWeight(1.5 * uimult);
+		line(width - int(25 * uimult), tabHeight * uimult / 3, width - int(15 * uimult), tabHeight * uimult * 2 / 3);
+		line(width - int(15 * uimult), tabHeight * uimult / 3, width - int(25 * uimult), tabHeight * uimult * 2 / 3);
 	}
 }
 
@@ -435,9 +502,14 @@ void drawSidebar () {
 	fill(c_sidebar_h);
 	rect(sL - 1, sT, 1 * uimult, sH);
 	
-	// Draw sidebar elements specific to the current tab
-	TabAPI curTab = tabObjects.get(currentTab);
-	curTab.drawSidebar();
+	// If settings menu is open, draw it
+	if (settingsMenuActive) {
+		settings.drawSidebar();
+	// Otherwise draw the Tab-specific sidebar elements
+	} else {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.drawSidebar();
+	}
 }
 
 
@@ -451,7 +523,7 @@ void drawLoadingScreen() {
 	// Set up text drawing parameters
 	textAlign(CENTER, CENTER);
 	textSize(int(20 * uimult));
-	fill(255);
+	fill(c_tabbar_text);
 
 	// Draw icon
 	image(loadImage("icon-48.png"), (width / 2) - 24, (height / 2) - int(180 * uimult));
@@ -459,8 +531,8 @@ void drawLoadingScreen() {
 	// Draw text
 	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
 	textSize(int(14 * uimult));
-	text("Loading v1.1.0", width / 2, (height / 2) + int(10 * uimult));
-	fill(180);
+	text("Loading v1.1.1", width / 2, (height / 2) + int(10 * uimult));
+	fill(c_terminal_text);
 	text("(C) Copyright 2018-2020 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 
@@ -470,7 +542,6 @@ void drawLoadingScreen() {
 	line(0, height/2, width, height/2 - (46 * uimult));
 	line(0, height/2 - (46 * uimult), width, height/2);
 }
-
 
 
 /******************************************************//**
@@ -681,10 +752,10 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	}
 
 	// Draw the box
-	fill(c_tabbar_h);
+	fill(c_message_box_outline);
 	rect(int((lS + rS) / 2.0 - (boxWidth) / 2.0 - uimult * 2), tS - int(uimult * 2), boxWidth + int(uimult * 4), boxHeight + int(uimult * 4));
-	if (alert) fill(c_tabbar);
-	else fill(c_darkgrey);
+	if (alert) fill(c_alert_message_box);
+	else fill(c_info_message_box);
 	rect((lS + rS) / 2.0 - (boxWidth) / 2.0, tS, boxWidth, boxHeight);
 
 	// Draw the text
@@ -692,7 +763,7 @@ void drawMessageArea(String heading, String[] text, float lS, float rS, float tS
 	fill(c_sidebar_heading);
 	text(heading, int((lS + rS) / 2.0 - boxWidth / 2.0 + border), int(tS + border), boxWidth - 2 * border, 20 * uimult);
 
-	fill(c_white);
+	fill(c_sidebar_text);
 
 	for (int i = 0; i < text.length; i++) {
 		if (alert && i == text.length - 1) fill(c_lightgrey);
@@ -770,10 +841,26 @@ void mousePressed(){
 
 		// If mouse is hovering over a tab button
 		if ((mouseY > 0) && (mouseY < tabHeight*uimult)) {
-			for (int i = 0; i < tabObjects.size(); i++) {
-				if ((mouseX > i*tabWidth*uimult) && (mouseX < (i+1)*tabWidth*uimult)) {
-					currentTab = i;
-					redrawUI = redrawContent = true;
+			
+			// Open settings menu
+			if (!settingsMenuActive && mouseX > width - int(40 * uimult)) {
+				settingsMenuActive = true;
+				redrawUI = true;
+			}
+
+			// Close settings menu
+			else if (settingsMenuActive && mouseX > width - int(sidebarWidth * uimult)) {
+				settingsMenuActive = false;
+				redrawUI = true;
+			}
+
+			// Other tab buttons
+			else {
+				for (int i = 0; i < tabObjects.size(); i++) {
+					if ((mouseX > i*tabWidth*uimult) && (mouseX < (i+1)*tabWidth*uimult)) {
+						currentTab = i;
+						redrawUI = redrawContent = true;
+					}
 				}
 			}
 		}
@@ -802,8 +889,12 @@ void mousePressed(){
  * blocking user-input pop-up dialogs are used.
  */
 void menuClickEvent() {
-	TabAPI curTab = tabObjects.get(currentTab);
-	curTab.menuClick(mouseX, mouseY);
+	if (settingsMenuActive) {
+		settings.menuClick(mouseX, mouseY);
+	} else {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.menuClick(mouseX, mouseY);
+	}
 }
 
 
@@ -838,8 +929,12 @@ void mouseWheel(MouseEvent event) {
 
 	// If mouse is hovering over the side bar
 	if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollWheel(e);
+		if (settingsMenuActive) {
+			settings.scrollWheel(e);
+		} else {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.scrollWheel(e);
+		}
 	}
   }
 }
@@ -868,8 +963,12 @@ void scrollBarEvent() {
  */
 void keyTyped() {
 	if (!controlKey) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
+			settings.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+		} else {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+		}
 	}
 }
 
@@ -895,8 +994,12 @@ void keyPressed() {
 
 	// For all other keys, send them on to the active tab
 	} else if (key == CODED) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.keyboardInput(key, keyCode, true);
+		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
+			settings.keyboardInput(key, keyCode, true);
+		} else {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, keyCode, true);
+		}
 	}
 }
 
