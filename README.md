@@ -58,14 +58,13 @@ It is possible to create a stand-alone version of the program, which does not re
 </br>
 
 ## Getting Started
-1. To change the size/scaling of all text and buttons, press the `CTRL+` or `CTRL-` keyboard combinations.
 1. To connect to an Arduino:
 	1. Ensure Arduino is plugged into your computer
 	1. Go to the "Serial" tab of the program
 	1. In the right-hand sidebar, press on `Port: None` button
-	1. A list of all available ports should appear. Type in the number corresponding to the port you want to connect to
-	1. Press on the `Baud: 9600` button and insert the baud rate of the serial connection
-	1. Finally, click on the `Connect` button to initiate the connection with the Arduino.
+	1. A list of all available ports should appear. Click on the port you want to connect to
+	1. Press on the `Baud: 9600` button and select the baud rate of the serial connection
+	1. Finally, click on the `Connect` button to initiate the connection with the Arduino
 1. To plot real-time data received from the Arduino:
 	1. Make sure that the data consists of numbers being separated by a comma
 	1. For example the message `12,25,16` could be sent using Arduino code:
@@ -96,6 +95,9 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (9th February 2021) Version 1.2.0
+	1. Updated to use the JavaFX (FX2D) renderer, which significantly reduces the processor usage of the program.
+	1. Implemented native JavaFX pop-up dialogues while maintaining backwards compatibility with the default renderer.
 1. (29th November 2020) Version 1.1.1
 	1. Added button on "Live Graph" tab to toggle automatic y-axis scaling on/off.
 	2. Added a "Hidden" section on the "Live Graph" tab so that unwanted signals can be hidden from the real-time graphs.

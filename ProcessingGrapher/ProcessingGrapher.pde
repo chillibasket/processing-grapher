@@ -1,18 +1,18 @@
 /* * * * * * * * * * * * * * * * * * * * * * *
  * PROCESSING GRAPHER
  *
- * @file     ProcessingGrapher.pde
- * @brief    Serial monitor and real-time graphing program
- * @author   Simon Bluett
- * @website  https://wired.chillibasket.com/processing-grapher/
+ * @file      ProcessingGrapher.pde
+ * @brief     Serial monitor and real-time graphing program
+ * @author    Simon Bluett
+ * @website   https://wired.chillibasket.com/processing-grapher/
  *
- * @license  GNU General Public License v3
- * @date     29th November 2020
- * @version  1.1.1
+ * @copyright GNU General Public License v3
+ * @date      7th February 2021
+ * @version   1.2.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -31,8 +31,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+String versionNumber = "1.2.0";
+
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
+
+// Serial port handling
 import processing.serial.*;
 
 // Advanced key inputs
@@ -45,6 +49,13 @@ import java.io.File;
 import javax.swing.JFrame;
 import java.awt.Dimension;
 import processing.awt.PSurfaceAWT.SmoothCanvas;
+
+// Java FX imports
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import javafx.scene.canvas.Canvas;
+import javafx.application.Platform;
+import java.lang.reflect.*;
 
 
 // -------- UI APPEARANCE SETTINGS ---------------------------------------------
@@ -69,11 +80,11 @@ final color c_darkgrey = color(49, 50, 44);
 
 // Select current colour scheme
 // 0 = light (Celeste)
-// 1 - dark (One Dark Gravity)
-// 2 = dark (Monokai) - default
+// 1 = dark  (One Dark Gravity)
+// 2 = dark  (Monokai) - default
 int colorScheme = 2;
 
-// Graph color list
+// Graph colour list
 color[] c_colorlist = {c_blue, c_purple, c_red, c_yellow, c_green, c_orange};
 
 // Default Window Size
@@ -122,6 +133,29 @@ boolean serialConnected = false;
 String currentPort = "";
 String[] portList;
 
+/**
+ * Class containing all relevant info for a serial port connection
+ * @TODO - Use this class to replace the variables being used above
+ *//*
+class SerialPortItem {
+	public Serial port;
+	public int portNumber;
+	public String portName;
+	public int baudRate;
+	public char lineEnding;
+	public boolean connected;
+
+	public SerialPortItem() {
+		portNumber = 0;
+		portName = "";
+		baudRate = 9600;
+		lineEnding = '\n';
+		connected = false;
+	} 
+}
+ArrayList<SerialPortItem> serialObjects = new ArrayList<SerialPortItem>();
+*/
+
 // Drawing Booleans
 boolean redrawUI = true;
 boolean redrawAlert = false;
@@ -131,6 +165,7 @@ boolean drawFPS = false;
 boolean preventDrawing = false;
 boolean settingsMenuActive = false;
 boolean showInstructions = true;
+boolean programActive = true;
 int state = 0;
 
 // Interaction Booleans
@@ -154,6 +189,18 @@ final int alertHeight = 150;
 String alertHeading = "";
 boolean alertActive = false;
 
+// Exit handler
+DisposeHandler dh;
+
+// JavaFX pop-up dialogues
+Stage stage;
+FileChooser fileChooser;
+String userInputString = null;
+int startTime;
+
+// Options are: FX2D (Recommended), JAVA2D
+final String activeRenderer = FX2D;
+
 
 
 /******************************************************//**
@@ -172,7 +219,8 @@ boolean alertActive = false;
  */
 void setup() {
 	// Set up the window and rendering engine
-	size(1000, 700);
+	size(1000, 700, activeRenderer);
+	smooth();
 
 	loadColorScheme(colorScheme);
 	background(c_background);
@@ -189,14 +237,30 @@ void setup() {
  * instantiate the classes for each of the tabs. 
  */
 void setupProgram() {
-	final int startTime = millis();
+	startTime = millis();
 
-	// These lines implement a minimum window size
-	SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
-	JFrame jf = (JFrame) sc.getFrame();
-	Dimension d = new Dimension(500, 350);
-	jf.setMinimumSize(d);
+	// Java FX specific setup
+	if (activeRenderer == FX2D) {
+		stage = (Stage) ((Canvas) surface.getNative()).getScene().getWindow();
+		fileChooser = new FileChooser(); 
 
+		// Minimum Window Size
+		stage.setMinWidth(600);
+    	stage.setMinHeight(350);
+
+    // Java default renderer specific setup
+	} else if (activeRenderer == JAVA2D) {
+		// Minimum Window Size
+		SmoothCanvas sc = (SmoothCanvas) getSurface().getNative();
+		JFrame jf = (JFrame) sc.getFrame();
+		Dimension d = new Dimension(600, 350);
+		jf.setMinimumSize(d);
+	}
+
+    // Ensure window close event is called properly
+	dh = new DisposeHandler(this);
+
+	// Add window title and icon
 	surface.setIcon(loadImage("icon-48.png"));
 	surface.setTitle("Processing Grapher");
 
@@ -208,23 +272,26 @@ void setupProgram() {
 	mono_font = createFont(terminalFont, int(14*uimult), true);
 	textFont(base_font);
 
-	// Calculate screen size of the tab content area
-	final int tabWidth2 = round(width - (sidebarWidth * uimult));
-	final int tabBottom = round(height - (bottombarHeight * uimult));
+	// Calculate initial screen size of the tab content area
+	int tabWidth2 = round(width - (sidebarWidth * uimult));
+	int tabBottom = round(height - (bottombarHeight * uimult));
+
+	// Load the settings menu and read user preferences file
+	settings = new Settings("Settings", 0, tabWidth2, tabTop, tabBottom);
+	settings.drawContent();
+
+	// Recalculate now that UI scaling preference has been loaded
+	tabWidth2 = round(width - (sidebarWidth * uimult));
+	tabBottom = round(height - (bottombarHeight * uimult));
 
 	// Define all the tabs here
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
-	settings = new Settings("Settings", 0, tabWidth2, tabTop, tabBottom);
-	settings.drawContent();
 
 	// Start serial port checking thread
 	portList = Serial.list();
 	thread("checkSerialPortList");
-
-	// Make sure the loading screen is always shown for at least 2 seconds
-	while(millis() < startTime + 2000);
 }
 
 
@@ -265,6 +332,34 @@ void uiResize() {
 }
 
 
+/**
+ * Dispose handler which is called when the "close"
+ * window button is pressed. It makes sure that the
+ * exit() function properly is called in this case.
+ */
+public class DisposeHandler {   
+  DisposeHandler(PApplet pa)
+  {
+    pa.registerMethod("dispose", this);
+  }
+   
+  public void dispose()
+  {      
+    println("In dispose handler");
+    exit();
+  }
+}
+
+/**
+ * Function to properly exit the application
+ */
+public void exit() {
+	programActive = false;
+	println("Exiting program - exit()");
+	exitActual();
+}
+
+
 
 /******************************************************//**
  * WINDOW DRAWING FUNCTIONS
@@ -291,7 +386,7 @@ void draw() {
 		// Draw loading screen
 		case 0: 
 			drawLoadingScreen();
-			state++;
+			if (millis() > startTime + 2000) state++;
 			break;
 
 		// Setup the program
@@ -356,16 +451,20 @@ void drawProgram() {
 	if (!preventDrawing) {
 		// Redraw the content area elements
 		if (redrawContent){
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.drawContent();
-			redrawContent = false;
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.drawContent();
+				redrawContent = false;
+			} else currentTab = 0;
 		}
 
 		// Draw new data in the content area
 		if (drawNewData) {
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.drawNewData();
-			drawNewData = false;
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.drawNewData();
+				drawNewData = false;
+			} else currentTab = 0;
 		}
 		
 		// Redraw the UI elements (right and top bars)
@@ -507,8 +606,10 @@ void drawSidebar () {
 		settings.drawSidebar();
 	// Otherwise draw the Tab-specific sidebar elements
 	} else {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.drawSidebar();
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.drawSidebar();
+		} else currentTab = 0;
 	}
 }
 
@@ -531,9 +632,9 @@ void drawLoadingScreen() {
 	// Draw text
 	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
 	textSize(int(14 * uimult));
-	text("Loading v1.1.1", width / 2, (height / 2) + int(10 * uimult));
+	text("Loading v" + versionNumber, width / 2, (height / 2) + int(10 * uimult));
 	fill(c_terminal_text);
-	text("(C) Copyright 2018-2020 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
+	text("(C) Copyright 2018-2021 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 
 	// Draw lines
@@ -542,6 +643,7 @@ void drawLoadingScreen() {
 	line(0, height/2, width, height/2 - (46 * uimult));
 	line(0, height/2 - (46 * uimult), width, height/2);
 }
+
 
 
 /******************************************************//**
@@ -835,8 +937,10 @@ void mousePressed(){
 		if ((mouseX > 0) && (mouseX < int(width - (sidebarWidth * uimult))) 
 			&& (mouseY > int(tabHeight * uimult)) && (mouseY < int(height - (bottombarHeight * uimult))))
 		{
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.contentClick(mouseX, mouseY);
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.contentClick(mouseX, mouseY);
+			} else currentTab = 0;
 		} else cursor(ARROW);
 
 		// If mouse is hovering over a tab button
@@ -892,8 +996,10 @@ void menuClickEvent() {
 	if (settingsMenuActive) {
 		settings.menuClick(mouseX, mouseY);
 	} else {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.menuClick(mouseX, mouseY);
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.menuClick(mouseX, mouseY);
+		} else currentTab = 0;
 	}
 }
 
@@ -915,7 +1021,7 @@ void mouseReleased() {
  * @param  event Details of the mouse-scroll event
  */
 void mouseWheel(MouseEvent event) {
-  float e = event.getCount();
+  float e = event.getCount() * 2;
   
   if (abs(e) > 0) {
 	
@@ -923,8 +1029,10 @@ void mouseWheel(MouseEvent event) {
 	if ((mouseX > 0) && (mouseX < round(width - (sidebarWidth * uimult))) 
 		&& (mouseY > round(tabHeight * uimult)) && (mouseY < round(height - (bottombarHeight * uimult))))
 	{
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollWheel(e);
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.scrollWheel(e);
+		} else currentTab = 0;
 	}
 
 	// If mouse is hovering over the side bar
@@ -932,8 +1040,10 @@ void mouseWheel(MouseEvent event) {
 		if (settingsMenuActive) {
 			settings.scrollWheel(e);
 		} else {
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.scrollWheel(e);
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.scrollWheel(e);
+			} else currentTab = 0;
 		}
 	}
   }
@@ -946,11 +1056,13 @@ void mouseWheel(MouseEvent event) {
  * This function is not currently in use
  */
 void scrollBarEvent() {
+	/*
 	while (scrollingActive) {
 		TabAPI curTab = tabObjects.get(currentTab);
 		curTab.scrollBarUpdate(mouseX, mouseY);
 		delay(20);
 	}
+	*/
 }
 
 
@@ -966,8 +1078,10 @@ void keyTyped() {
 		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
 		} else {
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
+			} else currentTab = 0;
 		}
 	}
 }
@@ -997,8 +1111,10 @@ void keyPressed() {
 		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, keyCode, true);
 		} else {
-			TabAPI curTab = tabObjects.get(currentTab);
-			curTab.keyboardInput(key, keyCode, true);
+			if (tabObjects.size() > currentTab) {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.keyboardInput(key, keyCode, true);
+			} else currentTab = 0;
 		}
 	}
 }
@@ -1175,35 +1291,41 @@ void serialSendDialog() {
  * to be taken into account
  */
 void checkSerialPortList() {
-	while (true) {
-		boolean different = false;
-		boolean currentPortExists = false;
+	while (programActive) {
+		try {
+			boolean different = false;
+			boolean currentPortExists = false;
 
-		String[] currentList = Serial.list();
-		if (currentList.length != portList.length) different = true;
+			String[] currentList = Serial.list();
+			if (currentList.length != portList.length) different = true;
 
-		for (int i = 0; i < currentList.length; i++) {
-			if (i < portList.length) {
-				if (!currentList[i].equals(portList[i])) different = true;
+			for (int i = 0; i < currentList.length; i++) {
+				if (i < portList.length) {
+					if (!currentList[i].equals(portList[i])) different = true;
+				}
+
+				if (currentPort.equals(currentList[i])) {
+					currentPortExists = true;
+					portNumber = i;
+				}
 			}
 
-			if (currentPort.equals(currentList[i])) {
-				currentPortExists = true;
-				portNumber = i;
+			if (serialConnected && !currentPortExists) {
+				setupSerial();
+				alertHeading = "Error\nThe serial port has been disconnected";
+				redrawAlert = true;
 			}
+
+			if (different) {
+				redrawUI = true;
+			}
+
+			portList = currentList;
+
+		} catch (Exception e) {
+			println("Error in checkSerialPortList: " + e);
 		}
 
-		if (serialConnected && !currentPortExists) {
-			setupSerial();
-			alertHeading = "Error\nThe serial port has been disconnected";
-			redrawAlert = true;
-		}
-
-		if (different) {
-			redrawUI = true;
-		}
-
-		portList = currentList;
 		delay(1000);
 	}
 }
@@ -1211,18 +1333,49 @@ void checkSerialPortList() {
 
 
 /******************************************************//**
- * FILE SELECTION FUNCTIONS
+ * USER INPUT AND FILE SELECTION FUNCTIONS
  *
- * @info  Functions to deal with callbacks from file the
- *        native file selection pop-up dialog
+ * @info  Functions to deal with the display and callback
+ *        of user input and file selection pop-up dialogs
  *********************************************************/
 
 /**
- * Get the File Selected in the Input Dialog
+ * Show a pop-up user input dialogue
+ *
+ * @param  heading     The heading text
+ * @param  message     The message text
+ * @param  defaultText Default value to show in the input area
+ * @return The user input data
+ */
+String myShowInputDialog(final String heading, final String message, final String defaultText) {
+	if (activeRenderer == FX2D) {
+		userInputString = "";
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				userInputString = trim(FxDialogs.showTextInput(heading, message, defaultText));
+			}
+		});
+
+		// Wait for the user response
+		while (programActive && userInputString == "" && userInputString != null) {
+			delay(200);
+		}
+
+		return userInputString;
+		
+	} else {
+		return trim(showInputDialog(heading + "\n" + message, defaultText));
+	}
+}
+
+
+/**
+ * Get the File Selected in the Input/Output Dialogue
  *
  * @param  selection The selected file path
  */
-void fileSelected(File selection) {
+ void fileSelected(File selection) {
 
 	// If a file was actually selected
 	if (selection != null) {
@@ -1246,6 +1399,101 @@ void fileSelected(File selection) {
 	redrawUI = true;
 }
 
+
+/**
+ * Override the Processing "selectOutput" function
+ * 
+ * This function opens the Save File Dialogue, overriding
+ * the default behaviour to use the native JavaFX file dialogue
+ * when using the FX2D renderer.
+ *
+ * @param  message        The title of the Save File Dialogue
+ * @param  callbackMethod Function to call when dialogue is submitted
+ */
+@Override
+void selectOutput(final String message, final String callbackMethod) {
+	if (activeRenderer == FX2D) {
+		fileChooser.setTitle(message);
+
+		fileChooser.getExtensionFilters().clear();
+		if (message.contains("CSV")) {
+			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Comma Separated", "*.csv"));
+		} else if (message.contains("TXT")) {
+			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text File", "*.txt"));
+		}
+
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				File file = fileChooser.showSaveDialog(stage); 
+				mySelectCallback(file, callbackMethod);
+			}
+		});
+	} else {
+		selectOutput(message, callbackMethod, null);
+	}
+}
+
+
+/**
+ * Override the Processing "selectInput" function
+ * 
+ * This function opens the Open File Dialogue, overriding
+ * the default behaviour to use the native JavaFX file dialogue
+ * when using the FX2D renderer.
+ *
+ * @param  message        The title of the Open File Dialogue
+ * @param  callbackMethod Function to call when dialogue is submitted
+ */
+@Override
+void selectInput(final String message, final String callbackMethod) {
+	if (activeRenderer == FX2D) {
+		fileChooser.setTitle(message);
+		
+		fileChooser.getExtensionFilters().clear();
+		if (message.contains("CSV")) {
+			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Comma Separated", "*.csv"));
+		} else if (message.contains("TXT")) {
+			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text File", "*.txt"));
+		}
+
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				File file = fileChooser.showOpenDialog(stage); 
+				mySelectCallback(file, callbackMethod);
+			}
+		});
+	} else {
+		selectInput(message, callbackMethod, null);
+	}
+}
+
+
+/**
+ * Function used to run callback when a file selection dialogue is submitted
+ *
+ * A copy of the protected method "selectCallback" in the Processing Core
+ *
+ * @param  selectedFile   The file selected in the dialogue
+ * @param  callbackMethod Name of the function to be called
+ */ 
+void mySelectCallback(File selectedFile, String callbackMethod) {
+    try {
+      Class<?> callbackClass = this.getClass();
+      Method selectMethod = callbackClass.getMethod(callbackMethod, new Class[] { File.class });
+      selectMethod.invoke(this, new Object[] { selectedFile });
+
+    } catch (IllegalAccessException iae) {
+      System.err.println(callbackMethod + "() must be public");
+
+    } catch (InvocationTargetException ite) {
+      ite.printStackTrace();
+
+    } catch (NoSuchMethodException nsme) {
+      System.err.println(callbackMethod + "() could not be found");
+    }
+}
 
 
 /******************************************************//**

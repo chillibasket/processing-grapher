@@ -13,7 +13,7 @@ void loadColorScheme(int mode) {
 			c_idletab = color(240, 240, 240);
 			c_tabbar_text = color(50, 50, 50);
 			c_idletab_text = color(140, 140, 140);
-			c_sidebar = color(200, 200, 200);
+			c_sidebar = color(229, 229, 229);
 			c_sidebar_h = color(217, 217, 217);
 			c_sidebar_heading = color(34, 142, 195);
 			c_sidebar_text = color(50, 50, 50);

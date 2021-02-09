@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -232,7 +232,7 @@ class FileGraph implements TabAPI {
 						if(minx > row.getFloat(xData)) minx = row.getFloat(xData);
 						if(maxx < row.getFloat(xData)) maxx = row.getFloat(xData);
 					} else {
-						maxx += 1 / float(graph.getXrate());
+						maxx += 1.0 / graph.getXrate();
 					}
 
 					for(int i = 0; i < dataTable.getColumnCount(); i++){
@@ -281,7 +281,7 @@ class FileGraph implements TabAPI {
 						for (int i = 0; i < dataTable.getColumnCount(); i++) {
 							try {
 								// Only start plotting when desired X-point has arrived
-								float currentX = counter / float(graph.getXrate());
+								float currentX = counter / graph.getXrate();
 								if (currentX >= graph.getMinX() && currentX <= graph.getMaxX()) {
 									float dataPoint = row.getFloat(i);
 									if(Float.isNaN(dataPoint)) dataPoint = 99999999;
@@ -375,7 +375,7 @@ class FileGraph implements TabAPI {
 		//if (outputfile != ""  && outputfile != "No File Set" && changesMade) {
 		//	drawButton("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
 		//} else {
-			drawDatabox("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+			drawDatabox("Save Changes", c_idletab_text, iL, sT + (uH * 2), iW, iH, tH);
 		//}
 
 		// Add labels to data
@@ -384,8 +384,8 @@ class FileGraph implements TabAPI {
 			drawButton("Add Label", c_sidebar_button, iL, sT + (uH * 4.5), iW, iH, tH);
 			drawButton("Remove Labels", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
 		} else {
-			drawDatabox("Add Label", c_sidebar_button, iL, sT + (uH * 4.5), iW, iH, tH);
-			drawDatabox("Remove Labels", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
+			drawDatabox("Add Label", c_idletab_text, iL, sT + (uH * 4.5), iW, iH, tH);
+			drawDatabox("Remove Labels", c_idletab_text, iL, sT + (uH * 5.5), iW, iH, tH);
 		}
 		
 		// Graph type
@@ -410,8 +410,8 @@ class FileGraph implements TabAPI {
 			drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
 			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		} else {
-			drawDatabox("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
-			drawDatabox("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+			drawDatabox("Zoom", c_idletab_text, iL, sT + (uH * 11), iW / 2, iH, tH);
+			drawDatabox("Reset", c_idletab_text, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
 		}
 
 		// Input Data Columns
@@ -626,7 +626,7 @@ class FileGraph implements TabAPI {
 		// Open data
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			outputfile = "";
-			selectInput("Select CSV data file to open", "fileSelected");
+			selectInput("Select *.CSV data file to open", "fileSelected");
 		}
 
 		// Save data - currently disabled
@@ -676,7 +676,7 @@ class FileGraph implements TabAPI {
 
 			// Change X axis minimum value
 			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String xMin = showInputDialog("Please enter new X-axis minimum value:\nCurrent value = " + graph.getMinX());
+				final String xMin = myShowInputDialog("Set the X-axis Minimum Value", "Minimum:", str(graph.getMinX()));
 				if (xMin != null){
 					try {
 						graph.setMinX(Float.parseFloat(xMin));
@@ -690,7 +690,7 @@ class FileGraph implements TabAPI {
 
 			// Change X axis maximum value
 			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String xMax = showInputDialog("Please enter new X-axis maximum value:\nCurrent value = " + graph.getMaxX());
+				final String xMax = myShowInputDialog("Set the X-axis Maximum Value", "Maximum:", str(graph.getMaxX()));
 				if (xMax != null){
 					try {
 						graph.setMaxX(Float.parseFloat(xMax));
@@ -708,7 +708,7 @@ class FileGraph implements TabAPI {
 
 			// Change Y axis minimum value
 			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String yMin = showInputDialog("Please enter new Y-axis minimum value:\nCurrent value = " + graph.getMinY());
+				final String yMin = myShowInputDialog("Set the Y-axis Minimum Value", "Minimum:", str(graph.getMinY()));
 				if (yMin != null){
 					try {
 						graph.setMinY(Float.parseFloat(yMin));
@@ -722,7 +722,7 @@ class FileGraph implements TabAPI {
 
 			// Change Y axis maximum value
 			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String yMax = showInputDialog("Please enter new Y-axis maximum value:\nCurrent value = " + graph.getMaxY());
+				final String yMax = myShowInputDialog("Set the Y-axis Maximum Value", "Maximum:", str(graph.getMaxY()));
 				if (yMax != null){
 					try {
 						graph.setMaxY(Float.parseFloat(yMax));
@@ -759,12 +759,12 @@ class FileGraph implements TabAPI {
 		// Change the input data rate
 		else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
 			if (xData == -1) {
-				final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graph.getXrate());
+				final String newrate = myShowInputDialog("Received Data Update Rate","Frequency (Hz):", str(graph.getXrate()));
 				if (newrate != null){
 					try {
-						int newXrate = Integer.parseInt(newrate);
+						float newXrate = Float.parseFloat(newrate);
 
-						if (newXrate > 0 && newXrate < 10000) {
+						if (newXrate > 0 && newXrate <= 10000) {
 							graph.setXrate(newXrate);
 							redrawContent = true;
 							redrawUI = true;

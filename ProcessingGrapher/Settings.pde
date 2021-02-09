@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -264,7 +264,7 @@ class Settings implements TabAPI {
 		drawHeading("Interface Size", iL, sT + (uH * 0.5), iW, tH);
 		drawButton("-", c_sidebar_button, iL, sT + (uH * 1.5), iW / 4, iH, tH);
 		drawButton("+", c_sidebar_button, iL + (iW * 3 / 4), sT + (uH * 1.5), iW / 4, iH, tH);
-		drawDatabox(round(uimult*100) + "%", c_sidebar_button, iL + (iW / 4), sT + (uH * 1.5), iW / 2, iH, tH);
+		drawDatabox(round(uimult*100) + "%", c_idletab_text, iL + (iW / 4), sT + (uH * 1.5), iW / 2, iH, tH);
 
 
 		// Change the colour scheme

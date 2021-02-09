@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -50,7 +50,7 @@ class LiveGraph implements TabAPI {
 	int fileCounter;
 	int maxFileRows = 100000;
 	int drawFrom;
-	int xRate;
+	float xRate;
 	int selectedGraph;
 	boolean autoAxis;
 	int maxSamples;
@@ -140,7 +140,7 @@ class LiveGraph implements TabAPI {
 		if (!serialConnected) {
 			if (showInstructions) {
 				String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
-								    "2. Each line sent by the device should only contain numbers separated with commas",
+								    "2. Each line sent by the device should contain only numbers separated with commas",
 								    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
 				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
 			}
@@ -558,13 +558,13 @@ class LiveGraph implements TabAPI {
 		drawHeading("Record Graph Data", iL, sT + (uH * 0), iW, tH);
 		if (outputfile == "No File Set" || outputfile == "") {
 			drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
-			drawDatabox("Start Recording", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+			drawDatabox("Start Recording", c_idletab_text, iL, sT + (uH * 2), iW, iH, tH);
 		} else {
 			String[] fileParts = split(outputfile, '/');
 			String fileName = fileParts[fileParts.length - 1];
 
 			if (recordData) {
-				drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
+				drawDatabox(fileName, c_idletab_text, iL, sT + (uH * 1), iW, iH, tH);
 				drawButton("Stop Recording", c_sidebar_accent, iL, sT + (uH * 2), iW, iH, tH);
 			} else {
 				drawDatabox(fileName, c_sidebar_text, iL, sT + (uH * 1), iW, iH, tH);
@@ -586,7 +586,7 @@ class LiveGraph implements TabAPI {
 		drawRectangle(c_sidebar_divider, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), c_sidebar_button, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), c_idletab_text, iL,         sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
 		drawDatabox(str(currentGraph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawDatabox(str(currentGraph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
@@ -598,7 +598,7 @@ class LiveGraph implements TabAPI {
 		drawHeading("Data Format", iL, sT + (uH * 9), iW, tH);
 		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
-		drawDatabox("Split", c_sidebar_button, iL, sT + (uH * 11), iW - (80 * uimult), iH, tH);
+		drawDatabox("Split", c_idletab_text, iL, sT + (uH * 11), iW - (80 * uimult), iH, tH);
 		drawButton("1", (graphMode == 1)? c_sidebar_accent:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
 		drawButton("2", (graphMode == 2)? c_sidebar_accent:c_sidebar_button, iL + iW - (60 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
 		drawButton("3", (graphMode == 3)? c_sidebar_accent:c_sidebar_button, iL + iW - (40 * uimult), sT + (uH * 11), 20 * uimult, iH, tH);
@@ -610,8 +610,8 @@ class LiveGraph implements TabAPI {
 		float tHnow = 12;
 
 		for (int j = 0; j < graphMode + 1; j++) {
-			if (j < graphMode) drawText("Graph " + (j + 1), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
-			else drawText("Hidden", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
+			if (j < graphMode) drawText("Graph " + (j + 1), c_idletab_text, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
+			else drawText("Hidden", c_idletab_text, iL, sT + (uH * tHnow), iW, iH * 3 / 4);
 			tHnow += 0.75;
 			int itemCount = 0;
 
@@ -635,7 +635,7 @@ class LiveGraph implements TabAPI {
 				}
 			}
 
-			if (itemCount == 0) drawText("Empty", c_sidebar_button, iL + iW / 2, sT + (uH * (tHnow - itemCount - 0.75)), iW / 2, iH * 3 / 4);
+			if (itemCount == 0) drawText("Empty", c_idletab_text, iL + iW / 2, sT + (uH * (tHnow - itemCount - 0.75)), iW / 2, iH * 3 / 4);
 		}
 
 		textAlign(LEFT, TOP);
@@ -808,7 +808,7 @@ class LiveGraph implements TabAPI {
 		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
 			if (!recordData) {
 				outputfile = "";
-				selectOutput("Select a location and name for the output *.csv file", "fileSelected");
+				selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
 			}
 		}
 		
@@ -875,7 +875,7 @@ class LiveGraph implements TabAPI {
 
 			// Change X axis maximum value
 			if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String xMax = showInputDialog("Please enter new X-axis maximum value:\nCurrent value = " + currentGraph.getMaxX());
+				final String xMax = myShowInputDialog("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.getMaxX()));
 				if (xMax != null){
 					try {
 						currentGraph.setMaxX(Float.parseFloat(xMax));
@@ -898,7 +898,7 @@ class LiveGraph implements TabAPI {
 
 			// Change Y axis minimum value
 			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String yMin = showInputDialog("Please enter new Y-axis minimum value:\nCurrent value = " + currentGraph.getMinY());
+				final String yMin = myShowInputDialog("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.getMinY()));
 				if (yMin != null){
 					try {
 						currentGraph.setMinY(Float.parseFloat(yMin));
@@ -911,7 +911,7 @@ class LiveGraph implements TabAPI {
 
 			// Change Y axis maximum value
 			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String yMax = showInputDialog("Please enter new Y-axis maximum value:\nCurrent value = " + currentGraph.getMaxY());
+				final String yMax = myShowInputDialog("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.getMaxY()));
 				if (yMax != null){
 					try {
 						currentGraph.setMaxY(Float.parseFloat(yMax));
@@ -931,12 +931,12 @@ class LiveGraph implements TabAPI {
 
 		// Change the input data rate
 		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
-			final String newrate = showInputDialog("Set new data rate:\nCurrent value = " + graphA.getXrate());
+			final String newrate = myShowInputDialog("Received Data Update Rate","Frequency (Hz):", str(graphA.getXrate()));
 			if (newrate != null){
 				try {
-					int newXrate = Integer.parseInt(newrate);
+					float newXrate = Float.parseFloat(newrate);
 
-					if (newXrate > 0 && newXrate < 10000) {
+					if (newXrate > 0 && newXrate <= 10000) {
 						xRate = newXrate;
 						graphA.setXrate(newXrate);
 						graphB.setXrate(newXrate);
@@ -1071,7 +1071,7 @@ class LiveGraph implements TabAPI {
 
 							// Change name of column
 							else {
-								final String colname = showInputDialog("Enter a new Signal name\nCurrent name = " + dataColumns[i]);
+								final String colname = myShowInputDialog("Set the Data Signal Name", "Name:", dataColumns[i]);
 								if (colname != null && colname != ""){
 									dataColumns[i] = colname;
 									redrawUI = true;

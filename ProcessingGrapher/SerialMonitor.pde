@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -106,8 +106,8 @@ class SerialMonitor implements TabAPI {
 
 		serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
-		serialBuffer.append("");
 		if (showInstructions) {
+			serialBuffer.append("");
 			serialBuffer.append("[Info] Connecting to a Serial Device");
 			serialBuffer.append("1. In the right sidebar, select the COM port");
 			serialBuffer.append("2. Set the correct baud rate for the communication");
@@ -165,7 +165,7 @@ class SerialMonitor implements TabAPI {
 		final int msgBtnSize = int(textWidth(msgBtnText)); 
 
 		fill(c_terminal_text);
-		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + 9 * uimult);
+		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + 6.5 * uimult);
 
 		fill(c_background);
 		stroke(c_background);
@@ -616,13 +616,13 @@ class SerialMonitor implements TabAPI {
 			drawHeading("Record Messages", iL, sT + (uH * 4.5), iW, tH);
 			if (outputfile == "No File Set" || outputfile == "") {
 				drawButton("Set Output File", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-				drawDatabox("Start Recording", c_sidebar_button, iL, sT + (uH * 6.5), iW, iH, tH);
+				drawDatabox("Start Recording", c_idletab_text, iL, sT + (uH * 6.5), iW, iH, tH);
 			} else {
 				String[] fileParts = split(outputfile, '/');
 				String fileName = fileParts[fileParts.length - 1];
 
 				if (recordData) {
-					drawDatabox(fileName, c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
+					drawDatabox(fileName, c_idletab_text, iL, sT + (uH * 5.5), iW, iH, tH);
 					drawButton("Stop Recording", c_sidebar_accent, iL, sT + (uH * 6.5), iW, iH, tH);
 				} else {
 					drawDatabox(fileName, c_sidebar_text, iL, sT + (uH * 5.5), iW, iH, tH);
@@ -632,7 +632,7 @@ class SerialMonitor implements TabAPI {
 
 			// Input Data Columns
 			drawHeading("Terminal Options", iL, sT + (uH * 8), iW, tH);
-			if (recordData) drawDatabox("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
+			if (recordData) drawDatabox("Clear Terminal", c_idletab_text, iL, sT + (uH * 9), iW, iH, tH);
 			else drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
 			drawButton((autoScroll)? "Autoscroll: On":"Autoscroll: Off", c_sidebar_button, iL, sT + (uH * 10), iW, iH, tH);
 
@@ -652,7 +652,7 @@ class SerialMonitor implements TabAPI {
 
 				// Swap column with one being listed above button
 				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
-				drawButton("^", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+				drawButton((i > 0)? "▲":"", c_sidebar, buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
 				drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 				tHnow++;
@@ -937,9 +937,7 @@ class SerialMonitor implements TabAPI {
 			else if (menuYclick(mouseY, sT, uH, iH, 5.5)){
 				if (!recordData) {
 					outputfile = "";
-					frame.setAlwaysOnTop(false);
-					selectOutput("Select a location and name for the output *.txt file", "fileSelected");
-					frame.toBack();
+					selectOutput("Select a location and name for the output *.TXT file", "fileSelected");
 				}
 			}
 			
@@ -970,7 +968,7 @@ class SerialMonitor implements TabAPI {
 
 			// Add a new colour tag column
 			else if (menuYclick(mouseY, sT, uH, iH, 12.5)) {
-				final String colname = trim(showInputDialog("New Tag Keyword Text:"));
+				final String colname = myShowInputDialog("Add a new Colour Tag","Keyword Text:","");
 				if (colname != null && colname.length() > 0){
 					tagColumns = append(tagColumns, colname);
 					redrawUI = true;
@@ -1006,7 +1004,7 @@ class SerialMonitor implements TabAPI {
 
 						// Change name of column
 						else {
-							final String colname = trim(showInputDialog("Please enter the new tag text\nCurrent Tag = " + tagColumns[i]));
+							final String colname = myShowInputDialog("Update the Colour Tag Keyword", "Keyword Text:", tagColumns[i]);
 							if (colname != null && colname.length() > 0){
 								tagColumns[i] = colname;
 								redrawUI = true;

@@ -10,7 +10,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2020 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -41,7 +41,7 @@ class Graph {
 	float[] lastX = {0}, lastY = {-99999999};   // Array containing previous x and y values
 	float xStep;
 
-	int xRate;
+	float xRate;
 	int plotType;
 	String plotName;
 	String xAxisName;
@@ -89,7 +89,7 @@ class Graph {
 		maxY = maxy;
 
 		xRate = 100;
-		xStep = 1 / float(xRate);
+		xStep = 1.0 / xRate;
 
 		graphMark = round(8 * uimult);
 		border = round(30 * uimult);
@@ -131,7 +131,7 @@ class Graph {
 	 *
 	 * @return Data rate in samples per second
 	 */
-	int getXrate() {
+	float getXrate() {
 		return xRate;
 	}
 
@@ -143,10 +143,10 @@ class Graph {
 	 * @param  newrate Data rate in samples per second
 	 * @return True if update is successful, false it number is invalid
 	 */
-	boolean setXrate(int newrate) {
-		if ((newrate > 0) && (newrate < 10000) && validFloat(newrate)) {
+	boolean setXrate(float newrate) {
+		if (validFloat(newrate) && (newrate > 0) && (newrate <= 10000)) {
 			xRate = newrate;
-			xStep = 1 / float(xRate);
+			xStep = 1.0 / xRate;
 			return true;
 		} else {
 			println("Graph::setXrate() - Invalid number: " + newrate);
