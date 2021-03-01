@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <user-preferences>
   <interface-scale percentage="100"/>
-  <color-scheme id="1"/>
+  <color-scheme id="2"/>
   <fps-indicator visible="0"/>
   <usage-instructions visible="1"/>
   <serial-port baud-rate="9600" databits="8" line-ending="&#10;" parity="N" stopbits="1.0"/>

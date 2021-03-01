@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-String versionNumber = "1.2.0";
+String versionNumber = "1.2.1";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
