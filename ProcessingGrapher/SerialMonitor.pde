@@ -359,9 +359,8 @@ class SerialMonitor implements TabAPI {
 
 			// Test whether this file is actually accessible
 			if (saveFile(newoutput) == null) {
-				alertHeading = "Error\nUnable to access the selected output file location; is this actually a writable location?\n" + newoutput;
+				alertMessage("Error\nUnable to access the selected output file location; is this actually a writable location?\n" + newoutput);
 				newoutput = "No File Set";
-				redrawAlert = true;
 			}
 		}
 		outputfile = newoutput;
@@ -395,8 +394,7 @@ class SerialMonitor implements TabAPI {
 			drawNewData = true;
 		} catch (Exception e) {
 			println(e);
-			alertHeading = "Error\nUnable to create the output file:\n" + e;
-			redrawAlert = true;
+			alertMessage("Error\nUnable to create the output file:\n" + e);
 		}
 	}
 
@@ -410,13 +408,10 @@ class SerialMonitor implements TabAPI {
 		try {
 			dataWriter.flush();
 			dataWriter.close();
-
-			alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " entries to " + (fileCounter + 1) + " TXT file(s)";
-			redrawAlert = true;
+			alertMessage("Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " entries to " + (fileCounter + 1) + " TXT file(s)");
 		} catch (Exception e) {
 			println(e);
-			alertHeading = "Error\nUnable to save the output file:\n" + e;
-			redrawAlert = true;
+			alertMessage("Error\nUnable to save the output file:\n" + e);
 		}
 
 		outputfile = "No File Set";
@@ -523,7 +518,7 @@ class SerialMonitor implements TabAPI {
 
 				// If new output file was successfully opened, only show a Warning message
 				if (filePath != null) {
-					alertHeading = "Warning\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. Data is still being recorded (to a new file)\n3. The files are in the same directory as ProcessingGrapher.exe";
+					alertMessage("Warning\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. Data is still being recorded (to a new file)\n3. The files are in the same directory as ProcessingGrapher.exe");
 					dataWriter = createWriter(filePath);
 					serialBuffer.clear();
 					scrollUp = 0;
@@ -531,16 +526,15 @@ class SerialMonitor implements TabAPI {
 				// If not, show an error message that the recording has stopped
 				} else {
 					recordData = false;
-					alertHeading = "Error - Recording Stopped\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. The files are in the same directory as ProcessingGrapher.exe";
+					alertMessage("Error - Recording Stopped\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. The files are in the same directory as ProcessingGrapher.exe");
 				}
 
 			// If we don't want to continue, show a simple error message
 			} else {
 				recordData = false;
-				alertHeading = "Error\nAn issue occurred when trying to save new data to the ouput file.\n1. Data recording has been stopped\n2. A backup of all the data has been created\n3. The backup is in the same directory as ProcessingGrapher.exe";
+				alertMessage("Error\nAn issue occurred when trying to save new data to the ouput file.\n1. Data recording has been stopped\n2. A backup of all the data has been created\n3. The backup is in the same directory as ProcessingGrapher.exe");
 			}
 
-			redrawAlert = true;
 			redrawUI = true;
 			drawNewData = true;
 
@@ -548,9 +542,8 @@ class SerialMonitor implements TabAPI {
 		} catch (Exception e) {
 			dataWriter.close();
 			recordData = false;
-			redrawAlert = true;
 			redrawUI = true;
-			alertHeading = "Critical Error\nAn issue occurred when trying to save new data to the ouput file.\nData backup was also unsuccessful, so some data may have been lost...\n" + e;
+			alertMessage("Critical Error\nAn issue occurred when trying to save new data to the ouput file.\nData backup was also unsuccessful, so some data may have been lost...\n" + e);
 		}
 	}
 
@@ -723,6 +716,13 @@ class SerialMonitor implements TabAPI {
 		} else {
 
 			switch (keyCodeInt) {
+				case ESC:
+					if (menuLevel != 0) {
+						menuLevel = 0;
+						menuScroll = 0;
+						redrawUI = true;
+					}
+					break;
 				case ENTER:
 				case RETURN:
 					if (msgText != ""){
@@ -1107,5 +1107,25 @@ class SerialMonitor implements TabAPI {
 	 */
 	void scrollBarUpdate(int xcoord, int ycoord) {
 
+	}
+
+
+	/**
+	 * Check whether it is safe to exit the program
+	 *
+	 * @return True if the are no tasks active, false otherwise
+	 */
+	boolean checkSafeExit() {
+		if (recordData) return false;
+		return true;
+	}
+
+
+	/**
+	 * End any active processes and safely exit the tab
+	 */
+	void performExit() {
+		if (recordData) stopRecording();
+		if (serialConnected) setupSerial();
 	}
 }

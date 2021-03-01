@@ -38,16 +38,21 @@ class FileGraph implements TabAPI {
 	Graph graph;
 	int menuScroll;
 	int menuHeight;
+	int menuLevel;
 
 	String name;
 	String outputfile;
+	String currentfile;
 	String[] dataColumns = {};
 	Table dataTable;
 
+	boolean saveFilePath = false;
 	boolean changesMade;
 	boolean labelling;
 	boolean zoomActive;
+	boolean workerActive;
 	int setZoomSize;
+	int selectedSignal;
 	float[] zoomCoordOne = {0, 0, 0, 0};
 
 
@@ -73,13 +78,17 @@ class FileGraph implements TabAPI {
 		graph = new Graph(cL, cR, cT, cB, 0, 100, 0, 10, "Graph 1");
 		graph.setHighlight(true);
 		outputfile = "No File Set";
+		currentfile = "No File Set";
 
 		zoomActive = false;
 		setZoomSize = -1;
 		labelling = false;
 		menuScroll = 0;
 		menuHeight = cB - cT - 1; 
+		menuLevel = 0;
 		changesMade = false;
+		selectedSignal = 0;
+		workerActive = false;
 	}
 
 
@@ -97,17 +106,23 @@ class FileGraph implements TabAPI {
 	 * Redraw all tab content
 	 */
 	void drawContent () {
-		graph.drawGrid();
-		plotFileData();
 
+		if (workerActive) {
+			String[] message = {"Loading in progress!"};
+			drawMessageArea("Please Standby", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+		
 		// Show message if no serial device is connected
-		if (outputfile == "No File Set") {
+		} else if (currentfile == "No File Set") {
+			graph.drawGrid();
 			if (showInstructions) {
 				String[] message = {"1. Click 'Open CSV File' to open and plot the signals from a *.CSV file",
 								    "2. The first row of the file should contain headings for each of the signal",
 								    "3. If the heading starts with 'x:', this column will be used as the x-axis"};
 				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
 			}
+		} else {
+			//graph.drawGrid();
+			plotFileData();
 		}
 	}
 
@@ -147,27 +162,41 @@ class FileGraph implements TabAPI {
 	void setOutput (String newoutput) {
 		
 		if (newoutput != "No File Set") {
-			// Check whether file is of type *.csv
-			if (newoutput.contains(".csv")) {
-				dataTable = loadTable(newoutput, "csv, header");
+
+			if (saveFilePath) {
+				// Ensure file type is *.csv
+				int dotPos = newoutput.lastIndexOf(".");
+				if (dotPos > 0) newoutput = newoutput.substring(0, dotPos);
+				newoutput = newoutput + ".csv";
+
+				// Test whether this file is actually accessible
+				if (saveFile(newoutput) == null) {
+					alertMessage("Error\nUnable to access the selected output file location; perhaps this location is write-protected?\n" + newoutput);
+					newoutput = "No File Set";
+				}
 				outputfile = newoutput;
-				zoomActive = false;
-				changesMade = false;
+				saveData();
+
 			} else {
-				alertHeading = "Error\nInvalid file type; it must be *.csv";
-				outputfile = "No File Set";
-				redrawAlert = true;
-				zoomActive = false;
-				changesMade = false;
-				xData = -1;
-				while (dataColumns.length > 0) dataColumns = remove(dataColumns, 0);
+				// Check whether file is of type *.csv
+				if (newoutput.contains(".csv")) {
+					//outputfile = newoutput;
+					currentfile = newoutput;
+					workerActive = true;
+					WorkerThread loadingThread = new WorkerThread();
+					loadingThread.loadFile();
+					zoomActive = false;
+					changesMade = false;
+				} else {
+					alertMessage("Error\nInvalid file type; it must be *.csv");
+					outputfile = "No File Set";
+					zoomActive = false;
+				}
 			}
+			
 		} else {
 			outputfile = newoutput;
 			zoomActive = false;
-			changesMade = false;
-			xData = -1;
-			while (dataColumns.length > 0) dataColumns = remove(dataColumns, 0);
 		}
 
 		redrawContent = true;
@@ -178,16 +207,19 @@ class FileGraph implements TabAPI {
 	 * Plot CSV data from file onto a graph
 	 */
 	void plotFileData () {
-		if(outputfile != "No File Set" && outputfile != "" && dataTable.getColumnCount() > 0) {
+		if (currentfile != "No File Set" && currentfile != "" && dataTable.getColumnCount() > 0) {
+
 			xData = -1;
 
 			// Load columns
-			while (dataColumns.length > 0) dataColumns = shorten(dataColumns);
+			dataColumns = new String[dataTable.getColumnCount()];
 
 			for (int i = 0; i < dataTable.getColumnCount(); i++) {
-				dataColumns = append(dataColumns, dataTable.getColumnTitle(i));
+				dataColumns[i] = dataTable.getColumnTitle(i);
 				if (dataTable.getColumnTitle(i).contains("x:")) {
 					xData = i;
+				} else if (dataTable.getColumnTitle(i).contains("l:")) {
+					dataColumns[i] = split(dataTable.getColumnTitle(i), ':')[1];
 				}
 			}
 
@@ -205,23 +237,23 @@ class FileGraph implements TabAPI {
 			// Ensure that some data acutally exists in the table
 			if (dataTable.getRowCount() > 0 && !(xData == 0 && dataTable.getColumnCount() == 1)) {
 				
-				float minx, maxx;
-				float miny, maxy;
+				double minx, maxx;
+				double miny, maxy;
 
 				if (xData == -1) {
 					minx = 0;
 					maxx = 0;
-					miny = dataTable.getFloat(0, 0);
-					maxy = dataTable.getFloat(0, 0);
+					miny = dataTable.getDouble(0, 0);
+					maxy = dataTable.getDouble(0, 0);
 				} else {
-					minx = dataTable.getFloat(0, xData);
-					maxx = dataTable.getFloat(dataTable.getRowCount() - 1, xData);
+					minx = dataTable.getDouble(0, xData);
+					maxx = dataTable.getDouble(dataTable.getRowCount() - 1, xData);
 					if (xData == 0) {
-						miny = dataTable.getFloat(0, 1);
-						maxy = dataTable.getFloat(0, 1);
+						miny = dataTable.getDouble(0, 1);
+						maxy = dataTable.getDouble(0, 1);
 					} else {
-						miny = dataTable.getFloat(0, 0);
-						maxy = dataTable.getFloat(0, 0);
+						miny = dataTable.getDouble(0, 0);
+						maxy = dataTable.getDouble(0, 0);
 					}
 				}
 
@@ -229,16 +261,16 @@ class FileGraph implements TabAPI {
 				for (TableRow row : dataTable.rows()) {
 
 					if (xData != -1) {
-						if(minx > row.getFloat(xData)) minx = row.getFloat(xData);
-						if(maxx < row.getFloat(xData)) maxx = row.getFloat(xData);
+						if(minx > row.getDouble(xData)) minx = row.getDouble(xData);
+						if(maxx < row.getDouble(xData)) maxx = row.getDouble(xData);
 					} else {
 						maxx += 1.0 / graph.getXrate();
 					}
 
 					for(int i = 0; i < dataTable.getColumnCount(); i++){
-						if (i != xData) {
-							if(miny > row.getFloat(i)) miny = row.getFloat(i);
-							if(maxy < row.getFloat(i)) maxy = row.getFloat(i);
+						if ((i != xData) && (!dataTable.getColumnTitle(i).contains("l:"))) {
+							if(miny > row.getDouble(i)) miny = row.getDouble(i);
+							if(maxy < row.getDouble(i)) maxy = row.getDouble(i);
 						}
 					}
 				}
@@ -246,30 +278,38 @@ class FileGraph implements TabAPI {
 				// Only update axis values if zoom isn't active
 				if (zoomActive == false) {
 					// Set these min and max values
-					graph.setMinX(floorToSigFig(minx, 2));
-					graph.setMaxX(ceilToSigFig(maxx, 2));
-					graph.setMinY(floorToSigFig(miny, 2));
-					graph.setMaxY(ceilToSigFig(maxy, 2));
+					graph.setMinMax((float) floorToSigFig(minx, 2), (float) ceilToSigFig(maxx, 2), (float) floorToSigFig(miny, 2), (float) ceilToSigFig(maxy, 2));
 				}
 
 				// Draw the axes and grid
 				graph.reset();
 				graph.drawGrid();
 
-				// Start plotting the data
 				int counter = 0;
+
+				// Start plotting the data
+				int percentage = 0;
 				for (TableRow row : dataTable.rows()) {
+
+					float value = counter / float(dataTable.getRowCount());
+					if (percentage < int(value * 100)) {
+						percentage = int(value * 100);
+						//println(percentage);
+					}
+
 					if (xData != -1){
 						for (int i = 0; i < dataTable.getColumnCount(); i++) {
 							if (i != xData) {
 								try {
-									float dataX = row.getFloat(xData);
-									float dataPoint = row.getFloat(i);
-									if(Float.isNaN(dataX) || Float.isNaN(dataPoint)) dataPoint = dataX = 99999999;
+									double dataX = row.getDouble(xData);
+									double dataPoint = row.getDouble(i);
+									if(Double.isNaN(dataX) || Double.isNaN(dataPoint)) dataPoint = dataX = 99999999;
 									
 									// Only plot it if it is within the X-axis data range
 									if (dataX >= graph.getMinX() && dataX <= graph.getMaxX()) {
-										graph.plotData(dataPoint, dataX, i);
+										if (dataTable.getColumnTitle(i).contains("l:")) {
+											if (dataPoint == 1) graph.plotXlabel((float) dataX, i);
+										} else graph.plotData((float) dataPoint, (float) dataX, i);
 									}
 								} catch (Exception e) {
 									println("Error trying to plot file data.");
@@ -280,12 +320,15 @@ class FileGraph implements TabAPI {
 					} else {
 						for (int i = 0; i < dataTable.getColumnCount(); i++) {
 							try {
+
 								// Only start plotting when desired X-point has arrived
 								float currentX = counter / graph.getXrate();
 								if (currentX >= graph.getMinX() && currentX <= graph.getMaxX()) {
-									float dataPoint = row.getFloat(i);
-									if(Float.isNaN(dataPoint)) dataPoint = 99999999;
-									graph.plotData(dataPoint, currentX, i);
+									double dataPoint = row.getDouble(i);
+									if (Double.isNaN(dataPoint)) dataPoint = 99999999;
+									if (dataTable.getColumnTitle(i).contains("l:")) {
+										if (dataPoint == 1) graph.plotXlabel((float) currentX, i);
+									} else graph.plotData((float) dataPoint, (float) currentX, i);
 								}
 							} catch (Exception e) {
 								println("Error trying to plot file data.");
@@ -314,15 +357,17 @@ class FileGraph implements TabAPI {
 	 * Save any new changes to the current CSV data file
 	 */
 	void saveData () {
-		if(outputfile != "No File Set" && outputfile != "") {
+		if (outputfile != "No File Set" && outputfile != "" && currentfile != "No File Set") {
 			try {
 				saveTable(dataTable, outputfile, "csv");
-				alertHeading = "Success!\nThe data has been saved to the file";
-				redrawAlert = true;
+				currentfile = outputfile;
+				saveFilePath = false;
+				redrawUI = true;
+				alertMessage("Success!\nThe data has been saved to the file");
 			} catch (Exception e){
-				alertHeading = "Error\nUnable to save file:\n" + e;
-				redrawAlert = true;
+				alertMessage("Error\nUnable to save file:\n" + e);
 			}
+			outputfile = "No File Set";
 		}
 	}
 
@@ -344,7 +389,15 @@ class FileGraph implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		menuHeight = round((15 + dataColumns.length) * uH);
+		Filters filterClass = new Filters();
+
+		if (menuLevel == 0)	{
+			menuHeight = round((15 + dataColumns.length) * uH);
+			if (xData != -1) menuHeight -= uH;
+		} else if (menuLevel == 1) {
+			menuHeight = round((3 + dataColumns.length) * uH);
+			if (xData != -1) menuHeight -= uH;
+		} else if (menuLevel == 2) menuHeight = round((3 + filterClass.filterList.length) * uH);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -369,81 +422,126 @@ class FileGraph implements TabAPI {
 			menuScroll = -1;
 		}
 
-		// Open, close and save files
-		drawHeading("Analyse Data", iL, sT + (uH * 0), iW, tH);
-		drawButton("Open CSV File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
-		//if (outputfile != ""  && outputfile != "No File Set" && changesMade) {
-		//	drawButton("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
-		//} else {
-			drawDatabox("Save Changes", c_idletab_text, iL, sT + (uH * 2), iW, iH, tH);
-		//}
-
-		// Add labels to data
-		drawHeading("Data Labels", iL, sT + (uH * 3.5), iW, tH);
-		if (outputfile != ""  && outputfile != "No File Set") {
-			drawButton("Add Label", c_sidebar_button, iL, sT + (uH * 4.5), iW, iH, tH);
-			drawButton("Remove Labels", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
-		} else {
-			drawDatabox("Add Label", c_idletab_text, iL, sT + (uH * 4.5), iW, iH, tH);
-			drawDatabox("Remove Labels", c_idletab_text, iL, sT + (uH * 5.5), iW, iH, tH);
-		}
-		
-		// Graph type
-		drawHeading("Graph Options", iL, sT + (uH * 7), iW, tH);
-		drawButton("Line", (graph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
-		drawButton("Dots", (graph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
-		drawButton("Bar", (graph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
-		drawRectangle(c_sidebar_divider, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-
-		// Graph scaling / segmentation
-		drawDatabox(str(graph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 9), 12 * uimult, iH, tH);
-		drawDatabox(str(graph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(graph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
-		drawDatabox(str(graph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
-
-		// Zoom Options
-		if (outputfile != ""  && outputfile != "No File Set") {
-			drawButton("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
-			drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
-			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-		} else {
-			drawDatabox("Zoom", c_idletab_text, iL, sT + (uH * 11), iW / 2, iH, tH);
-			drawDatabox("Reset", c_idletab_text, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
-		}
-
-		// Input Data Columns
-		drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
-		if (xData != -1) drawButton("X: " + split(dataColumns[xData], ':')[1], c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
-		else drawDatabox("Rate: " + graph.getXrate() + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
-		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
-
-		float tHnow = 14.5;
-
-		// List of Data Columns
-		for(int i = 0; i < dataColumns.length; i++){
-			if (i != xData) {
-				// Column name
-				drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
-
-				// Remove column button
-				drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
-				
-				// Hide or Show data series
-				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
-				drawButton("", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
-
-				drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
-				tHnow++;
+		// Root sidebar menu
+		if (menuLevel == 0) {
+			// Open, close and save files
+			drawHeading("Analyse Data", iL, sT + (uH * 0), iW, tH);
+			drawButton("Open CSV File", c_sidebar_button, iL, sT + (uH * 1), iW, iH, tH);
+			if (currentfile != ""  && currentfile != "No File Set" && changesMade) {
+				drawButton("Save Changes", c_sidebar_button, iL, sT + (uH * 2), iW, iH, tH);
+			} else {
+				drawDatabox("Save Changes", c_idletab_text, iL, sT + (uH * 2), iW, iH, tH);
 			}
+
+			// Add labels to data
+			drawHeading("Data Manipulation", iL, sT + (uH * 3.5), iW, tH);
+			if (currentfile != ""  && currentfile != "No File Set") {
+				drawButton("Add a Label", c_sidebar_button, iL, sT + (uH * 4.5), iW, iH, tH);
+				drawButton("Apply a Filter", c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
+			} else {
+				drawDatabox("Add a Label", c_idletab_text, iL, sT + (uH * 4.5), iW, iH, tH);
+				drawDatabox("Apply a Filter", c_idletab_text, iL, sT + (uH * 5.5), iW, iH, tH);
+			}
+			
+			// Graph type
+			drawHeading("Graph Options", iL, sT + (uH * 7), iW, tH);
+			drawButton("Line", (graph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
+			drawButton("Dots", (graph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
+			drawButton("Bar", (graph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
+			drawRectangle(c_sidebar_divider, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+
+			// Graph scaling / segmentation
+			drawDatabox(str(graph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+			drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 9), 12 * uimult, iH, tH);
+			drawDatabox(str(graph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+			drawDatabox(str(graph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+			drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
+			drawDatabox(str(graph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+
+			// Zoom Options
+			if (currentfile != ""  && currentfile != "No File Set") {
+				drawButton("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
+				drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+				drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			} else {
+				drawDatabox("Zoom", c_idletab_text, iL, sT + (uH * 11), iW / 2, iH, tH);
+				drawDatabox("Reset", c_idletab_text, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+			}
+
+			// Input Data Columns
+			drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
+			if (xData != -1) drawButton("X: " + split(dataColumns[xData], ':')[1], c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
+			else drawDatabox("Rate: " + graph.getXrate() + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
+			//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
+
+			float tHnow = 14.5;
+
+			// List of Data Columns
+			for(int i = 0; i < dataColumns.length; i++){
+				if (i != xData) {
+					// Column name
+					drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
+
+					// Remove column button
+					drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+					
+					// Hide or Show data series
+					color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
+					drawButton("", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+
+					drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+					tHnow++;
+				}
+			}
+
+		// Signal selection menu (signal to be filtered)
+		} else if (menuLevel == 1) {
+			drawHeading("Select a Signal", iL, sT + (uH * 0), iW, tH);
+
+			float tHnow = 1;
+			if (dataColumns.length == 0 || (dataColumns.length == 1 && xData != -1)) {
+				drawText("No signals available", c_sidebar_text, iL, sT + (uH * tHnow), iW, iH);
+				tHnow += 1;
+			} else {
+				for (int i = 0; i < dataColumns.length; i++) {
+					if (i != xData && !dataTable.getColumnTitle(i).contains("l:")) {
+						drawButton(constrainString(dataColumns[i], iW - (10 * uimult)), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+						tHnow += 1;
+					}
+				}
+			}
+			tHnow += 0.5;
+			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
+
+		// Filter selection menu
+		} else if (menuLevel == 2) {
+			drawHeading("Select a Filter", iL, sT + (uH * 0), iW, tH);
+
+			float tHnow = 1;
+			if (filterClass.filterList.length == 0) {
+				drawText("No filters available", c_sidebar_text, iL, sT + (uH * tHnow), iW, iH);
+				tHnow += 1;
+			} else {
+				for (int i = 0; i < filterClass.filterList.length; i++) {
+					String filterName = filterClass.filterList[i];
+					if (filterName.contains("h:")) {
+						filterName = split(filterName, ":")[1];
+						drawText(filterName, c_idletab_text, iL, sT + (uH * tHnow), iW, iH);
+					} else {
+						drawButton(constrainString(filterClass.filterList[i], iW - (10 * uimult)), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+					}
+					tHnow += 1;
+				}
+			}
+			tHnow += 0.5;
+			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
 
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_status_bar);
-		text("Input: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Input: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
+		text("Input: " + constrainString(currentfile, width - sW - round(30 * uimult) - textWidth("Input: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 
@@ -453,7 +551,15 @@ class FileGraph implements TabAPI {
 	 * @param  key The character of the key that was pressed
 	 */
 	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
-		if (codedKey) {
+		if (keyChar == ESC) {
+			if (menuLevel != 0) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+		}
+
+		else if (codedKey) {
 			switch (keyCodeInt) {
 				case UP:
 					// Scroll menu bar
@@ -518,11 +624,65 @@ class FileGraph implements TabAPI {
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
 	void contentClick (int xcoord, int ycoord) {
-		if (labelling) {
-			if(outputfile != "" && outputfile != "No File Set"){
 
-				int xItem = graph.setXlabel(xcoord, ycoord);
-				if (xItem != -1) {
+		// Add a new data label
+		if (labelling) {
+			if (currentfile != "" && currentfile != "No File Set") {
+				if (graph.onGraph(xcoord, ycoord)) {
+
+					// Check if a label column already exists in the table
+					int labelColumn = -1;
+					for (int i = 0; i < dataTable.getColumnCount(); i++) {
+						if (dataTable.getColumnTitle(i).contains("l:Labels")) {
+							labelColumn = i;
+							break;
+						}
+					}
+
+					// If label column does not exist, add it to the table
+					if (labelColumn == -1) {
+						dataTable.addColumn("l:Labels");
+						labelColumn = dataTable.getColumnCount() - 1;
+						dataColumns = append(dataColumns, "Labels");
+					}
+
+					// Draw the label and get the x-axis position
+					float xPosition = graph.setXlabel(xcoord, labelColumn);
+
+					// Set the correct entry in the label column
+					if (xData != -1) {
+						// Calculate approximately where in the sequence the label should go
+						int startPosition = round((xPosition - graph.getMinX()) / (graph.getMaxX() - graph.getMinX()) * (dataTable.getRowCount() - 1));
+						if (startPosition < 0) startPosition = 0;
+						else if (startPosition >= dataTable.getRowCount()) startPosition = dataTable.getRowCount() - 1;
+
+						try {
+							if (dataTable.getFloat(startPosition, xData) <= xPosition) {
+								for (int i = startPosition; i < dataTable.getRowCount() - 2; i++) {
+									if (xPosition < dataTable.getFloat(i + 1, xData)) {
+										dataTable.setInt(i, "l:Labels", 1);
+										break;
+									}
+								}
+							} else {
+								for (int i = startPosition; i > 1; i--) {
+									if (xPosition > dataTable.getFloat(i - 1, xData)) {
+										dataTable.setInt(i, "l:Labels", 1);
+										break;
+									}
+								}
+							}
+						} catch (Exception e) {
+							println("FileGraph()::labels Unable to calculate correct label position");
+							dataTable.setInt(startPosition, "l:Labels", 1);
+						}
+					} else {
+						int startPosition = round(xPosition * graph.getXrate());
+						if (startPosition < 0) startPosition = 0;
+						else if (startPosition >= dataTable.getRowCount()) startPosition = dataTable.getRowCount() - 1;
+						dataTable.setInt(startPosition, "l:Labels", 1);
+					}
+
 					changesMade = true;
 					redrawUI = true;
 				}
@@ -623,199 +783,265 @@ class FileGraph implements TabAPI {
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
 
-		// Open data
-		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
-			outputfile = "";
-			selectInput("Select *.CSV data file to open", "fileSelected");
-		}
+		// Root menu level
+		if (menuLevel == 0) {
 
-		// Save data - currently disabled
-		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
-			//if (outputfile != "" && outputfile != "No File Set" && changesMade){
-			//	saveData();
-			//}
-		}
-
-		// Add label
-		else if ((mouseY > sT + (uH * 4.5)) && (mouseY < sT + (uH * 4.5) + iH)){
-			if (outputfile != "" && outputfile != "No File Set"){
-				labelling = true;
-				cursor(CROSS);
-			}
-		}
-		
-		// Remove all labels
-		else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
-			redrawContent = redrawUI = true;
-		}
-
-		// Change graph type
-		else if ((mouseY > sT + (uH * 8)) && (mouseY < sT + (uH * 8) + iH)){
-
-			// Line
-			if ((mouseX > iL) && (mouseX <= iL + iW / 3)) {
-				graph.setGraphType("linechart");
-				redrawContent = redrawUI = true;
+			// Open data
+			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+				saveFilePath = false;
+				outputfile = "";
+				selectInput("Select *.CSV data file to open", "fileSelected");
 			}
 
-			// Dot
-			else if ((mouseX > iL + (iW / 3)) && (mouseX <= iL + (iW * 2 / 3))) {
-				graph.setGraphType("dotchart");
-				redrawContent = redrawUI = true;
+			// Save data - currently disabled
+			else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
+				if (currentfile != "" && currentfile != "No File Set" && changesMade){
+					saveFilePath = true;
+					outputfile = "";
+					selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
+				}
 			}
 
-			// Bar
-			else if ((mouseX > iL + (iW * 2 / 3)) && (mouseX <= iL + iW)) {
-				graph.setGraphType("barchart");
-				redrawContent = redrawUI = true;
-			}
-		}
-
-		// Update X axis scaling
-		else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
-
-			// Change X axis minimum value
-			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String xMin = myShowInputDialog("Set the X-axis Minimum Value", "Minimum:", str(graph.getMinX()));
-				if (xMin != null){
-					try {
-						graph.setMinX(Float.parseFloat(xMin));
-						zoomActive = true;
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - X-axis min value error: " + e);
-					}
-				} 
-				redrawContent = redrawUI = true;
-			}
-
-			// Change X axis maximum value
-			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String xMax = myShowInputDialog("Set the X-axis Maximum Value", "Maximum:", str(graph.getMaxX()));
-				if (xMax != null){
-					try {
-						graph.setMaxX(Float.parseFloat(xMax));
-						zoomActive = true;
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - X-axis max value error: " + e);
-					}
-				} 
-				redrawContent = redrawUI = true;
-			}
-		}
-
-		// Update Y axis scaling
-		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
-
-			// Change Y axis minimum value
-			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String yMin = myShowInputDialog("Set the Y-axis Minimum Value", "Minimum:", str(graph.getMinY()));
-				if (yMin != null){
-					try {
-						graph.setMinY(Float.parseFloat(yMin));
-						zoomActive = true;
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - Y-axis min value error: " + e);
-					}
-				} 
-				redrawContent = redrawUI = true;
-			}
-
-			// Change Y axis maximum value
-			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String yMax = myShowInputDialog("Set the Y-axis Maximum Value", "Maximum:", str(graph.getMaxY()));
-				if (yMax != null){
-					try {
-						graph.setMaxY(Float.parseFloat(yMax));
-						zoomActive = true;
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - Y-axis max value error: " + e);
-					}
-				} 
-				redrawContent = redrawUI = true;
-			}
-		}
-
-		// Zoom Options
-		else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
-
-			if (outputfile != "" && outputfile != "No File Set") {
-				// New zoom
-				if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
-					zoomActive = true;
-					setZoomSize = 0;
+			// Add label
+			else if ((mouseY > sT + (uH * 4.5)) && (mouseY < sT + (uH * 4.5) + iH)){
+				if (currentfile != "" && currentfile != "No File Set"){
+					labelling = true;
 					cursor(CROSS);
-					//redrawUI = true;
+				}
+			}
+			
+			// Open the filters sub-menu
+			else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+				if (currentfile != "" && currentfile != "No File Set"){
+					if (xData == -1 && dataColumns.length == 1) {
+						selectedSignal = 0;
+						menuLevel = 2;
+					} else if (xData != -1 && dataColumns.length == 2) {
+						if (xData == 0) selectedSignal = 1;
+						else selectedSignal = 0;
+						menuLevel = 2;
+					} else menuLevel = 1;
+					menuScroll = 0;
+					redrawUI = true;
+				}
+			}
+
+			// Change graph type
+			else if ((mouseY > sT + (uH * 8)) && (mouseY < sT + (uH * 8) + iH)){
+
+				// Line
+				if ((mouseX > iL) && (mouseX <= iL + iW / 3)) {
+					graph.setGraphType("linechart");
+					redrawContent = redrawUI = true;
 				}
 
-				// Reset zoom
-				else if ((mouseX > iL + (iW / 2)) && (mouseX <= iL + iW)) {
-					zoomActive = false;
-					cursor(ARROW);
+				// Dot
+				else if ((mouseX > iL + (iW / 3)) && (mouseX <= iL + (iW * 2 / 3))) {
+					graph.setGraphType("dotchart");
+					redrawContent = redrawUI = true;
+				}
+
+				// Bar
+				else if ((mouseX > iL + (iW * 2 / 3)) && (mouseX <= iL + iW)) {
+					graph.setGraphType("barchart");
 					redrawContent = redrawUI = true;
 				}
 			}
-		}
 
-		// Change the input data rate
-		else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
-			if (xData == -1) {
-				final String newrate = myShowInputDialog("Received Data Update Rate","Frequency (Hz):", str(graph.getXrate()));
-				if (newrate != null){
-					try {
-						float newXrate = Float.parseFloat(newrate);
+			// Update X axis scaling
+			else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
 
-						if (newXrate > 0 && newXrate <= 10000) {
-							graph.setXrate(newXrate);
-							redrawContent = true;
-							redrawUI = true;
-						} else {
-							alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
-							redrawAlert = true;
-						}
-					} catch (Exception e) {
-						alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
-						redrawAlert = true;
+				// Change X axis minimum value
+				if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+					ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(graph.getMinX()));
+					userInput.setErrorMessage("Error\nInvalid x-axis minimum value entered.\nThe number should be smaller the the maximum value.");
+					if (userInput.checkFloat(userInput.LT, graph.getMaxX())) {
+						graph.setMinX(userInput.getFloat());
+						zoomActive = true;
+					} 
+					redrawContent = redrawUI = true;
+				}
+
+				// Change X axis maximum value
+				else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+					ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(graph.getMaxX()));
+					userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nThe number should be larger the the minimum value.");
+					if (userInput.checkFloat(userInput.GT, graph.getMinX())) {
+						graph.setMaxX(userInput.getFloat());
+						zoomActive = true;
+					} 
+					redrawContent = redrawUI = true;
+				}
+			}
+
+			// Update Y axis scaling
+			else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
+
+				// Change Y axis minimum value
+				if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+					ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(graph.getMinY()));
+					userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
+					if (userInput.checkFloat(userInput.LT, graph.getMaxY())) {
+						graph.setMinY(userInput.getFloat());
+						zoomActive = true;
+					} 
+					redrawContent = redrawUI = true;
+				}
+
+				// Change Y axis maximum value
+				else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+					ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(graph.getMaxY()));
+					userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
+					if (userInput.checkFloat(userInput.GT, graph.getMinY())) {
+						graph.setMaxY(userInput.getFloat());
+						zoomActive = true;
+					} 
+					redrawContent = redrawUI = true;
+				}
+			}
+
+			// Zoom Options
+			else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
+
+				if (currentfile != "" && currentfile != "No File Set") {
+					// New zoom
+					if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
+						zoomActive = true;
+						setZoomSize = 0;
+						cursor(CROSS);
+						//redrawUI = true;
+					}
+
+					// Reset zoom
+					else if ((mouseX > iL + (iW / 2)) && (mouseX <= iL + iW)) {
+						zoomActive = false;
+						cursor(ARROW);
+						redrawContent = redrawUI = true;
 					}
 				}
 			}
-		}
-		
-		// Edit data column
-		else {
-			float tHnow = 14.5;
 
-			// List of Data Columns
-			for(int i = 0; i < dataColumns.length; i++){
-
-				if (i != xData) {
-					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
-
-						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-							if (xData != -1 && xData < i) {
-								dataColumns = remove(dataColumns, i + 1);
-								dataTable.removeColumn(i + 1);
-							} else {
-								dataColumns = remove(dataColumns, i);
-								dataTable.removeColumn(i);
-							}
-							changesMade = true;
-							redrawContent = true;
-							redrawUI = true;
-						}
-
-						else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-							/*
-							if (i - 1 >= 0) {
-								String temp = dataColumns[i - 1];
-								dataColumns[i - 1] = dataColumns[i];
-								dataColumns[i] = temp;
-							}
-							redrawUI = true;*/
-						}
+			// Change the input data rate
+			else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
+				if (xData == -1) {
+					ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graph.getXrate()));
+					userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
+					if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
+						float newXrate = userInput.getFloat();
+						graph.setXrate(newXrate);
+						redrawContent = true;
+						redrawUI = true;
 					}
 				}
-				
-				tHnow++;
+			}
+			
+			// Edit data column
+			else {
+				float tHnow = 14.5;
+
+				// List of Data Columns
+				for(int i = 0; i < dataColumns.length; i++){
+
+					if (i != xData) {
+						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
+
+							// Remove the signal
+							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+								dataColumns = remove(dataColumns, i);
+								dataTable.removeColumn(i);
+								
+								if (dataColumns.length == 0 || (dataColumns.length == 1 && xData != -1)) {
+									currentfile = "No File Set";
+									xData = -1;
+									dataColumns = new String[0];
+								}
+
+								changesMade = true;
+								redrawContent = true;
+								redrawUI = true;
+							}
+
+							else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+								/*
+								if (i - 1 >= 0) {
+									String temp = dataColumns[i - 1];
+									dataColumns[i - 1] = dataColumns[i];
+									dataColumns[i] = temp;
+								}
+								redrawUI = true;*/
+							}
+
+							// Change name of column
+							else {
+								final String colname = myShowInputDialog("Set the Data Signal Name", "Name:", dataColumns[i]);
+								if (colname != null && colname != ""){
+									dataColumns[i] = colname;
+									if (dataTable.getColumnTitle(i).contains("l:")) dataTable.setColumnTitle(i, "l:" + colname);
+									else dataTable.setColumnTitle(i, colname);
+									redrawUI = true;
+								}
+							}
+						}
+
+						tHnow++;
+					}
+				}
+			}
+
+		// Signal selection sub-menu
+		} else if (menuLevel == 1) {
+			float tHnow = 1;
+			if (dataColumns.length == 0) tHnow++;
+			else {
+				for (int i = 0; i < dataColumns.length; i++) {
+					if (i != xData && !dataTable.getColumnTitle(i).contains("l:")) {
+						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+							selectedSignal = i;
+							menuLevel = 2;
+							menuScroll = 0;
+							redrawUI = true;
+						}
+						tHnow++;
+					}
+				}
+			}
+
+			// Cancel button
+			tHnow += 0.5;
+			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+
+		// Filter selection sub-menu
+		} else if (menuLevel == 2) {
+			float tHnow = 1;
+			Filters filterClass = new Filters();
+			if (filterClass.filterList.length == 0) tHnow++;
+			else {
+				for (int i = 0; i < filterClass.filterList.length; i++) {
+					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+						if (!filterClass.filterList[i].contains("h:")) {
+							workerActive = true;
+							WorkerThread filterThread = new WorkerThread();
+							filterThread.setFilterTask(i, selectedSignal);
+							menuLevel = 0;
+							menuScroll = 0;
+							redrawUI = true;
+							redrawContent = true;
+						}
+					}
+					tHnow++;
+				}
+			}
+
+			// Cancel button
+			tHnow += 0.5;
+			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
 			}
 		}
 	}
@@ -839,5 +1065,105 @@ class FileGraph implements TabAPI {
 	 */
 	void connectionEvent (boolean status) {
 		// Empty as this tab is not using serial comms
+	}
+
+
+	/**
+	 * Background thread to take care of loading and processing operations
+	 * without causing the program to appear to freeze
+	 */
+	class WorkerThread extends Thread {
+
+		// Tasks: 0=load file, 1=apply filter
+		int task = 0;
+		int signal = 0;
+		int filter = 0;
+
+		/**
+		 * Set up the worker to perform filtering
+		 */
+		public void setFilterTask(int filterType, int signalNumber) {
+			workerActive = true;
+			task = 1;
+			filter = filterType;
+			signal = signalNumber;
+			super.start();
+		}
+
+		/**
+		 * Set up the worker to load a file into memory
+		 */
+		public void loadFile() {
+			workerActive = true;
+			task = 0;
+			super.start();
+		}
+
+		/**
+		 * Perform the worker task
+		 */
+		public void run() {
+			// Load a file
+			if (task == 0) {
+				dataTable = loadTable(currentfile, "csv, header");
+				for (int i = 0; i < dataTable.getColumnCount(); i++) {
+					dataTable.setColumnType(i, Table.DOUBLE);
+				}
+				workerActive = false;
+				redrawContent = true;
+				redrawUI = true;
+
+			// Run a filter
+			} else if (task == 1) {
+				Filters filterClass = new Filters();
+
+				double[] signalData = dataTable.getDoubleColumn(signal);
+				double[] xAxisData;
+
+				if (xData != -1) xAxisData = dataTable.getDoubleColumn(xData);
+				else {
+					xAxisData = new double[signalData.length];
+					xAxisData[0] = 0;
+					for (int i = 1; i < signalData.length; i++) {
+						xAxisData[i] = xAxisData[i - 1] + (1.0 / graph.getXrate());
+					}
+				}
+
+				double[] outputData = filterClass.runFilter(filter, signalData, xAxisData);
+
+				if (outputData != null) {
+					String signalName = filterClass.filterSlug[filter] + "[" + dataTable.getColumnTitle(signal) + "]";
+
+					dataTable.addColumn(signalName, Table.DOUBLE);
+					int newColumnIndex = dataTable.getColumnIndex(signalName);
+
+					for (int i = 0; i < dataTable.getRowCount(); i++) {
+						dataTable.setDouble(i, newColumnIndex, outputData[i]);
+					}
+				}
+
+				workerActive = false;
+				redrawContent = true;
+				redrawUI = true;
+			}
+		}
+	}
+
+
+	/**
+	 * Check whether it is safe to exit the program
+	 *
+	 * @return True if the are no tasks active, false otherwise
+	 */
+	boolean checkSafeExit() {
+		return true;
+	}
+
+
+	/**
+	 * End any active processes and safely exit the tab
+	 */
+	void performExit() {
+		// Nothing to do here
 	}
 }

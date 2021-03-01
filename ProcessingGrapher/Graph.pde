@@ -55,6 +55,8 @@ class Graph {
 	boolean squareGrid;
 	boolean highlighted;
 
+	PGraphics graphics;
+
 
 	/**
 	 * Constructor
@@ -71,6 +73,7 @@ class Graph {
 	 */
 	Graph(int left, int right, int top, int bottom, float minx, float maxx, float miny, float maxy, String name) {
 
+		graphics = g;
 		plotName = name;
 
 		cL = gL = left;
@@ -101,6 +104,16 @@ class Graph {
 
 		xAxisName = "";
 		//yAxisName = "";
+	}
+
+
+	/**
+	 * Set the graph to be drawn into a different graphics buffer
+	 *
+	 * @param  newGraphics The processing graphics object to use
+	 */
+	void setGraphicsCanvas(PGraphics newGraphics) {
+		graphics = newGraphics;
 	}
 	
 
@@ -184,6 +197,12 @@ class Graph {
 	//	yAxisName = newName;
 	//}
 
+	void setMinMax(float minx, float maxx, float miny, float maxy) {
+		if (validFloat(minx)) minX = minx;
+		if (validFloat(maxx)) maxX = maxx;
+		if (validFloat(miny)) minY = miny;
+		if (validFloat(maxy)) maxY = maxy;
+	}
 
 	/**
 	 * Set the minimum X-axis value
@@ -292,15 +311,33 @@ class Graph {
 	 * Draw a X-axis label onto the graph
 	 *
 	 * @param  xCoord The X-coordinate on the screen
-	 * @param  yCoord The Y-coordinate on the screen
 	 * @return The X-axis value of the label position on the graph
 	 */
-	int setXlabel(float xCoord, float yCoord) {
-		if (xCoord < gL || xCoord > gR || yCoord < gT || yCoord > gB) return -1;
-		stroke(c_sidebar);
-		strokeWeight(1 * uimult);
-		line(xCoord, gT, xCoord, gB);
-		return round(map(xCoord, gL, gR, minX, maxX) / xRate);
+	float setXlabel(float xCoord, int type) {
+		if (xCoord < gL || xCoord > gR) return 0;
+
+		int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
+		graphics.stroke(c_colorlist[colorIndex]);
+		graphics.strokeWeight(1 * uimult);
+
+		graphics.line(xCoord, gT, xCoord, gB);
+		return map(xCoord, gL, gR, minX, maxX);
+	}
+
+
+	/**
+	 * Draw a X-axis label onto the graph
+	 *
+	 * @param  dataX The x-axis position of the label
+	 */
+	void plotXlabel(float dataX, int type) {
+		if (dataX >= minX && dataX <= maxX) {
+			int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
+			graphics.stroke(c_colorlist[colorIndex]);
+			graphics.strokeWeight(1 * uimult);
+
+			graphics.line(map(dataX, minX, maxX, gL, gR), gT, map(dataX, minX, maxX, gL, gR), gB);
+		}
 	}
 
 
@@ -410,21 +447,13 @@ class Graph {
 	void plotData(float dataY, float dataX, int type) {
 
 		if (validFloat(dataY) && validFloat(dataX)) {
-			// Deal with labels
-			/*
-			if(type == -1) {
-				stroke(c_sidebar);
-				strokeWeight(1 * uimult);
-				line(map(lastX[0], minX, maxX, gL, gR), gT, map(lastX[0], minX, maxX, gL, gR), gB);
-				return;
-			}*/
 
 			int x1, y1, x2 = gL, y2;
 
 			// Ensure that the element actually exists in data arrays
 			while(lastY.length < type + 1) lastY = append(lastY, -99999999);
 			while(lastX.length < type + 1) lastX = append(lastX, 0);
-			
+						
 			// Redraw grid, if required
 			if (redrawGraph) drawGrid();
 
@@ -438,9 +467,9 @@ class Graph {
 
 			// Get relevant color from list
 			int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
-			fill(c_colorlist[colorIndex]);
-			stroke(c_colorlist[colorIndex]);
-			strokeWeight(1 * uimult);
+			graphics.fill(c_colorlist[colorIndex]);
+			graphics.stroke(c_colorlist[colorIndex]);
+			graphics.strokeWeight(1 * uimult);
 
 			switch(plotType){
 				// Dot chart
@@ -449,13 +478,13 @@ class Graph {
 					x2 = round(map(dataX, minX, maxX, gL, gR));
 					y2 = round(map(dataY, minY, maxY, gB, gT));
 					
-					ellipse(x2, y2, 1*uimult, 1*uimult);
+					graphics.ellipse(x2, y2, 1*uimult, 1*uimult);
 					break;
 
 				// Bar chart
 				case 2:
 					if (lastY[type] != -99999999 && lastY[type] != 99999999) {
-						noStroke();
+						graphics.noStroke();
 						// Determine x and y coordinates
 						x1 = round(map(lastX[type], minX, maxX, gL, gR));
 						x2 = round(map(dataX, minX, maxX, gL, gR));
@@ -469,8 +498,8 @@ class Graph {
 						if (lastX.length > 1) x2 = x1 + oneSegment;
 						else x2 = x1 + ceil(oneSegment / 1.5);
 						
-						rectMode(CORNERS);
-						rect(x1, y1, x2, y2);
+						graphics.rectMode(CORNERS);
+						graphics.rect(x1, y1, x2, y2);
 					}
 					break;
 
@@ -483,7 +512,7 @@ class Graph {
 						x2 = round(map(dataX, minX, maxX, gL, gR));
 						y1 = round(map(lastY[type], minY, maxY, gB, gT));
 						y2 = round(map(dataY, minY, maxY, gB, gT));
-						line(x1, y1, x2, y2);
+						graphics.line(x1, y1, x2, y2);
 					}
 					break;
 			}
@@ -510,9 +539,9 @@ class Graph {
 			if (dataX1 >= minX && dataX1 <= maxX && dataX2 >= minX && dataX2 <= maxX) {
 
 				// Get relevant color from list
-				fill(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
-				stroke(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
-				strokeWeight(1 * uimult);
+				graphics.fill(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
+				graphics.stroke(c_colorlist[type - (c_colorlist.length * floor(type / c_colorlist.length))]);
+				graphics.strokeWeight(1 * uimult);
 
 				// Determine x and y coordinates
 				final int x1 = round(map(dataX1, minX, maxX, gL, gR));
@@ -520,8 +549,8 @@ class Graph {
 				final int y1 = round(map(dataY1, minY, maxY, gB, gT));
 				final int y2 = round(map(dataY2, minY, maxY, gB, gT));
 				
-				rectMode(CORNERS);
-				rect(x1, y1, x2, y2);
+				graphics.rectMode(CORNERS);
+				graphics.rect(x1, y1, x2, y2);
 			}
 		}
 	}
@@ -532,26 +561,26 @@ class Graph {
 	 */
 	void clearGraph () {
 		// Clear the content area
-		rectMode(CORNER);
-		noStroke();
-		fill(c_background);
-		rect(gL, gT - (uimult * 1), gR - gL + (uimult * 1), gB - gT + (uimult * 2));
+		graphics.rectMode(CORNER);
+		graphics.noStroke();
+		graphics.fill(c_background);
+		graphics.rect(gL, gT - (uimult * 1), gR - gL + (uimult * 1), gB - gT + (uimult * 2));
 
 		// Setup drawing parameters
-		strokeWeight(1 * uimult);
-		stroke(c_graph_gridlines);
+		graphics.strokeWeight(1 * uimult);
+		graphics.stroke(c_graph_gridlines);
 
 		// Draw X-axis grid lines
 		if (gridLines && gridX != 0) {
 			for (float i = offsetLeft; i < gR; i += gridX) {
-				line(i, gT, i, gB);
+				graphics.line(i, gT, i, gB);
 			}
 		}
 
 		// Draw y-axis grid lines
 		if (gridLines && gridY != 0) {
 			for (float i = offsetBottom; i > gT; i -= gridY) {
-				line(gL, i, gR, i);
+				graphics.line(gL, i, gR, i);
 			}
 		}
 
@@ -563,9 +592,9 @@ class Graph {
 		else if (maxX < 0) xZero = maxX;
 
 		// Draw the graph axis lines
-		stroke(c_graph_axis);
-		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
-		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
+		graphics.stroke(c_graph_axis);
+		graphics.line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
+		graphics.line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
 
 		// Clear all previous data positions
 		resetGraph();
@@ -666,24 +695,24 @@ class Graph {
 		redrawGraph = false;
 
 		// Clear the content area
-		rectMode(CORNER);
-		noStroke();
-		fill(c_background);
-		rect(cL, cT, cR - cL, cB - cT);
+		graphics.rectMode(CORNER);
+		graphics.noStroke();
+		graphics.fill(c_background);
+		graphics.rect(cL, cT, cR - cL, cB - cT);
 
 		// Add border and graph title
-		strokeWeight(1 * uimult);
-		stroke(c_graph_border);
-		if (cT > round((tabHeight + 1) * uimult)) line(cL, cT, cR, cT);
-		if (cL > 1) line(cL, cT, cL, cB);
-		line(cL, cB, cR, cB);
-		line(cR, cT, cR, cB);		
+		graphics.strokeWeight(1 * uimult);
+		graphics.stroke(c_graph_border);
+		if (cT > round((tabHeight + 1) * uimult)) graphics.line(cL, cT, cR, cT);
+		if (cL > 1) graphics.line(cL, cT, cL, cB);
+		graphics.line(cL, cB, cR, cB);
+		graphics.line(cR, cT, cR, cB);		
 
-		textAlign(LEFT, TOP);
-		textFont(base_font);
-		fill(c_lightgrey);
-		if (highlighted) fill(c_red);
-		text(plotName, cL + int(5 * uimult), cT + int(5 * uimult));
+		graphics.textAlign(LEFT, TOP);
+		graphics.textFont(base_font);
+		graphics.fill(c_lightgrey);
+		if (highlighted) graphics.fill(c_red);
+		graphics.text(plotName, cL + int(5 * uimult), cT + int(5 * uimult));
 
 		// X and Y axis zero
 		float yZero = 0;
@@ -694,10 +723,10 @@ class Graph {
 		else if (maxX < 0) xZero = maxX;
 
 		// Text width and height
-		textFont(mono_font);
+		graphics.textFont(mono_font);
 		final int padding = int(5 * uimult);
-		final int textHeight = int(textAscent() + textDescent() + padding);
-		final float charWidth = textWidth("0");
+		final int textHeight = int(graphics.textAscent() + graphics.textDescent() + padding);
+		final float charWidth = graphics.textWidth("0");
 
 		/* -----------------------------------
 		 *     Define graph top and bottom
@@ -780,72 +809,72 @@ class Graph {
 			else xTextWidth = newxTextWidth;
 		} while (!solved);
 
-		fill(c_lightgrey);
+		graphics.fill(c_lightgrey);
 
 		//if (yAxisName != "") {
-		//	textAlign(CENTER, CENTER);
-		//	pushMatrix();
-		//	translate(border / 2, (gB + gT) / 2);
-		//	rotate(-HALF_PI);
-		//	text("Some text here",0,0);
-		//	popMatrix();
+		//	graphics.textAlign(CENTER, CENTER);
+		//	graphics.pushMatrix();
+		//	graphics.translate(border / 2, (gB + gT) / 2);
+		//	graphics.rotate(-HALF_PI);
+		//	graphics.text("Some text here",0,0);
+		//	graphics.popMatrix();
 		//}
 
 		// ---------- Y-AXIS ----------
-		textAlign(RIGHT, CENTER);
+		graphics.textAlign(RIGHT, CENTER);
 
 		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
 			final float currentYpixel = map((float) i, minY, maxY, gB, gT);
 
 			if (gridLines) {
-				stroke(c_graph_gridlines);
-				line(gL, currentYpixel, gR, currentYpixel);
+				graphics.stroke(c_graph_gridlines);
+				graphics.line(gL, currentYpixel, gR, currentYpixel);
 			}
 
 			String label = formatLabelText(i, y_precision);
 
-			stroke(c_graph_axis);
-			text(label, gL - graphMark - padding, currentYpixel - (1 * uimult));
-			line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
+			graphics.stroke(c_graph_axis);
+			graphics.text(label, gL - graphMark - padding, currentYpixel - (1 * uimult));
+			graphics.line(gL - graphMark, currentYpixel, gL - round(1 * uimult), currentYpixel);
 
 			// Minor graph lines
 			if (i > y_bottomPosition) {
 				final float minorYpixel = map((float) (i - (y_segment / 2.0)), minY, maxY, gB, gT);
-				line(gL - (graphMark / 2.0), minorYpixel, gL - round(1 * uimult), minorYpixel);
+				graphics.line(gL - (graphMark / 2.0), minorYpixel, gL - round(1 * uimult), minorYpixel);
 			}
 		}
 
 
 		// ---------- X-AXIS ----------
-		textAlign(CENTER, TOP);
-		if (xAxisName != "") text(xAxisName, (gL + gR) / 2, cB - border + padding);
+		graphics.textAlign(CENTER, TOP);
+		if (xAxisName != "") graphics.text(xAxisName, (gL + gR) / 2, cB - border + padding);
 
 		// Move right first
 		for (double i = x_leftPosition; i <= maxX; i += x_segment) {
 			final float currentXpixel = map((float) i, minX, maxX, gL, gR);
 
 			if (gridLines) {
-				stroke(c_graph_gridlines);
-				line(currentXpixel, gT, currentXpixel, gB);
+				graphics.stroke(c_graph_gridlines);
+				graphics.line(currentXpixel, gT, currentXpixel, gB);
 			}
 
 			String label = formatLabelText(i, x_precision);
 
-			stroke(c_graph_axis);
-			if (i != maxX) text(label, currentXpixel, gB + graphMark + padding);
-			line(currentXpixel, gB, currentXpixel, gB + graphMark);
+			graphics.stroke(c_graph_axis);
+			if (i != maxX) graphics.text(label, currentXpixel, gB + graphMark + padding);
+			graphics.line(currentXpixel, gB, currentXpixel, gB + graphMark);
 
 			// Minor graph lines
 			if (i > x_leftPosition) {
 				final float minorXpixel = map((float) (i - (x_segment / 2.0)), minX, maxX, gL, gR);
-				line(minorXpixel, gB, minorXpixel, gB + (graphMark / 2.0));
+				graphics.line(minorXpixel, gB, minorXpixel, gB + (graphMark / 2.0));
 			}
 		}
 
 		// The outer grid axes
-		stroke(c_graph_axis);
-		line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
-		line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
-		textFont(base_font);
+		graphics.stroke(c_graph_axis);
+		graphics.line(map(xZero, minX, maxX, gL, gR), gT, map(xZero, minX, maxX, gL, gR), gB);
+		graphics.line(gL, map(yZero, minY, maxY, gB, gT), gR, map(yZero, minY, maxY, gB, gT));
+		graphics.textFont(base_font);
 	}
 }

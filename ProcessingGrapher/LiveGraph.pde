@@ -186,7 +186,7 @@ class LiveGraph implements TabAPI {
 			for (int j = drawFrom; j < currentCount - 1; j++) {
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
 					try {
-						float dataPoint = dataTable.getFloat(j, i);
+						float dataPoint = (float) dataTable.getDouble(j, i);
 						if (dataPoint != dataPoint) dataPoint = 99999999;
 						if (graphAssignment[i] == 2 && graphMode >= 2 && samplesB <= drawFrom) {
 							checkGraphSize(dataPoint, graphB);
@@ -283,9 +283,8 @@ class LiveGraph implements TabAPI {
 
 			// Test whether this file is actually accessible
 			if (saveFile(newoutput) == null) {
-				alertHeading = "Error\nUnable to access the selected output file location; perhaps this location is write-protected?\n" + newoutput;
+				alertMessage("Error\nUnable to access the selected output file location; perhaps this location is write-protected?\n" + newoutput);
 				newoutput = "No File Set";
-				redrawAlert = true;
 			}
 		}
 		outputfile = newoutput;
@@ -315,8 +314,7 @@ class LiveGraph implements TabAPI {
 
 		// Open up the CSV output stream
 		if (!dataTable.openCSVoutput(outputfile)) {
-			alertHeading = "Error\nUnable to create the output file; perhaps the location no longer exists?\n" + outputfile;
-			redrawAlert = true;
+			alertMessage("Error\nUnable to create the output file; perhaps the location no longer exists?\n" + outputfile);
 		} else {
 			recordCounter = 0;
 			fileCounter = 0;
@@ -332,12 +330,11 @@ class LiveGraph implements TabAPI {
 	void stopRecording(){
 		recordData = false;
 		if (dataTable.closeCSVoutput()) {
-			alertHeading = "Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " samples to " + (fileCounter + 1) + " CSV file(s)";
+			alertMessage("Success\nRecorded " + ((fileCounter * 10000) + recordCounter) + " samples to " + (fileCounter + 1) + " CSV file(s)");
 		} else {
 			emergencyOutputSave(false);
 		}
 		outputfile = "No File Set";
-		redrawAlert = true;
 		redrawUI = true;
 	}
 
@@ -369,29 +366,26 @@ class LiveGraph implements TabAPI {
 
 				// If new output file was successfully opened, only show a Warning message
 				if (dataTable.openCSVoutput(nextoutputfile)) {
-					alertHeading = "Warning\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. Data is still being recorded (to a new file)\n3. The files are in the same directory as ProcessingGrapher.exe";
+					alertMessage("Warning\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. Data is still being recorded (to a new file)\n3. The files are in the same directory as ProcessingGrapher.exe");
 				
 				// If not, show an error message that the recording has stopped
 				} else {
 					recordData = false;
 					redrawUI = true;
-					alertHeading = "Error - Recording Stopped\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. The files are in the same directory as ProcessingGrapher.exe";
+					alertMessage("Error - Recording Stopped\nAn issue occurred when trying to save new data to the ouput file.\n1. A backup of all the data has been created\n2. The files are in the same directory as ProcessingGrapher.exe");
 				}
 
 			// If we don't want to continue, show a simple error message
 			} else {
 				recordData = false;
-				alertHeading = "Error\nAn issue occurred when trying to save new data to the ouput file.\n1. Data recording has been stopped\n2. A backup of all the data has been created\n3. The backup is in the same directory as ProcessingGrapher.exe";
+				alertMessage("Error\nAn issue occurred when trying to save new data to the ouput file.\n1. Data recording has been stopped\n2. A backup of all the data has been created\n3. The backup is in the same directory as ProcessingGrapher.exe");
 			}
-
-			redrawAlert = true;
 
 		// If something went wrong in the error recovery process, show a critical error message
 		} catch (Exception e) {
 			dataTable.closeCSVoutput();
 			recordData = false;
-			redrawAlert = true;
-			alertHeading = "Critical Error\nAn issue occurred when trying to save new data to the ouput file.\nData backup was also unsuccessful, so some data may have been lost...\n" + e;
+			alertMessage("Critical Error\nAn issue occurred when trying to save new data to the ouput file.\nData backup was also unsuccessful, so some data may have been lost...\n" + e);
 		}
 	}
 
@@ -438,7 +432,7 @@ class LiveGraph implements TabAPI {
 			while(dataColumns.length < dataArray.length){
 				dataColumns = append(dataColumns, "Signal-" + (dataColumns.length + 1));
 				graphAssignment = append(graphAssignment, 1);
-				dataTable.addColumn("Signal-" + (dataColumns.length + 1));
+				dataTable.addColumn("Signal-" + (dataColumns.length + 1), CustomTable.DOUBLE);
 				redrawUI = true;
 			}
 
@@ -462,8 +456,8 @@ class LiveGraph implements TabAPI {
 			// Go through each data column, and try to parse and add to file
 			for(int i = 0; i < dataArray.length; i++){
 				try {
-					float dataPoint = Float.parseFloat(dataArray[i]);
-					newRow.setFloat(i, dataPoint);
+					double dataPoint = Double.parseDouble(dataArray[i]);
+					newRow.setDouble(i, dataPoint);
 					//newData[i] = dataPoint;
 					//checkGraphSize(dataPoint, 0);
 				} catch (Exception e) {
@@ -820,8 +814,7 @@ class LiveGraph implements TabAPI {
 				startRecording();
 			}
 			//else {
-			//	alertHeading = "Error\nPlease set an output file path.";
-			//	redrawAlert = true;
+			//	alertMessage("Error\nPlease set an output file path.");
 			//}
 		}
 
@@ -875,14 +868,11 @@ class LiveGraph implements TabAPI {
 
 			// Change X axis maximum value
 			if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String xMax = myShowInputDialog("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.getMaxX()));
-				if (xMax != null){
-					try {
-						currentGraph.setMaxX(Float.parseFloat(xMax));
-						sampleWindow[selectedGraph - 1] = int(xRate * abs(currentGraph.getMaxX() - currentGraph.getMinX()));
-					} catch (Exception e) {
-						println("LiveGraph::mclickSBar() - X-axis max value error: " + e);
-					}
+				ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.getMaxX()));
+				userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nPlease input a number greater than 0.");
+				if (userInput.checkFloat(userInput.GT, 0)) {
+					currentGraph.setMaxX(userInput.getFloat());
+					sampleWindow[selectedGraph - 1] = int(xRate * abs(currentGraph.getMaxX() - currentGraph.getMinX()));
 				} 
 				redrawContent = redrawUI = true;
 			}
@@ -898,26 +888,20 @@ class LiveGraph implements TabAPI {
 
 			// Change Y axis minimum value
 			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				final String yMin = myShowInputDialog("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.getMinY()));
-				if (yMin != null){
-					try {
-						currentGraph.setMinY(Float.parseFloat(yMin));
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - Y-axis min value error: " + e);
-					}
+				ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.getMinY()));
+				userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
+				if (userInput.checkFloat(userInput.LT, currentGraph.getMaxY())) {
+					currentGraph.setMinY(userInput.getFloat());
 				} 
 				redrawContent = redrawUI = true;
 			}
 
 			// Change Y axis maximum value
 			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
-				final String yMax = myShowInputDialog("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.getMaxY()));
-				if (yMax != null){
-					try {
-						currentGraph.setMaxY(Float.parseFloat(yMax));
-					} catch (Exception e) {
-						println("FileGraph::mclickSBar() - Y-axis max value error: " + e);
-					}
+				ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.getMaxY()));
+				userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
+				if (userInput.checkFloat(userInput.GT, currentGraph.getMinY())) {
+					currentGraph.setMaxY(userInput.getFloat());
 				} 
 				redrawContent = redrawUI = true;
 			}
@@ -931,32 +915,21 @@ class LiveGraph implements TabAPI {
 
 		// Change the input data rate
 		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
-			final String newrate = myShowInputDialog("Received Data Update Rate","Frequency (Hz):", str(graphA.getXrate()));
-			if (newrate != null){
-				try {
-					float newXrate = Float.parseFloat(newrate);
+			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graphA.getXrate()));
+			userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
+			if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
+				xRate = userInput.getFloat();
+				graphA.setXrate(xRate);
+				graphB.setXrate(xRate);
+				graphC.setXrate(xRate);
+				graphD.setXrate(xRate);
+				sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
+				sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
+				sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
+				sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
 
-					if (newXrate > 0 && newXrate <= 10000) {
-						xRate = newXrate;
-						graphA.setXrate(newXrate);
-						graphB.setXrate(newXrate);
-						graphC.setXrate(newXrate);
-						graphD.setXrate(newXrate);
-						sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
-						sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
-						sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
-						sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
-
-						redrawContent = true;
-						redrawUI = true;
-					} else {
-						alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
-						redrawAlert = true;
-					}
-				} catch (Exception e) {
-					alertHeading = "Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz";
-					redrawAlert = true;
-				}
+				redrawContent = true;
+				redrawUI = true;
 			}
 		}
 
@@ -1084,5 +1057,24 @@ class LiveGraph implements TabAPI {
 				}
 			}
 		}
+	}
+
+
+	/**
+	 * Check whether it is safe to exit the program
+	 *
+	 * @return True if the are no tasks active, false otherwise
+	 */
+	boolean checkSafeExit() {
+		if (recordData) return false;
+		return true;
+	}
+
+
+	/**
+	 * End any active processes and safely exit the tab
+	 */
+	void performExit() {
+		if (recordData) stopRecording();
 	}
 }

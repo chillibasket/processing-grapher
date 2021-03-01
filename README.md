@@ -95,6 +95,11 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (1st March 2021) Version 1.2.1
+	1. When adding labels to the graph in the "File Graph" tab, they are now stored as a new signal.
+	1. Changes to the chart in the "File Graph" tab can now be saved to a new file.
+	1. Added option to apply filters to the signals in the "File Graph" tab.
+	1. Advanced serial port settings can now be modified in the "Settings" menu.
 1. (9th February 2021) Version 1.2.0
 	1. Updated to use the JavaFX (FX2D) renderer, which significantly reduces the processor usage of the program.
 	1. Implemented native JavaFX pop-up dialogues while maintaining backwards compatibility with the default renderer.

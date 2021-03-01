@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      7th February 2021
- * @version   1.2.0
+ * @date      1st March 2021
+ * @version   1.2.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -132,6 +132,9 @@ char lineEnding = '\n';
 boolean serialConnected = false;
 String currentPort = "";
 String[] portList;
+char serialParity = 'N';
+int serialDatabits = 8;
+float serialStopbits = 1.0;
 
 /**
  * Class containing all relevant info for a serial port connection
@@ -197,6 +200,7 @@ Stage stage;
 FileChooser fileChooser;
 String userInputString = null;
 int startTime;
+PGraphics mainCanvas;
 
 // Options are: FX2D (Recommended), JAVA2D
 final String activeRenderer = FX2D;
@@ -218,6 +222,8 @@ final String activeRenderer = FX2D;
  * function after the loading screen is drawn.
  */
 void setup() {
+	println("'processing.awt.PSurfaceAWT': This warning is a known issue and doesn't affect the program");
+
 	// Set up the window and rendering engine
 	size(1000, 700, activeRenderer);
 	smooth();
@@ -263,6 +269,7 @@ void setupProgram() {
 	// Add window title and icon
 	surface.setIcon(loadImage("icon-48.png"));
 	surface.setTitle("Processing Grapher");
+	mainCanvas = g;
 
 	// All window to be resized
 	surface.setResizable(true);
@@ -338,22 +345,37 @@ void uiResize() {
  * exit() function properly is called in this case.
  */
 public class DisposeHandler {   
-  DisposeHandler(PApplet pa)
-  {
-    pa.registerMethod("dispose", this);
-  }
+	DisposeHandler(PApplet pa) {
+		pa.registerMethod("dispose", this);
+	}
    
-  public void dispose()
-  {      
-    println("In dispose handler");
-    exit();
-  }
+	public void dispose()
+	{
+		exit();
+	}
 }
 
 /**
  * Function to properly exit the application
  */
 public void exit() {
+	for (TabAPI curTab : tabObjects) {
+		curTab.performExit();
+	}
+
+	/*
+	boolean safeToExit = true;
+	for (TabAPI curTab : tabObjects) {
+		safeToExit &= curTab.checkSafeExit();
+		println(safeToExit);
+	}
+
+	if (!safeToExit) {
+		println("Showing dialogue");
+		myShowInputDialog("Are you sure you want to exit?", "There are still recordings/tasks running.","Nope");
+		delay(5000);
+	}*/
+
 	programActive = false;
 	println("Exiting program - exit()");
 	exitActual();
@@ -915,6 +937,19 @@ void drawAlert () {
 }
 
 
+/**
+ * Set and show a new alert message
+ *
+ * @param  message The alert message text
+ */
+void alertMessage(String message) {
+	if (message != null) {
+		alertHeading = message;
+		redrawAlert = true;
+	}
+}
+
+
 
 /******************************************************//**
  * KEYBOARD AND MOUSE INTERACTION FUNCTIONS
@@ -955,6 +990,7 @@ void mousePressed(){
 			// Close settings menu
 			else if (settingsMenuActive && mouseX > width - int(sidebarWidth * uimult)) {
 				settingsMenuActive = false;
+				settings.drawNewData();
 				redrawUI = true;
 			}
 
@@ -970,7 +1006,7 @@ void mousePressed(){
 		}
 
 		// If mouse is hovering over the side bar
-		if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
+		else if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
 			thread("menuClickEvent");
 		}
 
@@ -1021,7 +1057,7 @@ void mouseReleased() {
  * @param  event Details of the mouse-scroll event
  */
 void mouseWheel(MouseEvent event) {
-  float e = event.getCount() * 2;
+  int e = event.getCount() * 2;
   
   if (abs(e) > 0) {
 	
@@ -1095,6 +1131,7 @@ void keyTyped() {
  * keyTyped() function
  */
 void keyPressed() {
+	
 	// Check for control key
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = true;
@@ -1115,6 +1152,16 @@ void keyPressed() {
 				TabAPI curTab = tabObjects.get(currentTab);
 				curTab.keyboardInput(key, keyCode, true);
 			} else currentTab = 0;
+		}
+	}
+	
+	// Prevent the escape key from closing the application
+	if (key == ESC) {
+		key = 0;
+		if (alertActive) {
+			alertActive = false;
+			redrawUI = true;
+			redrawContent = true;
 		}
 	}
 }
@@ -1157,20 +1204,18 @@ void setupSerial () {
 		// If no ports are available
 		if(ports.length == 0) {
 
-			alertHeading = "Error\nNo serial ports available";
-			redrawAlert = true;
+			alertMessage("Error\nNo serial ports available");
 
 		// If the port number we want to use is not in the list
 		} else if((portNumber < 0) || (ports.length <= portNumber)) {
 
-			alertHeading = "Error\nInvalid port number selected";
-			redrawAlert = true;
+			alertMessage("Error\nInvalid port number selected");
 
 		// Try to connet to the serial port
 		} else {
 			try {
 				// Connect to the port
-				myPort = new Serial(this, Serial.list()[portNumber], baudRate);
+				myPort = new Serial(this, Serial.list()[portNumber], baudRate, serialParity, serialDatabits, serialStopbits);
 				currentPort = Serial.list()[portNumber];
 
 				// Trigger serial event once a line-ending is reached in the buffer
@@ -1190,9 +1235,7 @@ void setupSerial () {
 
 				redrawUI = true;
 			} catch (Exception e){
-				alertHeading = "Error\nUnable to connect to the port:\n" + e;
-				println(e);
-				redrawAlert = true;
+				alertMessage("Error\nUnable to connect to the port:\n" + e);
 			}
 		}
 
@@ -1243,9 +1286,7 @@ void serialEvent (Serial myPort) {
 		}
 
 	} catch (Exception e) {
-		alertHeading = "Error\nUnable to read data from serial port:\n" + e;
-		println(e);
-		redrawAlert = true;
+		alertMessage("Error\nUnable to read data from serial port:\n" + e);
 	}
 }
 
@@ -1260,9 +1301,7 @@ void serialSend (String message) {
 		try {
 			myPort.write(message + lineEnding);
 		} catch (Exception e) {
-			alertHeading = "Error\nUnable to write to the serial port:\n" + e;
-			println(e);
-			redrawAlert = true;
+			alertMessage("Error\nUnable to write to the serial port:\n" + e);
 		}
 	}
 }
@@ -1312,8 +1351,7 @@ void checkSerialPortList() {
 
 			if (serialConnected && !currentPortExists) {
 				setupSerial();
-				alertHeading = "Error\nThe serial port has been disconnected";
-				redrawAlert = true;
+				alertMessage("Error\nThe serial port has been disconnected");
 			}
 
 			if (different) {
@@ -1338,6 +1376,7 @@ void checkSerialPortList() {
  * @info  Functions to deal with the display and callback
  *        of user input and file selection pop-up dialogs
  *********************************************************/
+
 
 /**
  * Show a pop-up user input dialogue
@@ -1493,6 +1532,139 @@ void mySelectCallback(File selectedFile, String callbackMethod) {
     } catch (NoSuchMethodException nsme) {
       System.err.println(callbackMethod + "() could not be found");
     }
+}
+
+
+public class ValidateInput {
+	private String inputString;
+	private String errorMessage;
+	private int intValue;
+	private double doubleValue;
+
+	static public final int NONE = 0;
+	static public final int GT = 1;
+	static public final int GTE = 2;
+	static public final int LT = 3;
+	static public final int LTE = 4;
+
+	public ValidateInput(final String heading, final String message, final String defaultText) {
+		inputString = myShowInputDialog(heading, message, defaultText);
+	}
+
+	public void setErrorMessage(String error) {
+		errorMessage = error;
+	}
+
+	public boolean checkFloat() {
+		return checkDouble(NONE, 0, NONE, 0);
+	}
+
+	public boolean checkFloat(int operator1, float value1) {
+		return checkDouble(operator1, value1, NONE, 0);
+	}
+
+	public boolean checkFloat(int operator1, float value1, int operator2, float value2) {
+		return checkDouble(operator1, value1, operator2, value2);
+	}
+
+	public boolean checkDouble() {
+		return checkDouble(NONE, 0, NONE, 0);
+	}
+
+	public boolean checkDouble(int operator1, double value1) {
+		return checkDouble(operator1, value1, NONE, 0);
+	}
+
+	public boolean checkDouble(int operator1, double value1, int operator2, double value2) {
+		if (inputString != null) {
+			try {
+				doubleValue = Double.parseDouble(inputString);
+				if (!doubleConstraint(operator1, value1) || !doubleConstraint(operator2, value2)) {
+					alertMessage(errorMessage);
+					return false;
+				}
+				return true;
+			} catch (Exception e) {
+				alertMessage(errorMessage);
+				return false;
+			}
+		}
+		return false;
+	}
+
+	public boolean checkInt() {
+		return checkInt(NONE, 0, NONE, 0);
+	}
+
+	public boolean checkInt(int operator1, int value1) {
+		return checkInt(operator1, value1, NONE, 0);
+	}
+
+	public boolean checkInt(int operator1, int value1, int operator2, int value2) {
+		if (inputString != null) {
+			try {
+				intValue = Integer.parseInt(inputString);
+				if (!intConstraint(operator1, value1) || !intConstraint(operator2, value2)) {
+					alertMessage(errorMessage);
+					return false;
+				}
+				return true;
+			} catch (Exception e) {
+				alertMessage(errorMessage);
+				return false;
+			}
+		}
+		return false;
+	}
+
+
+	private boolean doubleConstraint(int operators, double value1) {
+		switch (operators) {
+			case GT:
+				if (doubleValue <= value1) return false;
+				break;
+			case GTE:
+				if (doubleValue < value1) return false;
+				break;
+			case LT:
+				if (doubleValue >= value1) return false;
+				break;
+			case LTE:
+				if (doubleValue > value1) return false;
+				break;
+		}
+		return true;
+	}
+
+	private boolean intConstraint(int operators, int value1) {
+		switch (operators) {
+			case GT:
+				if (intValue <= value1) return false;
+				break;
+			case GTE:
+				if (intValue < value1) return false;
+				break;
+			case LT:
+				if (intValue >= value1) return false;
+				break;
+			case LTE:
+				if (intValue > value1) return false;
+				break;
+		}
+		return true;
+	}
+
+	public double getDouble() {
+		return doubleValue;
+	}
+
+	public float getFloat() {
+		return (float) doubleValue;
+	}
+
+	public int getInt() {
+		return intValue;
+	}
 }
 
 
@@ -1699,4 +1871,8 @@ interface TabAPI {
 	// Serial communication
 	void connectionEvent(boolean status);
 	void parsePortData(String inputData, boolean graphable);
+
+	// Exit function
+	boolean checkSafeExit();
+	void performExit();
 }
