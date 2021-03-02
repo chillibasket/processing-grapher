@@ -62,17 +62,17 @@ void loadColorScheme(int mode) {
 		// Dark mode - Monokai (default)
 		case 2:
 		default:
-			c_background = color(39, 40, 34);
-			c_tabbar = color(23, 24, 20);
+			c_background = color(40, 41, 35);
+			c_tabbar = color(24, 25, 21);
 			c_tabbar_h = color(19, 19, 18);
-			c_idletab = color(61, 61, 59);
+			c_idletab = color(32, 33, 28);
 			c_tabbar_text = c_white;
 			c_idletab_text = color(152, 152, 152);
-			c_sidebar = color(87, 87, 87);
-			c_sidebar_h = color(125, 125, 125);
-			c_sidebar_heading = c_yellow;
+			c_sidebar = c_tabbar;
+			c_sidebar_h = c_tabbar_h;
+			c_sidebar_heading = color(103, 216, 239);
 			c_sidebar_text = c_white;
-			c_sidebar_button = c_lightgrey;
+			c_sidebar_button = color(92, 93, 90);
 			c_sidebar_divider = c_grey;
 			c_sidebar_accent = c_red;
 			c_terminal_text = c_lightgrey;

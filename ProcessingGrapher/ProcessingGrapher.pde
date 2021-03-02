@@ -643,27 +643,28 @@ void drawLoadingScreen() {
 	// Clear the background
 	background(c_background);
 
+	rectMode(CENTER);
+	noStroke();
+	fill(c_tabbar);
+	rect(width / 2, height / 2 - int(15 * uimult), int(400 * uimult), int(340 * uimult));
+	fill(c_tabbar_h);
+	rect(width / 2, height / 2 - int(10 * uimult), int(400 * uimult), int(2 * uimult));
+
 	// Set up text drawing parameters
 	textAlign(CENTER, CENTER);
 	textSize(int(20 * uimult));
 	fill(c_tabbar_text);
 
 	// Draw icon
-	image(loadImage("icon-48.png"), (width / 2) - 24, (height / 2) - int(180 * uimult));
+	image(loadImage("icon-48.png"), (width / 2) - 24, (height / 2) - int(130 * uimult));
 
 	// Draw text
-	text("Processing Grapher", width / 2, (height / 2) - int(90 * uimult));
+	text("Processing Grapher", width / 2, (height / 2) - int(50 * uimult));
 	textSize(int(14 * uimult));
-	text("Loading v" + versionNumber, width / 2, (height / 2) + int(10 * uimult));
+	text("Loading v" + versionNumber, width / 2, (height / 2) + int(20 * uimult));
 	fill(c_terminal_text);
 	text("(C) Copyright 2018-2021 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
-
-	// Draw lines
-	line(0, height/2, width, height/2 - (78 * uimult));
-	line(0, height/2 - (78 * uimult), width, height/2);
-	line(0, height/2, width, height/2 - (46 * uimult));
-	line(0, height/2 - (46 * uimult), width, height/2);
 }
 
 

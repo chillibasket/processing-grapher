@@ -755,10 +755,13 @@ class Graph {
 
 		// Figure out the width of the largest label so we know how much room to make
 		int yTextWidth = 0;
+		String lastLabel = "";
 		for (double i = y_bottomPosition; i <= maxY; i += y_segment) {
 			String label = formatLabelText(i, y_precision);
+			if (label.equals(lastLabel)) y_precision++;
 			int labelWidth = int(label.length() * charWidth);
 			if (labelWidth > yTextWidth) yTextWidth = labelWidth;
+			lastLabel = label;
 		}
 
 		/* -----------------------------------
@@ -799,10 +802,13 @@ class Graph {
 
 			// Figure out the width of the largest label so we know how much room to make
 			int newxTextWidth = 0;
+			lastLabel = "";
 			for (double i = x_leftPosition; i <= maxX; i += x_segment) {
 				String label = formatLabelText(i, x_precision);
+				if (label.equals(lastLabel)) x_precision++;
 				int labelWidth = int(label.length() * charWidth);
 				if (labelWidth > newxTextWidth) newxTextWidth = labelWidth;
+				lastLabel = label;
 			}
 
 			if (newxTextWidth <= xTextWidth) solved = true;
