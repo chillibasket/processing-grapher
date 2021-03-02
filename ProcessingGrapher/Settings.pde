@@ -370,7 +370,7 @@ class Settings implements TabAPI {
 			if (unsavedChanges) drawButton("Save Settings", c_sidebar_button, iL, sT + (uH * 20), iW, iH, tH);
 			else drawDatabox("Save Settings", c_sidebar_button, iL, sT + (uH * 20), iW, iH, tH);
 
-			if (uimult != 1 || !showInstructions || drawFPS || colorScheme != 2) {
+			if (checkDefault()) {
 				drawButton("Reset to Default", c_sidebar_button, iL, sT + (uH * 21), iW, iH, tH);
 			} else {
 				drawDatabox("Reset to Default", c_sidebar_button, iL, sT + (uH * 21), iW, iH, tH);
@@ -434,6 +434,27 @@ class Settings implements TabAPI {
 			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
 	}
+
+
+	/**
+	 * Check whether settings are different than the default
+	 *
+	 * @return true if different, false if not
+	 */
+	boolean checkDefault() {
+		if (uimult != 1) return true;
+		if (!showInstructions) return true;
+		if (drawFPS) return true;
+		if (colorScheme != 2) return true;
+		if (!serialConnected) {
+			if (baudRate != 9600) return true;
+			if (lineEnding != '\n') return true;
+			if (serialParity != 'N') return true;
+			if (serialDatabits != 8) return true;
+			if (serialStopbits != 1.0) return true;
+		}
+		return false;
+	} 
 
 
 	/**
@@ -712,7 +733,7 @@ class Settings implements TabAPI {
 
 			// Reset preferences to default
 			else if (menuYclick(mouseY, sT, uH, iH, 21)){
-				if (uimult != 1 || !showInstructions || drawFPS || colorScheme != 2) {
+				if (checkDefault()) {
 					drawFPS = false;
 					showInstructions = true;
 					colorScheme = 2;
