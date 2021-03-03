@@ -33,6 +33,8 @@ A full description and set of instructions can be found on my website: [https://
 	1. Opens comma delimited files for analysis
 	1. Apply different colours and names to each input
 	1. Supports zooming into sections of the waveforms
+	1. Add vertical markers/labels to the data
+	1. Apply filters to remove noise and transform the data
 </br>
 </br>
 
