@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      1st March 2021
- * @version   1.2.1
+ * @date      6th March 2021
+ * @version   1.2.2
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-String versionNumber = "1.2.1";
+String versionNumber = "1.2.2";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -1058,7 +1058,7 @@ void mouseReleased() {
  * @param  event Details of the mouse-scroll event
  */
 void mouseWheel(MouseEvent event) {
-  int e = event.getCount() * 2;
+  int e = event.getCount();
   
   if (abs(e) > 0) {
 	

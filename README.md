@@ -97,7 +97,10 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
-1. (1st March 2021) Version 1.2.1
+1. (6th March 2021) Version 1.2.2
+	1. Fixed bug where the first and last data-point on the Live Graph were not being displayed.
+	1. Improved mouse-wheel scrolling speed to better match the content.
+1. (1st March 2021) Version 1.2.1 [Release]
 	1. When adding labels to the graph in the "File Graph" tab, they are now stored as a new signal.
 	1. Changes to the chart in the "File Graph" tab can now be saved to a new file.
 	1. Added option to apply filters to the signals in the "File Graph" tab.

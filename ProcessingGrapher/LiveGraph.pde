@@ -160,10 +160,10 @@ class LiveGraph implements TabAPI {
 		// If there is content to draw
 		if (currentCount > 0) {
 			
-			int samplesA = currentCount - sampleWindow[0];
-			int samplesB = currentCount - sampleWindow[1];
-			int samplesC = currentCount - sampleWindow[2];
-			int samplesD = currentCount - sampleWindow[3];
+			int samplesA = currentCount - sampleWindow[0] - 1;
+			int samplesB = currentCount - sampleWindow[1] - 1;
+			int samplesC = currentCount - sampleWindow[2] - 1;
+			int samplesD = currentCount - sampleWindow[3] - 1;
 
 			drawFrom = samplesA;
 			graphA.clearGraph();
@@ -183,7 +183,7 @@ class LiveGraph implements TabAPI {
 			maxSamples = currentCount - drawFrom;
 			if (drawFrom < 0) drawFrom = 0;
 
-			for (int j = drawFrom; j < currentCount - 1; j++) {
+			for (int j = drawFrom; j < currentCount; j++) {
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
 					try {
 						float dataPoint = (float) dataTable.getDouble(j, i);
@@ -200,6 +200,7 @@ class LiveGraph implements TabAPI {
 						} else if (graphAssignment[i] == 1 && samplesA <= drawFrom) {
 							checkGraphSize(dataPoint, graphA);
 							graphA.plotData(dataPoint, i);
+							println("Plotting: " + drawFrom + ", " + dataPoint);
 						}
 					} catch (Exception e) {
 						println("LiveGraph::drawNewData() - drawFrom: " + drawFrom + ", currentCount: " + currentCount + ", Error: " + e);
@@ -757,7 +758,7 @@ class LiveGraph implements TabAPI {
 	void scrollWheel (float amount) {
 		// Scroll menu bar
 		if (mouseX >= cR && menuScroll != -1) {
-			menuScroll += (5 * amount * uimult);
+			menuScroll += (sideItemHeight * amount * uimult);
 			if (menuScroll < 0) menuScroll = 0;
 			else if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
 		}

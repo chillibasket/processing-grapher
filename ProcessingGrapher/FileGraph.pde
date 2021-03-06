@@ -742,7 +742,7 @@ class FileGraph implements TabAPI {
 	void scrollWheel (float amount) {
 		// Scroll menu bar
 		if (mouseX >= cR && menuScroll != -1) {
-			menuScroll += (5 * amount * uimult);
+			menuScroll += (sideItemHeight * amount * uimult);
 			if (menuScroll < 0) menuScroll = 0;
 			else if (menuScroll > menuHeight - (height - cT)) menuScroll = menuHeight - (height - cT);
 		}

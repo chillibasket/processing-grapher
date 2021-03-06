@@ -279,7 +279,7 @@ class Graph {
 	 * Reset graph 
 	 */
 	void resetGraph(){
-		for(int i = 0; i < lastX.length; i++) lastX[i] = 0;
+		for(int i = 0; i < lastX.length; i++) lastX[i] = -xStep;
 		for(int i = 0; i < lastY.length; i++) lastY[i] = -99999999;
 	}
 
@@ -431,7 +431,7 @@ class Graph {
 	
 		// Ensure that the element actually exists in data arrays
 		while(lastY.length < type + 1) lastY = append(lastY, -99999999);
-		while(lastX.length < type + 1) lastX = append(lastX, 0);
+		while(lastX.length < type + 1) lastX = append(lastX, -xStep);
 
 		plotData(dataY, lastX[type] + xStep, type);
 	}
