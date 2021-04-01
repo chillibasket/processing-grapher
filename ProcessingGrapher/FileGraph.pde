@@ -1107,7 +1107,7 @@ class FileGraph implements TabAPI {
 			if (task == 0) {
 				dataTable = loadTable(currentfile, "csv, header");
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
-					dataTable.setColumnType(i, Table.DOUBLE);
+					dataTable.setColumnType(i, Table.STRING);
 				}
 				workerActive = false;
 				redrawContent = true;
@@ -1134,7 +1134,7 @@ class FileGraph implements TabAPI {
 				if (outputData != null) {
 					String signalName = filterClass.filterSlug[filter] + "[" + dataTable.getColumnTitle(signal) + "]";
 
-					dataTable.addColumn(signalName, Table.DOUBLE);
+					dataTable.addColumn(signalName, Table.STRING);
 					int newColumnIndex = dataTable.getColumnIndex(signalName);
 
 					for (int i = 0; i < dataTable.getRowCount(); i++) {

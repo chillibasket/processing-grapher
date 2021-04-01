@@ -433,7 +433,7 @@ class LiveGraph implements TabAPI {
 			while(dataColumns.length < dataArray.length){
 				dataColumns = append(dataColumns, "Signal-" + (dataColumns.length + 1));
 				graphAssignment = append(graphAssignment, 1);
-				dataTable.addColumn("Signal-" + (dataColumns.length + 1), CustomTable.DOUBLE);
+				dataTable.addColumn("Signal-" + (dataColumns.length + 1), CustomTable.STRING);
 				redrawUI = true;
 			}
 

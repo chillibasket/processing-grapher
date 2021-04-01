@@ -97,6 +97,8 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (1st April 2021) Version 1.2.3
+	1. Fixed export bug when trying to save CSV data to a file.
 1. (6th March 2021) Version 1.2.2
 	1. Fixed bug where the first and last data-point on the Live Graph were not being displayed.
 	1. Improved mouse-wheel scrolling speed to better match the content.
