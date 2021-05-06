@@ -53,6 +53,7 @@ class LiveGraph implements TabAPI {
 	float xRate;
 	int selectedGraph;
 	boolean autoAxis;
+  boolean isPaused;
 	int maxSamples;
 	int[] sampleWindow = {1000,1000,1000,1000};
 	int signalListChange;
@@ -95,6 +96,7 @@ class LiveGraph implements TabAPI {
 
 		xRate = 100;
 		autoAxis = true;
+    isPaused = false;
 		
 		drawFrom = 0;
 		maxSamples = 10;
@@ -158,7 +160,7 @@ class LiveGraph implements TabAPI {
 		int currentCount = dataTable.getRowCount();
 
 		// If there is content to draw
-		if (currentCount > 0) {
+		if (currentCount > 0 && !isPaused) {
 			
 			int samplesA = currentCount - sampleWindow[0] - 1;
 			int samplesB = currentCount - sampleWindow[1] - 1;
@@ -601,6 +603,7 @@ class LiveGraph implements TabAPI {
 		drawRectangle(c_sidebar_divider, iL + iW - (60 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_sidebar_divider, iL + iW - (40 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+    drawButton((isPaused)? "Resume":"Pause", c_sidebar_button, iL, sT + (uH * (13 + dataColumns.length + Math.min(dataColumns.length,graphMode))), iW, iH, tH);
 
 		float tHnow = 12;
 
@@ -1013,6 +1016,12 @@ class LiveGraph implements TabAPI {
 			//    redrawUI = true;
 			//}
 		}
+
+    // Pause/Resume
+    else if ((mouseY > sT + (uH * (13 + dataColumns.length + Math.min(dataColumns.length,graphMode)))) && (mouseY < sT + (uH * (13 + dataColumns.length + Math.min(dataColumns.length,graphMode))) + iH)) {
+      isPaused = !isPaused;
+      redrawUI = true;
+    }
 		
 		else {
 			float tHnow = 12;
