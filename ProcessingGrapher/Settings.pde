@@ -301,7 +301,7 @@ class Settings implements TabAPI {
 		int iH = round((sideItemHeight - 5) * uimult);
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
-		if (menuLevel == 0) menuHeight = round(23.5 * uH);
+		if (menuLevel == 0) menuHeight = round(23 * uH);
 		else if (menuLevel == 1) menuHeight = round((3 + baudRateList.length) * uH);
 		else if (menuLevel == 2) menuHeight = round((3 + lineEndingList.length) * uH);
 		else if (menuLevel == 3) menuHeight = round((3 + parityBitsList.length) * uH);
@@ -333,50 +333,50 @@ class Settings implements TabAPI {
 
 		if (menuLevel == 0) {
 			// UI Scaling Options
-			drawHeading("Interface Size", iL, sT + (uH * 0.5), iW, tH);
-			drawButton("-", c_sidebar_button, iL, sT + (uH * 1.5), iW / 4, iH, tH);
-			drawButton("+", c_sidebar_button, iL + (iW * 3 / 4), sT + (uH * 1.5), iW / 4, iH, tH);
-			drawDatabox(round(uimult*100) + "%", c_idletab_text, iL + (iW / 4), sT + (uH * 1.5), iW / 2, iH, tH);
+			drawHeading("Interface Size", iL, sT + (uH * 0), iW, tH);
+			drawButton("-", c_sidebar_button, iL, sT + (uH * 1), iW / 4, iH, tH);
+			drawButton("+", c_sidebar_button, iL + (iW * 3 / 4), sT + (uH * 1), iW / 4, iH, tH);
+			drawDatabox(round(uimult*100) + "%", c_idletab_text, iL + (iW / 4), sT + (uH * 1), iW / 2, iH, tH);
 
 			// Change the colour scheme
-			drawHeading("Colour Scheme", iL, sT + (uH * 3), iW, tH);
-			drawButton("Light - Celeste", (colorScheme == 0)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 4), iW, iH, tH);
-			drawButton("Dark - Gravity", (colorScheme == 1)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 5), iW, iH, tH);
-			drawButton("Dark - Monokai", (colorScheme == 2)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 6), iW, iH, tH);
+			drawHeading("Colour Scheme", iL, sT + (uH * 2.5), iW, tH);
+			drawButton("Light - Celeste", (colorScheme == 0)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 3.5), iW, iH, tH);
+			drawButton("Dark - Gravity", (colorScheme == 1)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 4.5), iW, iH, tH);
+			drawButton("Dark - Monokai", (colorScheme == 2)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 5.5), iW, iH, tH);
 
 			// Turn FPS counter on/off
-			drawHeading("FPS Indicator", iL, sT + (uH * 7.5), iW, tH);
-			drawButton("Show", (drawFPS)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8.5), iW/2, iH, tH);
-			drawButton("Hide", (!drawFPS)? c_sidebar_accent:c_sidebar_button, iL + (iW/2), sT + (uH * 8.5), iW/2, iH, tH);
-			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 8.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			drawHeading("FPS Indicator", iL, sT + (uH * 7), iW, tH);
+			drawButton("Show", (drawFPS)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW/2, iH, tH);
+			drawButton("Hide", (!drawFPS)? c_sidebar_accent:c_sidebar_button, iL + (iW/2), sT + (uH * 8), iW/2, iH, tH);
+			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 			// Turn useful instructions on/off
-			drawHeading("Usage Instructions", iL, sT + (uH * 10), iW, tH);
-			drawButton("Show", (showInstructions)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW/2, iH, tH);
-			drawButton("Hide", (!showInstructions)? c_sidebar_accent:c_sidebar_button, iL + (iW/2), sT + (uH * 11), iW/2, iH, tH);
-			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+			drawHeading("Usage Instructions", iL, sT + (uH * 9.5), iW, tH);
+			drawButton("Show", (showInstructions)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 10.5), iW/2, iH, tH);
+			drawButton("Hide", (!showInstructions)? c_sidebar_accent:c_sidebar_button, iL + (iW/2), sT + (uH * 10.5), iW/2, iH, tH);
+			drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 10.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-			drawHeading("Serial Port", iL, sT + (uH * 12.5), iW, tH);
+			drawHeading("Serial Port", iL, sT + (uH * 12), iW, tH);
 			color c_serial_items = c_sidebar_text;
 			if (serialConnected) c_serial_items = c_sidebar_button;
-			drawDatabox("Baud: " + baudRate, c_serial_items, iL, sT + (uH * 13.5), iW, iH, tH);
-			drawDatabox("Line Ending: " + ((lineEnding == '\r')? "CR":"NL"), c_serial_items, iL, sT + (uH * 14.5), iW, iH, tH);
-			drawDatabox("Parity: " + serialParity, c_serial_items, iL, sT + (uH * 15.5), iW, iH, tH);
-			drawDatabox("Data Bits: " + serialDatabits, c_serial_items, iL, sT + (uH * 16.5), iW, iH, tH);
-			drawDatabox("Stop Bits: " + serialStopbits, c_serial_items, iL, sT + (uH * 17.5), iW, iH, tH);
+			drawDatabox("Baud: " + baudRate, c_serial_items, iL, sT + (uH * 13), iW, iH, tH);
+			drawDatabox("Line Ending: " + ((lineEnding == '\r')? "CR":"NL"), c_serial_items, iL, sT + (uH * 14), iW, iH, tH);
+			drawDatabox("Parity: " + serialParity, c_serial_items, iL, sT + (uH * 15), iW, iH, tH);
+			drawDatabox("Data Bits: " + serialDatabits, c_serial_items, iL, sT + (uH * 16), iW, iH, tH);
+			drawDatabox("Stop Bits: " + serialStopbits, c_serial_items, iL, sT + (uH * 17), iW, iH, tH);
 
 			// Save preferences
-			drawHeading("User Preferences", iL, sT + (uH * 19), iW, tH);
-			if (unsavedChanges) drawButton("Save Settings", c_sidebar_button, iL, sT + (uH * 20), iW, iH, tH);
-			else drawDatabox("Save Settings", c_sidebar_button, iL, sT + (uH * 20), iW, iH, tH);
+			drawHeading("User Preferences", iL, sT + (uH * 18.5), iW, tH);
+			if (unsavedChanges) drawButton("Save Settings", c_sidebar_button, iL, sT + (uH * 19.5), iW, iH, tH);
+			else drawDatabox("Save Settings", c_sidebar_button, iL, sT + (uH * 19.5), iW, iH, tH);
 
 			if (checkDefault()) {
-				drawButton("Reset to Default", c_sidebar_button, iL, sT + (uH * 21), iW, iH, tH);
+				drawButton("Reset to Default", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
 			} else {
-				drawDatabox("Reset to Default", c_sidebar_button, iL, sT + (uH * 21), iW, iH, tH);
+				drawDatabox("Reset to Default", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
 			}
 
-			drawButton("Exit Settings", c_sidebar_button, iL, sT + (uH * 22), iW, iH, tH);
+			drawButton("Exit Settings", c_sidebar_button, iL, sT + (uH * 21.5), iW, iH, tH);
 
 		// Baud rate selection
 		} else if (menuLevel == 1) {
@@ -465,6 +465,11 @@ class Settings implements TabAPI {
 	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
 		if (keyChar == ESC) {
 			if (menuLevel != 0) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			} else {
+				settingsMenuActive = false;
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -592,7 +597,7 @@ class Settings implements TabAPI {
 		// Main Menu
 		if (menuLevel == 0) {
 			// UI scaling
-			if ((mouseY > sT + (uH * 1.5)) && (mouseY < sT + (uH * 1.5) + iH)){
+			if (menuYclick(mouseY, sT, uH, iH, 1)){
 				// Decrease
 				if ((mouseX > iL) && (mouseX <= iL + iW / 4)) {
 					if (uimult > 0.5) {
@@ -611,7 +616,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 0 - Light Celeste
-			else if ((mouseY > sT + (uH * 4)) && (mouseY < sT + (uH * 4) + iH)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 3.5)) {
 				if (colorScheme != 0) {
 					unsavedChanges = true;
 					colorScheme = 0;
@@ -620,7 +625,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 1 - Dark Gravity
-			else if ((mouseY > sT + (uH * 5)) && (mouseY < sT + (uH * 5) + iH)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 4.5)) {
 				if (colorScheme != 1) {
 					unsavedChanges = true;
 					colorScheme = 1;
@@ -629,7 +634,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 2 - Dark Monokai
-			else if ((mouseY > sT + (uH * 6)) && (mouseY < sT + (uH * 6) + iH)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 5.5)) {
 				if (colorScheme != 2) {
 					unsavedChanges = true;
 					colorScheme = 2;
@@ -638,7 +643,7 @@ class Settings implements TabAPI {
 			}
 
 			// Toggle FPS indicator
-			else if ((mouseY > sT + (uH * 8.5)) && (mouseY < sT + (uH * 8.5) + iH)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 8)) {
 				// Show
 				if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
 					if (!drawFPS) {
@@ -659,7 +664,7 @@ class Settings implements TabAPI {
 			}
 
 			// Toggle usage instructions
-			else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
+			else if (menuYclick(mouseY, sT, uH, iH, 10.5)){
 				// Show
 				if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
 					if (!showInstructions) {
@@ -682,7 +687,7 @@ class Settings implements TabAPI {
 			}
 
 			// Baud rate selection
-			else if (menuYclick(mouseY, sT, uH, iH, 13.5)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 13)) {
 				if (!serialConnected) {
 					menuLevel = 1;
 					menuScroll = 0;
@@ -691,7 +696,7 @@ class Settings implements TabAPI {
 			}
 
 			// Line ending selection
-			else if (menuYclick(mouseY, sT, uH, iH, 14.5)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 14)) {
 				if (!serialConnected) {
 					menuLevel = 2;
 					menuScroll = 0;
@@ -700,7 +705,7 @@ class Settings implements TabAPI {
 			}
 
 			// Parity selection
-			else if (menuYclick(mouseY, sT, uH, iH, 15.5)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 15)) {
 				if (!serialConnected) {
 					menuLevel = 3;
 					menuScroll = 0;
@@ -709,7 +714,7 @@ class Settings implements TabAPI {
 			}
 
 			// Data bits selection
-			else if (menuYclick(mouseY, sT, uH, iH, 16.5)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 16)) {
 				if (!serialConnected) {
 					menuLevel = 4;
 					menuScroll = 0;
@@ -718,7 +723,7 @@ class Settings implements TabAPI {
 			}
 
 			// Stop bits selection
-			else if (menuYclick(mouseY, sT, uH, iH, 17.5)) {
+			else if (menuYclick(mouseY, sT, uH, iH, 17)) {
 				if (!serialConnected) {
 					menuLevel = 5;
 					menuScroll = 0;
@@ -727,12 +732,12 @@ class Settings implements TabAPI {
 			}
 
 			// Remember preferences
-			else if (menuYclick(mouseY, sT, uH, iH, 20)){
+			else if (menuYclick(mouseY, sT, uH, iH, 19.5)){
 				if (unsavedChanges) saveSettings();
 			}
 
 			// Reset preferences to default
-			else if (menuYclick(mouseY, sT, uH, iH, 21)){
+			else if (menuYclick(mouseY, sT, uH, iH, 20.5)){
 				if (checkDefault()) {
 					drawFPS = false;
 					showInstructions = true;
@@ -754,7 +759,7 @@ class Settings implements TabAPI {
 			}
 
 			// Exit settings menu
-			else if (menuYclick(mouseY, sT, uH, iH, 22)){
+			else if (menuYclick(mouseY, sT, uH, iH, 21.5)){
 				settingsMenuActive = false;
 				redrawUI = true;
 			}

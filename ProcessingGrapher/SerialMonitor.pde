@@ -627,7 +627,7 @@ class SerialMonitor implements TabAPI {
 			drawHeading("Terminal Options", iL, sT + (uH * 8), iW, tH);
 			if (recordData) drawDatabox("Clear Terminal", c_idletab_text, iL, sT + (uH * 9), iW, iH, tH);
 			else drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
-			drawButton((autoScroll)? "Autoscroll: On":"Autoscroll: Off", c_sidebar_button, iL, sT + (uH * 10), iW, iH, tH);
+			drawButton((autoScroll)? "Autoscroll: On":"Autoscroll: Off", (autoScroll)? c_sidebar_button:c_sidebar_accent, iL, sT + (uH * 10), iW, iH, tH);
 
 			// Input Data Columns
 			drawHeading("Colour Tags", iL, sT + (uH * 11.5), iW, tH);
