@@ -170,7 +170,6 @@ class LiveGraph implements TabAPI {
 	 * Draw new tab data
 	 */
 	void drawNewData () {
-		print(".");
 		int currentCount = dataTable.getRowCount();
 		if (isPaused) {
 			if (pausedCount < currentCount) currentCount = pausedCount;
