@@ -53,7 +53,7 @@ class SerialMonitor implements TabAPI {
 	int recordCounter;
 	int fileCounter;
 	final int maxFileRows = 100000;
-	String[] tagColumns = {"SENT:","[Info]"};
+	ArrayList<SerialTag> serialTags = new ArrayList<SerialTag>();
 	
 	int displayRows;
 	final int maxBuffer = 50000;
@@ -63,6 +63,11 @@ class SerialMonitor implements TabAPI {
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
+
+	color previousColor = c_red;
+	color hueColor = c_red;
+	color newColor = c_red;
+	int colorSelector = 0;
 
 	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
 	StringList serialBuffer;
@@ -103,6 +108,9 @@ class SerialMonitor implements TabAPI {
 		menuHeight = cB - cT - 1; 
 		menuLevel = 0;
 		autoScroll = true;
+
+		serialTags.add(new SerialTag("SENT:", c_colorlist[0]));
+		serialTags.add(new SerialTag("[Info]", c_colorlist[1]));
 
 		serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
@@ -287,9 +295,9 @@ class SerialMonitor implements TabAPI {
 				String textRow = serialBuffer.get(textIndex);
 
 				// Figure out the text colour
-				for (int j = 0; j < tagColumns.length; j++) {
-					if (textRow.contains(tagColumns[j])) {
-						textColor = c_colorlist[j-(c_colorlist.length * floor(j / c_colorlist.length))];
+				for (SerialTag curTag : serialTags) {
+					if (textRow.contains(curTag.tagText)) {
+						textColor = curTag.tagColor;
 					}
 				}
 
@@ -568,9 +576,10 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
-		if (menuLevel == 0)	menuHeight = round((14 + tagColumns.length) * uH);
+		if (menuLevel == 0)	menuHeight = round((14 + serialTags.size()) * uH);
 		else if (menuLevel == 1) menuHeight = round((3 + ports.length) * uH);
 		else if (menuLevel == 2) menuHeight = round((3 + baudRateList.length) * uH);
+		else if (menuLevel == 3) menuHeight = round(9 * uH + iW);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -636,16 +645,16 @@ class SerialMonitor implements TabAPI {
 			float tHnow = 13.5;
 
 			// List of Data Columns
-			for(int i = 0; i < tagColumns.length; i++){
+			for (SerialTag curTag : serialTags) {
 				// Column name
-				drawDatabox(tagColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
+				drawDatabox(curTag.tagText, iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
 
 				// Remove column button
-				drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+				drawButton("✕", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
 				// Swap column with one being listed above button
-				color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
-				drawButton((i > 0)? "▲":"", c_sidebar, buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+				color buttonColor = curTag.tagColor;
+				drawButton("", c_sidebar, buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
 				drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 				tHnow++;
@@ -679,6 +688,21 @@ class SerialMonitor implements TabAPI {
 			}
 			tHnow += 0.5;
 			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
+		
+		// Colour picker menu
+		} else if (menuLevel == 3) {
+			drawHeading("Select a Colour", iL, sT + (uH * 0), iW, tH);
+			drawColorSelector(hueColor, iL, sT + (uH * 1), iW, iW); 
+			drawHeading("Set Brightness", iL, sT + (uH * 1.5) + iW, iW, tH);
+			drawColorBox2D(newColor, c_white, hueColor, iL, sT + (uH * 2.5) + iW, iW / 2, iH);
+			drawColorBox2D(newColor, hueColor, c_black, iL + (iW / 2), sT + (uH * 2.5) + iW, iW / 2, iH);
+			drawHeading("Colour Preview", iL, sT + (uH * 4) + iW, iW, tH);
+			drawText("New", c_idletab_text, iL, sT + (uH * 4.75) + iW, iW / 2, iH);
+			drawText("Old", c_idletab_text, iL + (iW / 2) + (2 * uimult), sT + (uH * 4.75) + iW, iW / 2, iH);
+			drawButton("", newColor, iL, sT + (uH * 5.5) + iW, (iW / 2) - (3 * uimult), iH, tH);
+			drawButton("", previousColor, iL + (iW / 2) + (2 * uimult), sT + (uH * 5.5) + iW, (iW / 2) - (2 * uimult), iH, tH);
+			drawButton("Confirm", c_sidebar_button, iL, sT + (uH * 6.5) + iW, iW, iH, tH);
+			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * 7.5) + iW, iW, iH, tH);
 		}
 
 		// Draw bottom info bar
@@ -970,7 +994,7 @@ class SerialMonitor implements TabAPI {
 			else if (menuYclick(mouseY, sT, uH, iH, 12.5)) {
 				final String colname = myShowInputDialog("Add a new Colour Tag","Keyword Text:","");
 				if (colname != null && colname.length() > 0){
-					tagColumns = append(tagColumns, colname);
+					serialTags.add(new SerialTag(colname, c_colorlist[serialTags.size() % c_colorlist.length]));
 					redrawUI = true;
 					drawNewData = true;
 				}
@@ -980,33 +1004,34 @@ class SerialMonitor implements TabAPI {
 				float tHnow = 13.5;
 
 				// List of Data Columns
-				for(int i = 0; i < tagColumns.length; i++) {
+				for(int i = 0; i < serialTags.size(); i++) {
 
 					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
 
 						// Remove column
 						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
-							tagColumns = remove(tagColumns, i);
+							serialTags.remove(i);
 							redrawUI = true;
 							drawNewData = true;
 						}
 
-						// Move column up one space
+						// Change colour of entry
 						else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
-							if (i - 1 >= 0) {
-								String temp = tagColumns[i - 1];
-								tagColumns[i - 1] = tagColumns[i];
-								tagColumns[i] = temp;
-							}
+							previousColor = serialTags.get(i).tagColor;
+							hueColor = previousColor;
+							newColor = previousColor;
+							colorSelector = i;
+
+							menuLevel = 3;
+							menuScroll = 0;
 							redrawUI = true;
-							drawNewData = true;
 						}
 
 						// Change name of column
 						else {
-							final String colname = myShowInputDialog("Update the Colour Tag Keyword", "Keyword Text:", tagColumns[i]);
+							final String colname = myShowInputDialog("Update the Colour Tag Keyword", "Keyword Text:", serialTags.get(i).tagText);
 							if (colname != null && colname.length() > 0){
-								tagColumns[i] = colname;
+								serialTags.get(i).tagText = colname;
 								redrawUI = true;
 								drawNewData = true;
 							}
@@ -1071,6 +1096,42 @@ class SerialMonitor implements TabAPI {
 				menuScroll = 0;
 				redrawUI = true;
 			}
+
+		// Select a Colour
+		} else if (menuLevel == 3) {
+
+			// Colour hue selection
+			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iW) && (mouseX > iL) && (mouseX < iL + iW)) {
+				colorMode(HSB, iW, iW, iW);
+				hueColor = color(mouseX - iL, mouseY - (sT + uH), iW);
+				newColor = hueColor;
+				colorMode(RGB, 255, 255, 255);
+				redrawUI = true;
+
+			// Colour brightness selection
+			} else if ((mouseY > sT + (uH * 2.5) + iW) && (mouseY < sT + (uH * 2.5) + iW + iH)) {
+				if (mouseX > iL && mouseX < iL + (iW / 2)) {
+					newColor = lerpColor(c_white, hueColor, (float) (mouseX - iL) / (iW / 2));
+					redrawUI = true;
+				} else if (mouseX > iL + (iW / 2) && mouseX < iL + iW) {
+					newColor = lerpColor(hueColor, c_black, (float) (mouseX - (iL + iW / 2)) / (iW / 2));
+					redrawUI = true;
+				}
+
+			// Submit button
+			} else if ((mouseY > sT + (uH * 6.5) + iW) && (mouseY < sT + (uH * 6.5) + iW + iH)) {
+				serialTags.get(colorSelector).tagColor = newColor;
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+				redrawContent = true;
+
+			// Cancel button
+			} else if ((mouseY > sT + (uH * 7.5) + iW) && (mouseY < sT + (uH * 7.5) + iW + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
 		}
 	}
 
@@ -1127,5 +1188,25 @@ class SerialMonitor implements TabAPI {
 	void performExit() {
 		if (recordData) stopRecording();
 		if (serialConnected) setupSerial();
+	}
+
+
+	/**
+	 * Data structure to store info related to each colour tag
+	 */
+	class SerialTag {
+		public String tagText;
+		public color tagColor;
+
+		/**
+		 * Constructor
+		 * 
+		 * @param  setText  The keyword text which is search for in the serial data
+		 * @param  setColor The colour which all lines containing that text will be set
+		 */
+		SerialTag(String setText, color setColor) {
+			tagText = setText;
+			tagColor = setColor;
+		}
 	}
 }

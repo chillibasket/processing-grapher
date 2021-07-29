@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      9th May 2021
- * @version   1.2.4
+ * @date      29th July 2021
+ * @version   1.3.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -77,6 +77,7 @@ final color c_orange = color(230, 85, 37);
 final color c_lightgrey = color(134, 134, 138);
 final color c_grey = color(111, 108, 90);
 final color c_darkgrey = color(49, 50, 44);
+final color c_black = color(0, 0, 0);
 
 // Select current colour scheme
 // 0 = light (Celeste)
@@ -670,11 +671,82 @@ void drawLoadingScreen() {
 
 
 /******************************************************//**
- * SIDEBAR MENU DRAWING FUNCTIONS
+ * @defgroup SidebarMenu
+ * @brief    Sidebar Menu Drawing Functions
  *
- * @info  Functions used to draw the text, buttons and
- *        data-boxes on the sidebar menu of each tab
+ * Functions used to draw the text, buttons and
+ * data-boxes on the sidebar menu of each tab
+ * @{
  *********************************************************/
+
+
+void drawColorSelector(color currentColor, float lS, float tS, float iW, float iH) {
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		strokeWeight(1);
+		colorMode(HSB, iW, iW, iW);
+		int curX = -1, curY = -1;
+		for (int i = 0; i < iW; i++) {
+			for (int j = 0; j < iH; j++) {
+				color pointColor = color(i, j, iW);
+				if (currentColor == pointColor) {
+					curX = i;
+					curY = j;
+				}
+				stroke(pointColor);
+				point(lS + i, tS + j);
+				//line(lS + i, tS, lS + i, tS + iH);
+			}
+		}
+		colorMode(RGB, 255, 255, 255);
+		if (curX != -1 && curY != -1) {
+			stroke(c_black);
+			strokeWeight(uimult * 1.25);
+			noFill();
+			ellipse(lS + curX, tS + curY, uimult * 10, uimult * 10);
+		}
+	}
+}
+
+void drawColorBox3D(color baseColor, float lS, float tS, float iW, float iH) {
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		strokeWeight(1);
+		for (int i = 0; i < iW; i++) {
+			color horizontalColor = lerpColor(c_white, baseColor, (float) (i) / iW);
+			for (int j = 0; j < iH; j++) {
+				color verticalColor = lerpColor(horizontalColor, color(0), (float) (j) / iH);
+				stroke(verticalColor);
+				point(lS + i, tS + j);
+			}
+		}
+	}
+}
+
+
+void drawColorBox2D(color currentColor, color color1, color color2, float lS, float tS, float iW, float iH) {
+	if (tS >= tabTop && tS <= height) {
+		rectMode(CORNER);
+		strokeWeight(1);
+		int curPoint = -1;
+		for (int i = 0; i < iW; i++) {
+			color horizontalColor = lerpColor(color1, color2, (float) (i) / iW);
+			if (currentColor == horizontalColor) {
+				horizontalColor = c_sidebar_accent;
+				curPoint = i;
+			}
+			stroke(horizontalColor);
+			line(lS + i, tS, lS + i, tS + iH);
+		}
+		if (curPoint >= 0) { 
+			stroke(c_sidebar_accent);
+			fill(c_sidebar_accent);
+			triangle(lS + curPoint, tS + iH, lS + curPoint - (3 * uimult), tS + iH + (6 * uimult), lS + curPoint + (3 * uimult), tS + iH + (6 * uimult));
+		}
+	}
+}
+
+
 
 /**
  * Draw sidebar text
@@ -950,13 +1022,16 @@ void alertMessage(String message) {
 	}
 }
 
+/** @} */
 
 
 /******************************************************//**
- * KEYBOARD AND MOUSE INTERACTION FUNCTIONS
+ * @defgroup KeyboardMouse
+ * @brief    Keyboard and Mouse interaction functions
  *
- * @info  Functions to manage user input and interaction
- *        using the keyboard or mouse
+ * Functions to manage user input and interaction
+ * using the keyboard or mouse
+ * @{
  *********************************************************/
 
 /**
@@ -1180,13 +1255,16 @@ void keyReleased() {
 	}
 }
 
+/** @} */
 
 
 /******************************************************//**
- * SERIAL COMMUNICATION FUNCTIONS
+ * @defgroup SerialComms
+ * @brief    Serial Communication Functions
  *
- * @info  Functions to manage the serial communications
- *        with UART devices and micro-controllers
+ * Functions to manage the serial communications
+ * with UART devices and micro-controllers
+ * @{
  *********************************************************/
 
 /**

@@ -484,7 +484,7 @@ class FileGraph implements TabAPI {
 					drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
 
 					// Remove column button
-					drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+					drawButton("✕", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 					
 					// Hide or Show data series
 					color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];

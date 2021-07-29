@@ -78,9 +78,9 @@ class Filters {
 
 			// 1D Total Variance denoiser 
 			case 2: {
-				ValidateInput userInput = new ValidateInput("Set Denoising Filter Amount", "Lambda Value:", str(0.5));
-				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe Lambda value should be between 0 - 1");
-				if (userInput.checkDouble(userInput.GT, 0, userInput.LTE, 1)) {
+				ValidateInput userInput = new ValidateInput("Set Denoising Filter Amount", "Lambda Value:", str(1));
+				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe Lambda value should be a number greater than 0.");
+				if (userInput.checkDouble(userInput.GT, 0)) {
 					double filterValue = userInput.getDouble();
 					DenoiseTv1D denoiseFilter = new DenoiseTv1D();
 					outputData = denoiseFilter.process(signalData, filterValue);
@@ -91,7 +91,7 @@ class Filters {
 			// Low pass filter
 			case 3: {
 				ValidateInput userInput = new ValidateInput("Set the 3dB Cutoff Frequency", "Filter Frequency (Hz):", str(100));
-				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe cutoff frequency should be a number above 0 Hz");
+				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe cutoff frequency should be a number above 0 Hz.");
 				if (userInput.checkDouble(userInput.GT, 0)) {
 					double filterValue = userInput.getDouble();
 					RcLowPass lowPassFilter = new RcLowPass(filterValue);
@@ -103,7 +103,7 @@ class Filters {
 			// High pass filter
 			case 4: {
 				ValidateInput userInput = new ValidateInput("Set the 3dB Cutoff Frequency", "Filter Frequency (Hz):", str(100));
-				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe cutoff frequency should be a number above 0 Hz");
+				userInput.setErrorMessage("Error\nInvalid filter value entered.\nThe cutoff frequency should be a number above 0 Hz.");
 				if (userInput.checkDouble(userInput.GT, 0)) {
 					double filterValue = userInput.getDouble();
 					RcHighPass highPassFilter = new RcHighPass(filterValue);
