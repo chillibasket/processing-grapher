@@ -7,7 +7,7 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      29th July 2021
+ * @date      31st July 2021
  * @version   1.3.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-String versionNumber = "1.2.4";
+final String versionNumber = "1.3.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -209,10 +209,12 @@ final String activeRenderer = FX2D;
 
 
 /******************************************************//**
- * SETUP FUNCTIONS
+ * @defgroup SetupFunctions
+ * @brief    Program Setup & Initialisation Functions
  *
- * @info  Methods used to initialise all parts of the 
- *        GUI and set the values of required variables
+ * @details  Methods used to initialise all parts of the 
+ *           GUI and set the values of required variables
+ * @{
  *********************************************************/
 
 /**
@@ -382,15 +384,18 @@ public void exit() {
 	exitActual();
 }
 
+/** @} End of SetupFunctions */
+
 
 
 /******************************************************//**
- * WINDOW DRAWING FUNCTIONS
- *
- * @info  Functions used to manage the drawing of all
- *        elements shown in the program window
+ * @defgroup WindowDrawing
+ * @brief    Window Drawing Functions
+ * 
+ * @details  Functions used to manage the drawing of all
+ *           elements shown in the program window
+ * @{
  *********************************************************/
-
 
 /**
  * Processing Draw Function
@@ -668,18 +673,28 @@ void drawLoadingScreen() {
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 }
 
+/** @} End of WindowDrawing */
+
 
 
 /******************************************************//**
  * @defgroup SidebarMenu
  * @brief    Sidebar Menu Drawing Functions
  *
- * Functions used to draw the text, buttons and
- * data-boxes on the sidebar menu of each tab
+ * @details  Functions used to draw the text, buttons and
+ *           data-boxes on the sidebar menu of each tab
  * @{
  *********************************************************/
 
-
+/**
+ * Draw a colour hue selection box
+ * 
+ * @param currentColor The currently selected colour
+ * @param  lS        Left X-coordinate
+ * @param  tS        Top Y-coordinate
+ * @param  iW        Width of colour selector box area
+ * @param  tH        Height of colour selector box area
+ */
 void drawColorSelector(color currentColor, float lS, float tS, float iW, float iH) {
 	if (tS >= tabTop && tS <= height) {
 		rectMode(CORNER);
@@ -708,22 +723,18 @@ void drawColorSelector(color currentColor, float lS, float tS, float iW, float i
 	}
 }
 
-void drawColorBox3D(color baseColor, float lS, float tS, float iW, float iH) {
-	if (tS >= tabTop && tS <= height) {
-		rectMode(CORNER);
-		strokeWeight(1);
-		for (int i = 0; i < iW; i++) {
-			color horizontalColor = lerpColor(c_white, baseColor, (float) (i) / iW);
-			for (int j = 0; j < iH; j++) {
-				color verticalColor = lerpColor(horizontalColor, color(0), (float) (j) / iH);
-				stroke(verticalColor);
-				point(lS + i, tS + j);
-			}
-		}
-	}
-}
 
-
+/**
+ * Draw a colour gradient selection box
+ * 
+ * @param currentColor The currently selected colour
+ * @param color1       Colour at the left of the gradient
+ * @param color2       Colour at the right of the gradient
+ * @param  lS        Left X-coordinate
+ * @param  tS        Top Y-coordinate
+ * @param  iW        Width of colour selector box area
+ * @param  tH        Height of colour selector box area
+ */
 void drawColorBox2D(color currentColor, color color1, color color2, float lS, float tS, float iW, float iH) {
 	if (tS >= tabTop && tS <= height) {
 		rectMode(CORNER);
@@ -745,7 +756,6 @@ void drawColorBox2D(color currentColor, color color1, color color2, float lS, fl
 		}
 	}
 }
-
 
 
 /**
@@ -1022,15 +1032,16 @@ void alertMessage(String message) {
 	}
 }
 
-/** @} */
+/** @} End of SidebarMenu */
+
 
 
 /******************************************************//**
  * @defgroup KeyboardMouse
  * @brief    Keyboard and Mouse interaction functions
  *
- * Functions to manage user input and interaction
- * using the keyboard or mouse
+ * @details  Functions to manage user input and interaction
+ *           using the keyboard or mouse
  * @{
  *********************************************************/
 
@@ -1255,15 +1266,16 @@ void keyReleased() {
 	}
 }
 
-/** @} */
+/** @} End of KeyboardMouse */
+
 
 
 /******************************************************//**
  * @defgroup SerialComms
  * @brief    Serial Communication Functions
  *
- * Functions to manage the serial communications
- * with UART devices and micro-controllers
+ * @details  Functions to manage the serial communications
+ *           with UART devices and micro-controllers
  * @{
  *********************************************************/
 
@@ -1340,7 +1352,6 @@ void setupSerial () {
  *
  * @param  myPort The selected serial COMs port
  */
-
 void serialEvent (Serial myPort) {
 	try {
 		String inString;
@@ -1447,15 +1458,18 @@ void checkSerialPortList() {
 	}
 }
 
+/** @} End of SerialComms */
+
 
 
 /******************************************************//**
- * USER INPUT AND FILE SELECTION FUNCTIONS
+ * @defgroup UserInput
+ * @brief    User Input and File Selection Functions
  *
- * @info  Functions to deal with the display and callback
- *        of user input and file selection pop-up dialogs
+ * @details  Functions to deal with the display and callback
+ *           of user input and file selection pop-up dialogs
+ * @{
  *********************************************************/
-
 
 /**
  * Show a pop-up user input dialogue
@@ -1614,6 +1628,13 @@ void mySelectCallback(File selectedFile, String callbackMethod) {
 }
 
 
+/**
+ * User input validation class
+ * 
+ * The functions within this class make it easier to
+ * get data from a user and check that the supplied data
+ * is valid and within the specified bounds.
+ */
 public class ValidateInput {
 	private String inputString;
 	private String errorMessage;
@@ -1626,34 +1647,81 @@ public class ValidateInput {
 	static public final int LT = 3;
 	static public final int LTE = 4;
 
+	/**
+	 * Constructor - Show the input dialogue box and get the user response
+	 * 
+	 * @param  heading     Heading of the user input dialogue window
+	 * @param  message     Message to display in the input dialogue window
+	 * @param  defaultText Default text to appear in the textbox when window is opened
+	 */
 	public ValidateInput(final String heading, final String message, final String defaultText) {
 		inputString = myShowInputDialog(heading, message, defaultText);
 	}
 
+	/**
+	 * Set which error message is shown if invalid user input is supplied
+	 * @param  error  The error message to display
+	 */
 	public void setErrorMessage(String error) {
 		errorMessage = error;
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a float
+	 * @return True if data can be parsed as a float, false otherwise
+	 */
 	public boolean checkFloat() {
 		return checkDouble(NONE, 0, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a float and is within one constraint
+	 * @param  operator1  The constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the constraint against
+	 * @return True if data can be parsed as a float and is within the constraint
+	 */
 	public boolean checkFloat(int operator1, float value1) {
 		return checkDouble(operator1, value1, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a float and is within two constraints
+	 * @param  operator1  The first constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the first constraint against
+	 * @param  operator2  The second constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value2     The value to check the second constraint against
+	 * @return True if data can be parsed as a float and is within the constraints
+	 */
 	public boolean checkFloat(int operator1, float value1, int operator2, float value2) {
 		return checkDouble(operator1, value1, operator2, value2);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a double
+	 * @return True if data can be parsed as a double, false otherwise
+	 */
 	public boolean checkDouble() {
 		return checkDouble(NONE, 0, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a double and is within one constraint
+	 * @param  operator1  The constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the constraint against
+	 * @return True if data can be parsed as a double and is within the constraint
+	 */
 	public boolean checkDouble(int operator1, double value1) {
 		return checkDouble(operator1, value1, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as a double and is within two constraints
+	 * @param  operator1  The first constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the first constraint against
+	 * @param  operator2  The second constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value2     The value to check the second constraint against
+	 * @return True if data can be parsed as a double and is within the constraints
+	 */
 	public boolean checkDouble(int operator1, double value1, int operator2, double value2) {
 		if (inputString != null) {
 			try {
@@ -1671,14 +1739,32 @@ public class ValidateInput {
 		return false;
 	}
 
+	/**
+	 * Check that supplied data can be parsed as an integer
+	 * @return True if data can be parsed as an integer, false otherwise
+	 */
 	public boolean checkInt() {
 		return checkInt(NONE, 0, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as an integer and is within one constraint
+	 * @param  operator1  The constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the constraint against
+	 * @return True if data can be parsed as an integer and is within the constraint
+	 */
 	public boolean checkInt(int operator1, int value1) {
 		return checkInt(operator1, value1, NONE, 0);
 	}
 
+	/**
+	 * Check that supplied data can be parsed as an integer and is within two constraints
+	 * @param  operator1  The first constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the first constraint against
+	 * @param  operator2  The second constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value2     The value to check the second constraint against
+	 * @return True if data can be parsed as an integer and is within the constraints
+	 */
 	public boolean checkInt(int operator1, int value1, int operator2, int value2) {
 		if (inputString != null) {
 			try {
@@ -1697,6 +1783,12 @@ public class ValidateInput {
 	}
 
 
+	/**
+	 * Test the user supplied double value against a constraint
+	 * @param  operators  The constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the constraint against
+	 * @return True if the double is within the constraint
+	 */
 	private boolean doubleConstraint(int operators, double value1) {
 		switch (operators) {
 			case GT:
@@ -1715,6 +1807,12 @@ public class ValidateInput {
 		return true;
 	}
 
+	/**
+	 * Test the user supplied integer value against a constraint
+	 * @param  operators  The constraint type: GT (>), GTE (>=), LT (<), LTE (<=)
+	 * @param  value1     The value to check the constraint against
+	 * @return True if the integer is within the constraint
+	 */
 	private boolean intConstraint(int operators, int value1) {
 		switch (operators) {
 			case GT:
@@ -1733,25 +1831,39 @@ public class ValidateInput {
 		return true;
 	}
 
+	/**
+	 * @return The parsed double
+	 */
 	public double getDouble() {
 		return doubleValue;
 	}
 
+	/**
+	 * @return The parsed float
+	 */
 	public float getFloat() {
 		return (float) doubleValue;
 	}
 
+	/**
+	 * @return The parsed integer
+	 */
 	public int getInt() {
 		return intValue;
 	}
 }
 
+/** @} End of UserInput */
+
+
 
 /******************************************************//**
- * UTILITY AND DATA OPERATION FUNCTIONS
+ * @defgroup UtilityFunctions
+ * @brief    Utility and Data Operation Functions
  *
- * @info  Functions used to perform common data
- *        manipulation operations
+ * @details  Functions used to perform common data
+ *           manipulation operations
+ * @{
  *********************************************************/
 
 /**
@@ -1912,6 +2024,9 @@ String constrainString(String inputText, float maxWidth) {
 	}
 	return inputText;
 }
+
+/** @} End of UtilityFunctions */
+
 
 
 /**************************************************************************************//**

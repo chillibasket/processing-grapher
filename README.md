@@ -97,6 +97,9 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (31st July 2021) Version 1.3.0 [Release]
+	1. ([#20](https://github.com/chillibasket/processing-grapher/issues/20)): Added option to change the colour of keyword tags on the "Serial" tab and signals on the "File Graph" tab. Simply click on the colour on the sidebar menu and select a new one using the colour picker.
+	2. Minor UI improvements on "File Graph" tab to highlight zoom options. The escape key can now be used to cancel an active zoom operation.
 1. (9th May 2021) Version 1.2.4
 	1. ([#18](https://github.com/chillibasket/processing-grapher/issues/18)): Added button to pause/resume the "Live Graph" to make it easier to analyse real-time data. Thanks to [aka-Ani](https://github.com/aka-Ani) for suggesting this feature.
 	1. Other minor UI improvements and bug fixes.

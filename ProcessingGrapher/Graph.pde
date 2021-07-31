@@ -329,16 +329,31 @@ class Graph {
 	 * Draw a X-axis label onto the graph
 	 *
 	 * @param  dataX The x-axis position of the label
+	 * @param  type  The signal type/index
+	 * @param  signalColor The colour in which the label should be drawn
+	 * @{
 	 */
-	void plotXlabel(float dataX, int type) {
+	void plotXlabel(float dataX, int type, color signalColor) {
 		if (dataX >= minX && dataX <= maxX) {
-			int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
-			graphics.stroke(c_colorlist[colorIndex]);
+			graphics.stroke(signalColor);
 			graphics.strokeWeight(1 * uimult);
 
 			graphics.line(map(dataX, minX, maxX, gL, gR), gT, map(dataX, minX, maxX, gL, gR), gB);
 		}
 	}
+
+
+	/**
+	 * Draw a X-axis label onto the graph
+	 *
+	 * @note   This is an overload function
+	 * @see    void plotXlabel(float, int, color)
+	 */
+	void plotXlabel(float dataX, int type) {
+		int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
+		plotXlabel(dataX, type, c_colorlist[colorIndex]);
+	}
+	/** @} */
 
 
 	/**
@@ -422,29 +437,15 @@ class Graph {
 
 
 	/**
-	 * Plot a new data point using default y-increment
-	 *
-	 * @note   This is an overload function
-	 * @see    void plotData(float, float, int)
-	 */
-	void plotData(float dataY, int type) {
-	
-		// Ensure that the element actually exists in data arrays
-		while(lastY.length < type + 1) lastY = append(lastY, -99999999);
-		while(lastX.length < type + 1) lastX = append(lastX, -xStep);
-
-		plotData(dataY, lastX[type] + xStep, type);
-	}
-
-
-	/**
 	 * Plot a new data point on the graph
 	 *
 	 * @param  dataY The Y-axis value of the data
 	 * @param  dataX The X-axis value of the data
 	 * @param  type  The signal ID/number
+	 * @param  signalColor The colour which to draw the signal
+	 * @{
 	 */
-	void plotData(float dataY, float dataX, int type) {
+	void plotData(float dataY, float dataX, int type, color signalColor) {
 
 		if (validFloat(dataY) && validFloat(dataX)) {
 
@@ -465,10 +466,9 @@ class Graph {
 			if (dataX > maxX) dataX = maxX;
 			if (dataX < minX) dataX = minX;
 
-			// Get relevant color from list
-			int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
-			graphics.fill(c_colorlist[colorIndex]);
-			graphics.stroke(c_colorlist[colorIndex]);
+			// Set colours
+			graphics.fill(signalColor);
+			graphics.stroke(signalColor);
 			graphics.strokeWeight(1 * uimult);
 
 			switch(plotType){
@@ -521,6 +521,35 @@ class Graph {
 			lastX[type] = dataX;
 		}
 	}
+
+
+	/**
+	 * Plot a new data point using default y-increment
+	 *
+	 * @note   This is an overload function
+	 * @see    void plotData(float, float, int)
+	 */
+	void plotData(float dataY, int type) {
+	
+		// Ensure that the element actually exists in data arrays
+		while(lastY.length < type + 1) lastY = append(lastY, -99999999);
+		while(lastX.length < type + 1) lastX = append(lastX, -xStep);
+
+		plotData(dataY, lastX[type] + xStep, type);
+	}
+
+
+	/**
+	 * Plot a new data point using default y-increment
+	 *
+	 * @note   This is an overload function
+	 * @see    void plotData(float, float, int, color)
+	 */
+	void plotData(float dataY, float dataX, int type) {
+		int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
+		plotData(dataY, dataX, type, c_colorlist[colorIndex]);
+	}
+	/** @} */	
 
 
 	/**

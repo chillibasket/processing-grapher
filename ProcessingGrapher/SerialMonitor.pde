@@ -891,10 +891,10 @@ class SerialMonitor implements TabAPI {
 					break;
 
 				default:
-					print("Unknown character: ");
-					print(keyChar);
-					print(" ");
-					println(keyCodeInt);
+					//print("Unknown character: ");
+					//print(keyChar);
+					//print(" ");
+					//println(keyCodeInt);
 					break;
 			}
 		}
