@@ -315,6 +315,16 @@ class SerialMonitor implements TabAPI {
 
 				totalHeight -= yTextHeight;
 			}
+
+			// If scrolled up, draw a return to bottom button
+			if (scrollUp > 0) {
+				fill(c_sidebar);
+				rect(cR - (40 * uimult), cB - (40 * uimult), (30 * uimult), (30 * uimult));
+				fill(c_background);
+				strokeWeight(1 * uimult);
+				stroke(c_terminal_text);
+				triangle(cR - (30*uimult), cB - (29*uimult), cR - (20*uimult), cB - (29*uimult), cR - (25*uimult), cB - (20*uimult));
+			}
 		} else {
 			if (recordData) {
 				fill(c_terminal_text);
@@ -908,7 +918,16 @@ class SerialMonitor implements TabAPI {
 	 * @param  ycoord Y-coordinate of the mouse click
 	 */
 	void contentClick (int xcoord, int ycoord) {
-		// Nothing here yet  
+
+		// Scroll down to bottom of serial message button
+		if (scrollUp > 0) {
+			if ((xcoord > cR - (40*uimult)) && (ycoord > cB - (40*uimult)) && (xcoord < cR - (10*uimult)) && (ycoord < cB - (10*uimult))) {
+				scrollUp = 0;
+				autoScroll = true;
+				redrawUI = true;
+				redrawContent = true;
+			}
+		}
 	}
 
 
