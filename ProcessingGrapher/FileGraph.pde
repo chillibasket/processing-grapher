@@ -43,8 +43,13 @@ class FileGraph implements TabAPI {
 	String name;
 	String outputfile;
 	String currentfile;
-	String[] dataColumns = {};
 	Table dataTable;
+	ArrayList<DataSignal> dataSignals = new ArrayList<DataSignal>();
+
+	color previousColor = c_red;
+	color hueColor = c_red;
+	color newColor = c_red;
+	int colorSelector = 0;
 
 	boolean saveFilePath = false;
 	boolean changesMade;
@@ -211,16 +216,23 @@ class FileGraph implements TabAPI {
 
 			xData = -1;
 
-			// Load columns
-			dataColumns = new String[dataTable.getColumnCount()];
-
+			// Check that columns are loaded
 			for (int i = 0; i < dataTable.getColumnCount(); i++) {
-				dataColumns[i] = dataTable.getColumnTitle(i);
-				if (dataTable.getColumnTitle(i).contains("x:")) {
+				
+				String columnTitle = dataTable.getColumnTitle(i);
+				if (columnTitle.contains("x:")) {
 					xData = i;
-				} else if (dataTable.getColumnTitle(i).contains("l:")) {
-					dataColumns[i] = split(dataTable.getColumnTitle(i), ':')[1];
+				} else if (columnTitle.contains("l:")) {
+					columnTitle = split(columnTitle, ':')[1];
 				}
+
+				boolean signalCheck = false;
+				for (DataSignal curSig : dataSignals) {
+					if (curSig.signalText.equals(columnTitle))
+						signalCheck = true;
+				}
+				if (!signalCheck)
+					dataSignals.add(new DataSignal(columnTitle, c_colorlist[i % c_colorlist.length]));
 			}
 
 			redrawUI = true;
@@ -308,8 +320,8 @@ class FileGraph implements TabAPI {
 									// Only plot it if it is within the X-axis data range
 									if (dataX >= graph.getMinX() && dataX <= graph.getMaxX()) {
 										if (dataTable.getColumnTitle(i).contains("l:")) {
-											if (dataPoint == 1) graph.plotXlabel((float) dataX, i);
-										} else graph.plotData((float) dataPoint, (float) dataX, i);
+											if (dataPoint == 1) graph.plotXlabel((float) dataX, i, dataSignals.get(i).signalColor);
+										} else graph.plotData((float) dataPoint, (float) dataX, i, dataSignals.get(i).signalColor);
 									}
 								} catch (Exception e) {
 									println("Error trying to plot file data.");
@@ -327,8 +339,8 @@ class FileGraph implements TabAPI {
 									double dataPoint = row.getDouble(i);
 									if (Double.isNaN(dataPoint)) dataPoint = 99999999;
 									if (dataTable.getColumnTitle(i).contains("l:")) {
-										if (dataPoint == 1) graph.plotXlabel((float) currentX, i);
-									} else graph.plotData((float) dataPoint, (float) currentX, i);
+										if (dataPoint == 1) graph.plotXlabel((float) currentX, i, dataSignals.get(i).signalColor);
+									} else graph.plotData((float) dataPoint, (float) currentX, i, dataSignals.get(i).signalColor);
 								}
 							} catch (Exception e) {
 								println("Error trying to plot file data.");
@@ -392,12 +404,13 @@ class FileGraph implements TabAPI {
 		Filters filterClass = new Filters();
 
 		if (menuLevel == 0)	{
-			menuHeight = round((15 + dataColumns.length) * uH);
+			menuHeight = round((15 + dataSignals.size()) * uH);
 			if (xData != -1) menuHeight -= uH;
 		} else if (menuLevel == 1) {
-			menuHeight = round((3 + dataColumns.length) * uH);
+			menuHeight = round((3 + dataSignals.size()) * uH);
 			if (xData != -1) menuHeight -= uH;
 		} else if (menuLevel == 2) menuHeight = round((3 + filterClass.filterList.length) * uH);
+		else if (menuLevel == 3) menuHeight = round(9 * uH + iW);
 
 		// Figure out if scrolling of the menu is necessary
 		if (menuHeight > sH) {
@@ -461,8 +474,8 @@ class FileGraph implements TabAPI {
 
 			// Zoom Options
 			if (currentfile != ""  && currentfile != "No File Set") {
-				drawButton("Zoom", c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
-				drawButton("Reset", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+				drawButton("Zoom", (setZoomSize >= 0)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW / 2, iH, tH);
+				drawButton("Reset", (zoomActive)? c_sidebar_accent:c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
 				drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 			} else {
 				drawDatabox("Zoom", c_idletab_text, iL, sT + (uH * 11), iW / 2, iH, tH);
@@ -471,23 +484,23 @@ class FileGraph implements TabAPI {
 
 			// Input Data Columns
 			drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
-			if (xData != -1) drawButton("X: " + split(dataColumns[xData], ':')[1], c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
+			if (xData != -1) drawButton("X: " + split(dataSignals.get(xData).signalText, ':')[1], c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 			else drawDatabox("Rate: " + graph.getXrate() + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
 			//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
 
 			float tHnow = 14.5;
 
 			// List of Data Columns
-			for(int i = 0; i < dataColumns.length; i++){
+			for (int i = 0; i < dataSignals.size(); i++) {
 				if (i != xData) {
 					// Column name
-					drawDatabox(dataColumns[i], iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
+					drawDatabox(dataSignals.get(i).signalText, iL, sT + (uH * tHnow), iW - (40 * uimult), iH, tH);
 
 					// Remove column button
-					drawButton("x", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
+					drawButton("✕", c_sidebar_button, iL + iW - (20 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 					
 					// Hide or Show data series
-					color buttonColor = c_colorlist[i-(c_colorlist.length * floor(i / c_colorlist.length))];
+					color buttonColor = dataSignals.get(i).signalColor;
 					drawButton("", buttonColor, iL + iW - (40 * uimult), sT + (uH * tHnow), 20 * uimult, iH, tH);
 
 					drawRectangle(c_sidebar_divider, iL + iW - (20 * uimult), sT + (uH * tHnow) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
@@ -500,13 +513,13 @@ class FileGraph implements TabAPI {
 			drawHeading("Select a Signal", iL, sT + (uH * 0), iW, tH);
 
 			float tHnow = 1;
-			if (dataColumns.length == 0 || (dataColumns.length == 1 && xData != -1)) {
+			if (dataSignals.size() == 0 || (dataSignals.size() == 1 && xData != -1)) {
 				drawText("No signals available", c_sidebar_text, iL, sT + (uH * tHnow), iW, iH);
 				tHnow += 1;
 			} else {
-				for (int i = 0; i < dataColumns.length; i++) {
+				for (int i = 0; i < dataSignals.size(); i++) {
 					if (i != xData && !dataTable.getColumnTitle(i).contains("l:")) {
-						drawButton(constrainString(dataColumns[i], iW - (10 * uimult)), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+						drawButton(constrainString(dataSignals.get(i).signalText, iW - (10 * uimult)), c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 						tHnow += 1;
 					}
 				}
@@ -536,6 +549,21 @@ class FileGraph implements TabAPI {
 			}
 			tHnow += 0.5;
 			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
+		
+		// Colour picker menu
+		} else if (menuLevel == 3) {
+			drawHeading("Select a Colour", iL, sT + (uH * 0), iW, tH);
+			drawColorSelector(hueColor, iL, sT + (uH * 1), iW, iW); 
+			drawHeading("Set Brightness", iL, sT + (uH * 1.5) + iW, iW, tH);
+			drawColorBox2D(newColor, c_white, hueColor, iL, sT + (uH * 2.5) + iW, iW / 2, iH);
+			drawColorBox2D(newColor, hueColor, c_black, iL + (iW / 2), sT + (uH * 2.5) + iW, iW / 2, iH);
+			drawHeading("Colour Preview", iL, sT + (uH * 4) + iW, iW, tH);
+			drawText("New", c_idletab_text, iL, sT + (uH * 4.75) + iW, iW / 2, iH);
+			drawText("Old", c_idletab_text, iL + (iW / 2) + (2 * uimult), sT + (uH * 4.75) + iW, iW / 2, iH);
+			drawButton("", newColor, iL, sT + (uH * 5.5) + iW, (iW / 2) - (3 * uimult), iH, tH);
+			drawButton("", previousColor, iL + (iW / 2) + (2 * uimult), sT + (uH * 5.5) + iW, (iW / 2) - (2 * uimult), iH, tH);
+			drawButton("Confirm", c_sidebar_button, iL, sT + (uH * 6.5) + iW, iW, iH, tH);
+			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * 7.5) + iW, iW, iH, tH);
 		}
 
 		textAlign(LEFT, TOP);
@@ -555,6 +583,11 @@ class FileGraph implements TabAPI {
 			if (menuLevel != 0) {
 				menuLevel = 0;
 				menuScroll = 0;
+				redrawUI = true;
+			} else if (setZoomSize >= 0) {
+				setZoomSize = -1;
+				cursor(ARROW);
+				redrawContent = true;
 				redrawUI = true;
 			}
 		}
@@ -643,7 +676,7 @@ class FileGraph implements TabAPI {
 					if (labelColumn == -1) {
 						dataTable.addColumn("l:Labels");
 						labelColumn = dataTable.getColumnCount() - 1;
-						dataColumns = append(dataColumns, "Labels");
+						dataSignals.add(new DataSignal("Labels", c_colorlist[dataSignals.size() % c_colorlist.length]));
 					}
 
 					// Draw the label and get the x-axis position
@@ -707,6 +740,7 @@ class FileGraph implements TabAPI {
 				zoomCoordOne[2] = (graph.xGraphPos(xcoord) * (graph.getMaxX() - graph.getMinX())) + graph.getMinX();
 				zoomCoordOne[3] = ((1 - graph.yGraphPos(ycoord)) * (graph.getMaxY() - graph.getMinY())) + graph.getMinY();
 				setZoomSize = -1;
+				zoomActive = true;
 
 				if (zoomCoordOne[0] < zoomCoordOne[2]) {
 					graph.setMinX(floorToSigFig(zoomCoordOne[0], 4));
@@ -813,10 +847,10 @@ class FileGraph implements TabAPI {
 			// Open the filters sub-menu
 			else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
 				if (currentfile != "" && currentfile != "No File Set"){
-					if (xData == -1 && dataColumns.length == 1) {
+					if (xData == -1 && dataSignals.size() == 1) {
 						selectedSignal = 0;
 						menuLevel = 2;
-					} else if (xData != -1 && dataColumns.length == 2) {
+					} else if (xData != -1 && dataSignals.size() == 2) {
 						if (xData == 0) selectedSignal = 1;
 						else selectedSignal = 0;
 						menuLevel = 2;
@@ -906,10 +940,16 @@ class FileGraph implements TabAPI {
 				if (currentfile != "" && currentfile != "No File Set") {
 					// New zoom
 					if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
-						zoomActive = true;
-						setZoomSize = 0;
-						cursor(CROSS);
-						//redrawUI = true;
+						if (setZoomSize >= 0) {
+							setZoomSize = -1;
+							cursor(ARROW);
+							redrawContent = true;
+							redrawUI = true;
+						} else {
+							setZoomSize = 0;
+							cursor(CROSS);
+							redrawUI = true;
+						}
 					}
 
 					// Reset zoom
@@ -940,20 +980,20 @@ class FileGraph implements TabAPI {
 				float tHnow = 14.5;
 
 				// List of Data Columns
-				for(int i = 0; i < dataColumns.length; i++){
+				for(int i = 0; i < dataSignals.size(); i++){
 
 					if (i != xData) {
 						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
 
 							// Remove the signal
 							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
-								dataColumns = remove(dataColumns, i);
+								dataSignals.remove(i);
 								dataTable.removeColumn(i);
 								
-								if (dataColumns.length == 0 || (dataColumns.length == 1 && xData != -1)) {
+								if (dataSignals.size() == 0 || (dataSignals.size() == 1 && xData != -1)) {
 									currentfile = "No File Set";
 									xData = -1;
-									dataColumns = new String[0];
+									dataSignals.clear();
 								}
 
 								changesMade = true;
@@ -962,20 +1002,21 @@ class FileGraph implements TabAPI {
 							}
 
 							else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
-								/*
-								if (i - 1 >= 0) {
-									String temp = dataColumns[i - 1];
-									dataColumns[i - 1] = dataColumns[i];
-									dataColumns[i] = temp;
-								}
-								redrawUI = true;*/
+								previousColor = dataSignals.get(i).signalColor;
+								hueColor = previousColor;
+								newColor = previousColor;
+								colorSelector = i;
+
+								menuLevel = 3;
+								menuScroll = 0;
+								redrawUI = true;
 							}
 
 							// Change name of column
 							else {
-								final String colname = myShowInputDialog("Set the Data Signal Name", "Name:", dataColumns[i]);
+								final String colname = myShowInputDialog("Set the Data Signal Name", "Name:", dataSignals.get(i).signalText);
 								if (colname != null && colname != ""){
-									dataColumns[i] = colname;
+									dataSignals.get(i).signalText = colname;
 									if (dataTable.getColumnTitle(i).contains("l:")) dataTable.setColumnTitle(i, "l:" + colname);
 									else dataTable.setColumnTitle(i, colname);
 									redrawUI = true;
@@ -991,9 +1032,9 @@ class FileGraph implements TabAPI {
 		// Signal selection sub-menu
 		} else if (menuLevel == 1) {
 			float tHnow = 1;
-			if (dataColumns.length == 0) tHnow++;
+			if (dataSignals.size() == 0) tHnow++;
 			else {
-				for (int i = 0; i < dataColumns.length; i++) {
+				for (int i = 0; i < dataSignals.size(); i++) {
 					if (i != xData && !dataTable.getColumnTitle(i).contains("l:")) {
 						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
 							selectedSignal = i;
@@ -1039,6 +1080,42 @@ class FileGraph implements TabAPI {
 			// Cancel button
 			tHnow += 0.5;
 			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+		
+		// Select a Colour
+		} else if (menuLevel == 3) {
+
+			// Colour hue selection
+			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iW) && (mouseX > iL) && (mouseX < iL + iW)) {
+				colorMode(HSB, iW, iW, iW);
+				hueColor = color(mouseX - iL, mouseY - (sT + uH), iW);
+				newColor = hueColor;
+				colorMode(RGB, 255, 255, 255);
+				redrawUI = true;
+
+			// Colour brightness selection
+			} else if ((mouseY > sT + (uH * 2.5) + iW) && (mouseY < sT + (uH * 2.5) + iW + iH)) {
+				if (mouseX > iL && mouseX < iL + (iW / 2)) {
+					newColor = lerpColor(c_white, hueColor, (float) (mouseX - iL) / (iW / 2));
+					redrawUI = true;
+				} else if (mouseX > iL + (iW / 2) && mouseX < iL + iW) {
+					newColor = lerpColor(hueColor, c_black, (float) (mouseX - (iL + iW / 2)) / (iW / 2));
+					redrawUI = true;
+				}
+
+			// Submit button
+			} else if ((mouseY > sT + (uH * 6.5) + iW) && (mouseY < sT + (uH * 6.5) + iW + iH)) {
+				dataSignals.get(colorSelector).signalColor = newColor;
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+				redrawContent = true;
+
+			// Cancel button
+			} else if ((mouseY > sT + (uH * 7.5) + iW) && (mouseY < sT + (uH * 7.5) + iW + iH)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1105,6 +1182,7 @@ class FileGraph implements TabAPI {
 		public void run() {
 			// Load a file
 			if (task == 0) {
+				dataSignals.clear();
 				dataTable = loadTable(currentfile, "csv, header");
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
 					dataTable.setColumnType(i, Table.STRING);
@@ -1165,5 +1243,25 @@ class FileGraph implements TabAPI {
 	 */
 	void performExit() {
 		// Nothing to do here
+	}
+
+
+	/**
+	 * Data structure to store info related to each colour tag
+	 */
+	class DataSignal {
+		public String signalText;
+		public color signalColor;
+
+		/**
+		 * Constructor
+		 * 
+		 * @param  setText  The keyword text which is search for in the serial data
+		 * @param  setColor The colour which all lines containing that text will be set
+		 */
+		DataSignal(String setText, color setColor) {
+			signalText = setText;
+			signalColor = setColor;
+		}
 	}
 }
