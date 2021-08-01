@@ -42,6 +42,14 @@ import processing.serial.*;
 // Advanced key inputs
 import java.awt.event.KeyEvent;
 
+// Copy from and paste to clipboard
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+
 // File dialogue
 import java.io.File;
 
@@ -1197,6 +1205,7 @@ void scrollBarEvent() {
  * keys such as SHIFT and CONTROL
  */
 void keyTyped() {
+
 	if (!controlKey) {
 		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
@@ -1218,7 +1227,8 @@ void keyTyped() {
  * keyTyped() function
  */
 void keyPressed() {
-	
+	//println(keyCode);
+
 	// Check for control key
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = true;
@@ -1229,6 +1239,18 @@ void keyPressed() {
 	// Increase UI scaling (CTRL and +)
 	} else if (controlKey && (key == '=' || key == '+' || keyCode == 61)) {
 		if (uimult < 2.0) uiResize(0.1);
+	// Copy keys
+	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == 67)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_COPY, true);
+		} else currentTab = 0;
+	// Paste keys
+	} else if (controlKey && (key == 'v' || key == 'V' || keyCode == 86)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_PASTE, true);
+		} else currentTab = 0;
 
 	// For all other keys, send them on to the active tab
 	} else if (key == CODED) {
@@ -1264,6 +1286,43 @@ void keyReleased() {
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = false;
 	}
+}
+
+
+/**
+ * Copy text from clipboard
+ */
+String getStringClipboard() {
+
+	Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard(); 
+	Transferable contents = clipboard.getContents(null);
+	Object object = null;
+	DataFlavor flavor = DataFlavor.stringFlavor;
+	String clipboardText = "";
+
+	if (contents != null && contents.isDataFlavorSupported(flavor))
+	{
+		try
+		{
+			object = contents.getTransferData(flavor);
+			clipboardText = (String) object;
+			println("Clipboard.getFromClipboard() >> Object transferred from clipboard.");
+		}
+
+		catch (UnsupportedFlavorException e1) // Unlikely but we must catch it
+		{
+			println("Clipboard.getFromClipboard() >> Unsupported flavor: " + e1);
+			//~  e1.printStackTrace();
+		}
+
+		catch (java.io.IOException e2)
+		{
+			println("Clipboard.getFromClipboard() >> Unavailable data: " + e2);
+			//~  e2.printStackTrace();
+		}
+	}
+
+	return clipboardText;
 }
 
 /** @} End of KeyboardMouse */

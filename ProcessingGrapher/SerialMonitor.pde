@@ -900,6 +900,31 @@ class SerialMonitor implements TabAPI {
 					}
 					break;
 
+				case KeyEvent.VK_COPY: {
+					println("Copying: " + serialBuffer.get(serialBuffer.size() - 1));
+					StringSelection selection = new StringSelection(serialBuffer.get(serialBuffer.size() - 1));
+  					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+  					clipboard.setContents(selection, selection);
+					break;
+				}
+				
+				case KeyEvent.VK_PASTE: {
+					String clipboardText = getStringClipboard();
+					println("Pasting: " + clipboardText);
+					String clipboardLines[] = clipboardText.split("\\r?\\n");
+					for (int i = 0; i < clipboardLines.length - 1; i++) {
+						if (serialConnected) {
+							serialSend(msgText + clipboardLines[i]);
+						}
+						msgText = "SENT: " + msgText + clipboardLines[i];
+						serialBuffer.append(msgText);
+						msgText = "";
+					}
+					msgText += clipboardLines[clipboardLines.length - 1];
+					cursorPosition = msgText.length();
+					redrawContent = true;
+					break;
+				}
 				default:
 					//print("Unknown character: ");
 					//print(keyChar);
