@@ -829,7 +829,7 @@ class LiveGraph implements TabAPI {
 
 		// Click on sidebar menu scroll bar
 		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
-			startScrolling();
+			startScrolling(false);
 		}
 
 		// Select output file name and directory

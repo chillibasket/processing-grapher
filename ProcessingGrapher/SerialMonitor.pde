@@ -971,7 +971,7 @@ class SerialMonitor implements TabAPI {
 		// Click on serial monitor scrollbar
 		if ((scrollUp != -1) && serialScroll.click(xcoord, ycoord)) {
 			sidebarScroll.active(false);
-			startScrolling();
+			startScrolling(true);
 		}
 	}
 
@@ -1003,7 +1003,7 @@ class SerialMonitor implements TabAPI {
 		// Click on sidebar menu scroll bar
 		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
 			serialScroll.active(false);
-			startScrolling();
+			startScrolling(false);
 		}
 
 		// Root menu level

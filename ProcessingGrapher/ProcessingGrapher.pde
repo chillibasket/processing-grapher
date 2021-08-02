@@ -184,6 +184,7 @@ int state = 0;
 boolean textInput = false;
 boolean controlKey = false;
 boolean scrollingActive = false;
+boolean contentScrolling = false;
 
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
@@ -487,7 +488,7 @@ void drawProgram() {
 	if (!preventDrawing) {
 		// Update mouse scrolling
 		if (scrollingActive) {
-			if (settingsMenuActive) {
+			if (settingsMenuActive && !contentScrolling) {
 				settings.scrollBarUpdate(mouseX, mouseY);
 			} else {
 				TabAPI curTab = tabObjects.get(currentTab);
@@ -1229,9 +1230,10 @@ void mouseWheel(MouseEvent event) {
 /**
  * Start scrolling routine
  */
-void startScrolling() {
+void startScrolling(boolean content) {
 	//println("Starting scroll");
 	scrollingActive = true;
+	contentScrolling = content;
 	cursor(HAND);
 }
 
