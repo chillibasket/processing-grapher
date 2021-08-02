@@ -37,6 +37,7 @@ class Settings implements TabAPI {
 	int menuScroll;
 	int menuHeight;
 	int menuLevel;
+	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
 
 	String name;
 	String outputfile;
@@ -323,6 +324,7 @@ class Settings implements TabAPI {
 			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
 			fill(c_terminal_text);
 			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+			sidebarScroll.update(menuHeight, sH, width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
 
 			sT -= menuScroll;
 			sL -= round(15 * uimult) / 4;
@@ -569,7 +571,11 @@ class Settings implements TabAPI {
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
 	void scrollBarUpdate (int xcoord, int ycoord) {
-		// Not in use
+		if (sidebarScroll.active()) {
+			int previousScroll = menuScroll;
+			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
+			if (previousScroll != menuScroll) redrawUI = true;
+		}
 	}
 
 
@@ -583,8 +589,10 @@ class Settings implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
-		if (menuScroll > 0) sT -= menuScroll;
 		int sL = cR;
+		if (menuScroll > 0) sT -= menuScroll;
+		if (menuScroll != -1) sL -= round(15 * uimult) / 4;
+
 		int sW = width - cR;
 		int sH = height - sT;
 
@@ -594,12 +602,17 @@ class Settings implements TabAPI {
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
 
+		// Click on sidebar menu scroll bar
+		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
+			startScrolling();
+		}
+
 		// Main Menu
 		if (menuLevel == 0) {
 			// UI scaling
-			if (menuYclick(mouseY, sT, uH, iH, 1)){
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, 1, iL, iW)){
 				// Decrease
-				if ((mouseX > iL) && (mouseX <= iL + iW / 4)) {
+				if (menuXclick(xcoord, iL, iW / 4)) {
 					if (uimult > 0.5) {
 						uiResize(-0.1);
 						unsavedChanges = true;
@@ -607,7 +620,7 @@ class Settings implements TabAPI {
 				}
 
 				// Increase
-				else if ((mouseX > iL + iW * 3 / 4) && (mouseX <= iL + iW)) {
+				else if (menuXclick(xcoord, iL + (iW * 3 / 4), iW / 4)) {
 					if (uimult < 2.0) {
 						uiResize(0.1);
 						unsavedChanges = true;
@@ -616,7 +629,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 0 - Light Celeste
-			else if (menuYclick(mouseY, sT, uH, iH, 3.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 3.5, iL, iW)) {
 				if (colorScheme != 0) {
 					unsavedChanges = true;
 					colorScheme = 0;
@@ -625,7 +638,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 1 - Dark Gravity
-			else if (menuYclick(mouseY, sT, uH, iH, 4.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 4.5, iL, iW)) {
 				if (colorScheme != 1) {
 					unsavedChanges = true;
 					colorScheme = 1;
@@ -634,7 +647,7 @@ class Settings implements TabAPI {
 			}
 
 			// Color Scheme 2 - Dark Monokai
-			else if (menuYclick(mouseY, sT, uH, iH, 5.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)) {
 				if (colorScheme != 2) {
 					unsavedChanges = true;
 					colorScheme = 2;
@@ -643,9 +656,9 @@ class Settings implements TabAPI {
 			}
 
 			// Toggle FPS indicator
-			else if (menuYclick(mouseY, sT, uH, iH, 8)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 8, iL, iW)) {
 				// Show
-				if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
+				if (menuXclick(xcoord, iL, iW / 2)) {
 					if (!drawFPS) {
 						drawFPS = true;
 						unsavedChanges = true;
@@ -654,7 +667,7 @@ class Settings implements TabAPI {
 				}
 
 				// Hide
-				else if ((mouseX > iL + (iW / 2)) && (mouseX <= iL + iW)) {
+				else if (menuXclick(xcoord, iL + (iW / 2), iW / 2)) {
 					if (drawFPS) {
 						drawFPS = false;
 						unsavedChanges = true;
@@ -664,9 +677,9 @@ class Settings implements TabAPI {
 			}
 
 			// Toggle usage instructions
-			else if (menuYclick(mouseY, sT, uH, iH, 10.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10.5, iL, iW)){
 				// Show
-				if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
+				if (menuXclick(xcoord, iL, iW / 2)) {
 					if (!showInstructions) {
 						showInstructions = true;
 						unsavedChanges = true;
@@ -676,7 +689,7 @@ class Settings implements TabAPI {
 				}
 
 				// Hide
-				else if ((mouseX > iL + (iW / 2)) && (mouseX <= iL + iW)) {
+				else if (menuXclick(xcoord, iL + (iW / 2), iW / 2)) {
 					if (showInstructions) {
 						showInstructions = false;
 						unsavedChanges = true;
@@ -687,7 +700,7 @@ class Settings implements TabAPI {
 			}
 
 			// Baud rate selection
-			else if (menuYclick(mouseY, sT, uH, iH, 13)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 13, iL, iW)) {
 				if (!serialConnected) {
 					menuLevel = 1;
 					menuScroll = 0;
@@ -696,7 +709,7 @@ class Settings implements TabAPI {
 			}
 
 			// Line ending selection
-			else if (menuYclick(mouseY, sT, uH, iH, 14)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 14, iL, iW)) {
 				if (!serialConnected) {
 					menuLevel = 2;
 					menuScroll = 0;
@@ -705,7 +718,7 @@ class Settings implements TabAPI {
 			}
 
 			// Parity selection
-			else if (menuYclick(mouseY, sT, uH, iH, 15)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 15, iL, iW)) {
 				if (!serialConnected) {
 					menuLevel = 3;
 					menuScroll = 0;
@@ -714,7 +727,7 @@ class Settings implements TabAPI {
 			}
 
 			// Data bits selection
-			else if (menuYclick(mouseY, sT, uH, iH, 16)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 16, iL, iW)) {
 				if (!serialConnected) {
 					menuLevel = 4;
 					menuScroll = 0;
@@ -723,7 +736,7 @@ class Settings implements TabAPI {
 			}
 
 			// Stop bits selection
-			else if (menuYclick(mouseY, sT, uH, iH, 17)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 17, iL, iW)) {
 				if (!serialConnected) {
 					menuLevel = 5;
 					menuScroll = 0;
@@ -732,12 +745,12 @@ class Settings implements TabAPI {
 			}
 
 			// Remember preferences
-			else if (menuYclick(mouseY, sT, uH, iH, 19.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 19.5, iL, iW)){
 				if (unsavedChanges) saveSettings();
 			}
 
 			// Reset preferences to default
-			else if (menuYclick(mouseY, sT, uH, iH, 20.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 20.5, iL, iW)){
 				if (checkDefault()) {
 					drawFPS = false;
 					showInstructions = true;
@@ -759,7 +772,7 @@ class Settings implements TabAPI {
 			}
 
 			// Exit settings menu
-			else if (menuYclick(mouseY, sT, uH, iH, 21.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 21.5, iL, iW)){
 				settingsMenuActive = false;
 				redrawUI = true;
 			}
@@ -770,7 +783,7 @@ class Settings implements TabAPI {
 			if (baudRateList.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < baudRateList.length; i++) {
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (baudRate != baudRateList[i]) unsavedChanges = true;
 						baudRate = baudRateList[i];
 						menuLevel = 0;
@@ -782,7 +795,7 @@ class Settings implements TabAPI {
 			}
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -794,7 +807,7 @@ class Settings implements TabAPI {
 			if (lineEndingNames.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < lineEndingNames.length; i++) {
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (lineEnding != lineEndingList[i]) unsavedChanges = true;
 						lineEnding = lineEndingList[i];
 						menuLevel = 0;
@@ -806,7 +819,7 @@ class Settings implements TabAPI {
 			}
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -818,7 +831,7 @@ class Settings implements TabAPI {
 			if (parityBitsNames.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < parityBitsNames.length; i++) {
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (serialParity != parityBitsList[i]) unsavedChanges = true;
 						serialParity = parityBitsList[i];
 						menuLevel = 0;
@@ -830,7 +843,7 @@ class Settings implements TabAPI {
 			}
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -842,7 +855,7 @@ class Settings implements TabAPI {
 			if (dataBitsNames.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < dataBitsNames.length; i++) {
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (serialDatabits != dataBitsList[i]) unsavedChanges = true;
 						serialDatabits = dataBitsList[i];
 						menuLevel = 0;
@@ -854,7 +867,7 @@ class Settings implements TabAPI {
 			}
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -866,7 +879,7 @@ class Settings implements TabAPI {
 			if (stopBitsNames.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < stopBitsNames.length; i++) {
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (serialStopbits != stopBitsList[i]) unsavedChanges = true;
 						serialStopbits = stopBitsList[i];
 						menuLevel = 0;
@@ -878,7 +891,7 @@ class Settings implements TabAPI {
 			}
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;

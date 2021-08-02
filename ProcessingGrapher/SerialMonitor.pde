@@ -58,6 +58,8 @@ class SerialMonitor implements TabAPI {
 	int displayRows;
 	final int maxBuffer = 50000;
 	int scrollUp;
+	ScrollBar serialScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.INVERT);
+	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
 
 	String msgText= "";
 	int cursorPosition;
@@ -280,6 +282,7 @@ class SerialMonitor implements TabAPI {
 			int scrollbarOffset = int((totalHeight - scrollbarSize) * (1 - (scrollUp / float(serialBuffer.size() - displayRows))));
 			fill(c_terminal_text);
 			rect(cL, msgB + scrollbarOffset, border/2, scrollbarSize);
+			serialScroll.update(serialBuffer.size(), totalHeight, cL, msgB + scrollbarOffset, border / 2, scrollbarSize);
 
 			totalHeight -= yTextHeight;
 
@@ -606,6 +609,7 @@ class SerialMonitor implements TabAPI {
 			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
 			fill(c_terminal_text);
 			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+			sidebarScroll.update(menuHeight, sH, width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
 
 			sT -= menuScroll;
 			sL -= round(15 * uimult) / 4;
@@ -907,22 +911,32 @@ class SerialMonitor implements TabAPI {
   					clipboard.setContents(selection, selection);
 					break;
 				}
-				
+
 				case KeyEvent.VK_PASTE: {
 					String clipboardText = getStringClipboard();
-					println("Pasting: " + clipboardText);
-					String clipboardLines[] = clipboardText.split("\\r?\\n");
-					for (int i = 0; i < clipboardLines.length - 1; i++) {
-						if (serialConnected) {
-							serialSend(msgText + clipboardLines[i]);
+					if (clipboardText != null && clipboardText.length() > 0) {
+						String msgEnd = "";
+						if (cursorPosition == 0) {
+							msgEnd = msgText;
+							msgText = "";
+						} else if (cursorPosition < msgText.length()) {
+							msgEnd = msgText.substring(cursorPosition, msgText.length());
+							msgText = msgText.substring(0, cursorPosition);
 						}
-						msgText = "SENT: " + msgText + clipboardLines[i];
-						serialBuffer.append(msgText);
-						msgText = "";
+						//println("Pasting: " + clipboardText);
+						String clipboardLines[] = clipboardText.split("\\r?\\n");
+						for (int i = 0; i < clipboardLines.length - 1; i++) {
+							if (serialConnected) {
+								serialSend(msgText + clipboardLines[i]);
+							}
+							msgText = "SENT: " + msgText + clipboardLines[i];
+							serialBuffer.append(msgText);
+							msgText = "";
+						}
+						msgText += clipboardLines[clipboardLines.length - 1] + msgEnd;
+						cursorPosition = msgText.length() - msgEnd.length();
+						redrawContent = true;
 					}
-					msgText += clipboardLines[clipboardLines.length - 1];
-					cursorPosition = msgText.length();
-					redrawContent = true;
 					break;
 				}
 				default:
@@ -953,6 +967,12 @@ class SerialMonitor implements TabAPI {
 				redrawContent = true;
 			}
 		}
+
+		// Click on serial monitor scrollbar
+		if ((scrollUp != -1) && serialScroll.click(xcoord, ycoord)) {
+			sidebarScroll.active(false);
+			startScrolling();
+		}
 	}
 
 
@@ -966,8 +986,9 @@ class SerialMonitor implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
+		int sL = cR;
 		if (menuScroll > 0) sT -= menuScroll;
-		final int sL = cR;
+		if (menuScroll != -1) sL -= round(15 * uimult) / 4;
 		final int sW = width - cR;
 		final int sH = height - sT;
 
@@ -979,30 +1000,36 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
+		// Click on sidebar menu scroll bar
+		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
+			serialScroll.active(false);
+			startScrolling();
+		}
+
 		// Root menu level
 		if (menuLevel == 0) {
 
 			// COM Port Number
-			if (menuYclick(mouseY, sT, uH, iH, 1)) { //(mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, 1, iL, iW)) {
 				menuLevel = 1;
 				menuScroll = 0;
 				redrawUI = true;
 			}
 
 			// COM Port Baud Rate
-			else if (menuYclick(mouseY, sT, uH, iH, 2)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 2, iL, iW)){
 				menuLevel = 2;
 				menuScroll = 0;
 				redrawUI = true;
 			}
 
 			// Connect to COM port
-			else if (menuYclick(mouseY, sT, uH, iH, 3)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 3, iL, iW)){
 				setupSerial();
 			}
 
 			// Select output file name and directory
-			else if (menuYclick(mouseY, sT, uH, iH, 5.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)){
 				if (!recordData) {
 					outputfile = "";
 					selectOutput("Select a location and name for the output *.TXT file", "fileSelected");
@@ -1010,7 +1037,7 @@ class SerialMonitor implements TabAPI {
 			}
 			
 			// Start recording data and saving it to a file
-			else if (menuYclick(mouseY, sT, uH, iH, 6.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 6.5, iL, iW)) {
 				if(recordData) {
 					stopRecording();
 				} else if(outputfile != "" && outputfile != "No File Set") {
@@ -1019,7 +1046,7 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Clear the terminal buffer
-			else if (menuYclick(mouseY, sT, uH, iH, 9)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 9, iL, iW)) {
 				if (!recordData) {
 					serialBuffer.clear();
 					serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
@@ -1029,13 +1056,13 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Turn autoscrolling on/off
-			else if (menuYclick(mouseY, sT, uH, iH, 10)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10, iL, iW)) {
 				autoScroll = !autoScroll;
 				redrawUI = true;
 			}
 
 			// Add a new colour tag column
-			else if (menuYclick(mouseY, sT, uH, iH, 12.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 12.5, iL, iW)) {
 				final String colname = myShowInputDialog("Add a new Colour Tag","Keyword Text:","");
 				if (colname != null && colname.length() > 0){
 					serialTags.add(new SerialTag(colname, c_colorlist[serialTags.size() % c_colorlist.length]));
@@ -1050,17 +1077,17 @@ class SerialMonitor implements TabAPI {
 				// List of Data Columns
 				for(int i = 0; i < serialTags.size(); i++) {
 
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 
 						// Remove column
-						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
+						if (menuXclick(xcoord, iL + iW - int(20 * uimult), int(20 * uimult))) {
 							serialTags.remove(i);
 							redrawUI = true;
 							drawNewData = true;
 						}
 
 						// Change colour of entry
-						else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
+						else if (menuXclick(xcoord, iL + iW - int(40 * uimult), int(40 * uimult))) {
 							previousColor = serialTags.get(i).tagColor;
 							hueColor = previousColor;
 							newColor = previousColor;
@@ -1092,7 +1119,7 @@ class SerialMonitor implements TabAPI {
 			if (ports.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < ports.length; i++) {
-					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 
 						// If the serial port is already connected to a different port, disconnect it
 						if (serialConnected && portNumber != i) setupSerial();
@@ -1108,7 +1135,7 @@ class SerialMonitor implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1118,7 +1145,7 @@ class SerialMonitor implements TabAPI {
 		} else if (menuLevel == 2) {
 			float tHnow = 1;
 			for (int i = 0; i < baudRateList.length; i++) {
-				if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 					baudRate = baudRateList[i];
 					menuLevel = 0;
 					menuScroll = 0;
@@ -1135,7 +1162,7 @@ class SerialMonitor implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1145,7 +1172,7 @@ class SerialMonitor implements TabAPI {
 		} else if (menuLevel == 3) {
 
 			// Colour hue selection
-			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iW) && (mouseX > iL) && (mouseX < iL + iW)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iW, 1, iL, iW)) {
 				colorMode(HSB, iW, iW, iW);
 				hueColor = color(mouseX - iL, mouseY - (sT + uH), iW);
 				newColor = hueColor;
@@ -1153,7 +1180,7 @@ class SerialMonitor implements TabAPI {
 				redrawUI = true;
 
 			// Colour brightness selection
-			} else if ((mouseY > sT + (uH * 2.5) + iW) && (mouseY < sT + (uH * 2.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 2.5, iL, iW)) {
 				if (mouseX > iL && mouseX < iL + (iW / 2)) {
 					newColor = lerpColor(c_white, hueColor, (float) (mouseX - iL) / (iW / 2));
 					redrawUI = true;
@@ -1163,7 +1190,7 @@ class SerialMonitor implements TabAPI {
 				}
 
 			// Submit button
-			} else if ((mouseY > sT + (uH * 6.5) + iW) && (mouseY < sT + (uH * 6.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 6.5, iL, iW)) {
 				serialTags.get(colorSelector).tagColor = newColor;
 				menuLevel = 0;
 				menuScroll = 0;
@@ -1171,7 +1198,7 @@ class SerialMonitor implements TabAPI {
 				redrawContent = true;
 
 			// Cancel button
-			} else if ((mouseY > sT + (uH * 7.5) + iW) && (mouseY < sT + (uH * 7.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 7.5, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1211,7 +1238,16 @@ class SerialMonitor implements TabAPI {
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
 	void scrollBarUpdate(int xcoord, int ycoord) {
-
+		if (serialScroll.active()) {
+			int previousScroll = scrollUp;
+			scrollUp = serialScroll.move(xcoord, ycoord, scrollUp, 0, serialBuffer.size() - displayRows);
+			if (previousScroll != scrollUp) redrawContent = true;
+		}
+		if (sidebarScroll.active()) {
+			int previousScroll = menuScroll;
+			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
+			if (previousScroll != menuScroll) redrawUI = true;
+		}
 	}
 
 

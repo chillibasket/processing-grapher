@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      31st July 2021
- * @version   1.3.0
+ * @date      2nd August 2021
+ * @version   1.3.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.3.0";
+final String versionNumber = "1.3.1";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -485,6 +485,16 @@ void drawProgram() {
 	}
 
 	if (!preventDrawing) {
+		// Update mouse scrolling
+		if (scrollingActive) {
+			if (settingsMenuActive) {
+				settings.scrollBarUpdate(mouseX, mouseY);
+			} else {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.scrollBarUpdate(mouseX, mouseY);
+			}
+		}
+
 		// Redraw the content area elements
 		if (redrawContent){
 			if (tabObjects.size() > currentTab) {
@@ -710,7 +720,7 @@ void drawColorSelector(color currentColor, float lS, float tS, float iW, float i
 		colorMode(HSB, iW, iW, iW);
 		int curX = -1, curY = -1;
 		for (int i = 0; i < iW; i++) {
-			for (int j = 0; j < iH; j++) {
+			for (int j = 1; j < iH; j++) {
 				color pointColor = color(i, j, iW);
 				if (currentColor == pointColor) {
 					curX = i;
@@ -751,7 +761,6 @@ void drawColorBox2D(color currentColor, color color1, color color2, float lS, fl
 		for (int i = 0; i < iW; i++) {
 			color horizontalColor = lerpColor(color1, color2, (float) (i) / iW);
 			if (currentColor == horizontalColor) {
-				horizontalColor = c_sidebar_accent;
 				curPoint = i;
 			}
 			stroke(horizontalColor);
@@ -759,6 +768,7 @@ void drawColorBox2D(color currentColor, color color1, color color2, float lS, fl
 		}
 		if (curPoint >= 0) { 
 			stroke(c_sidebar_accent);
+			line(lS + curPoint, tS, lS + curPoint, tS + iH);
 			fill(c_sidebar_accent);
 			triangle(lS + curPoint, tS + iH, lS + curPoint - (3 * uimult), tS + iH + (6 * uimult), lS + curPoint + (3 * uimult), tS + iH + (6 * uimult));
 		}
@@ -908,7 +918,38 @@ void drawRectangle(color boxcolor, float lS, float tS, float iW, float iH){
  * @return True if mouse Y-coordinate is on the menu item, false otherwise
  */
 boolean menuYclick(int yPos, int topPos, int unitH, int itemH, float n) {
-	return ((yPos > topPos + (unitH * n)) && (yPos < topPos + (unitH * n) + itemH));
+	return ((yPos >= topPos + (unitH * n)) && (yPos <= topPos + (unitH * n) + itemH));
+}
+
+
+/**
+ * Check in mouse clicked on a sidebar menu item
+ *
+ * @param  xPos    Mouse X-coordinate position
+ * @param  leftPos Left X-coordinate of item
+ * @param  itemW   Width of menu item
+ * @return True if mouse Y-coordinate is on the menu item, false otherwise
+ */
+boolean menuXclick(int xPos, int leftPos, int itemW) {
+	return ((xPos >= leftPos) && (xPos <= leftPos + itemW));
+}
+
+
+/**
+ * Check in mouse clicked on a sidebar menu item
+ *
+ * @oaram  xPos    Mouse X-coordinate position
+ * @param  yPos    Mouse Y-coordinate position
+ * @param  topPos  Top Y-coordinate of menu area
+ * @param  unitH   Height of a standard menu item unit
+ * @param  itemH   Height of menu item
+ * @param  n       Number of units the current item is from the top
+ * @param  leftPos Left X-coordinate of item
+ * @param  unitW   Width of menu item
+ * @return True if mouse Y-coordinate is on the menu item, false otherwise
+ */
+boolean menuXYclick(int xPos, int yPos, int topPos, int unitH, int itemH, float n, int leftPos, int unitW) {
+	return ((yPos >= topPos + (unitH * n)) && (yPos <= topPos + (unitH * n) + itemH) && (xPos >= leftPos) && (xPos <= leftPos + unitW));
 }
 
 
@@ -1142,7 +1183,11 @@ void menuClickEvent() {
  * end of mouse drag and drop operations
  */
 void mouseReleased() {
-	if (scrollingActive) scrollingActive = false;
+	if (scrollingActive) {
+		scrollingActive = false;
+		cursor(ARROW);
+		//println("Stopping scroll");
+	}
 }
 
 
@@ -1182,18 +1227,151 @@ void mouseWheel(MouseEvent event) {
 
 
 /**
- * Thread to manage scrollbar drag operations
- *
- * This function is not currently in use
+ * Start scrolling routine
  */
-void scrollBarEvent() {
-	/*
-	while (scrollingActive) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollBarUpdate(mouseX, mouseY);
-		delay(20);
+void startScrolling() {
+	//println("Starting scroll");
+	scrollingActive = true;
+	cursor(HAND);
+}
+
+
+/**
+ * Class to manage the dragging/movement of scrollbars
+ */
+class ScrollBar {
+	int x1, w, y1, h;
+	int totalElements;
+	int totalLength;
+	int startPosition;
+	int mouseOffset;
+	float movementScaler;
+	boolean orientation;
+	boolean inverted;
+	boolean active;
+
+	static public final boolean HORIZONTAL = true;
+	static public final boolean VERTICAL = false;
+	static public final boolean INVERT = true;
+	static public final boolean NORMAL = false;
+
+	/**
+	 * Constructor with scrollbar orientation defined
+	 * 
+	 * @param  orientation Specify horizontal (true) or vertical (false) orientation
+	 */
+	ScrollBar(boolean orientation, boolean inverted) {
+		this.orientation = orientation;
+		this.inverted = inverted;
+		this.mouseOffset = 0;
+		this.active = false;
 	}
-	*/
+
+	/**
+	 * Check whether the scrollbar is active
+	 * 
+	 * @return True if active, false otherwise
+	 */
+	boolean active() {
+		return this.active;
+	}
+
+	/**
+	 * Manually enable or disable the scrollbar
+	 *
+	 * @param  setActive True = enable, false = disable scrollbar
+	 */
+	void active(boolean setActive) {
+		this.active = setActive;
+	}
+
+	/**
+	 * Update the scrollbar position and dimensions
+	 * 
+	 * @param  totalElements Total number of elements in the list
+	 * @param  totalLength   Maximum length of the scroll area width or height in px
+	 * @param  xLeft         Left-most x-axis position of the scrollbar
+	 * @param  yTop          Top-most y-axis position of the scrollbar
+	 * @param  xWidth        X-axis width of the scrollbar
+	 * @param  yHeight       Y-axis height of the scrollbar
+	 */
+	void update(int totalElements, int totalLength, int xLeft, int yTop, int xWidth, int yHeight) {
+		this.totalElements = totalElements;
+		this.totalLength = totalLength;
+		if (orientation == VERTICAL) this.mouseOffset += (yTop + yHeight) - (y1 + h);
+		else this.mouseOffset += (xLeft + xWidth) - (x1 + w);
+		this.x1 = xLeft;
+		this.w = xWidth;
+		this.y1 = yTop;
+		this.h = yHeight;
+		this.movementScaler = (totalElements / (float) totalLength);
+	}
+
+	/**
+	 * Check if mouse has clicked on the scroll bar
+	 * 
+	 * @param  xcoord Mouse x-axis coordinate
+	 * @param  ycoord Mouse y-axis coordinate
+	 * @return True if mouse has clicked on scrollbar, false otherwise
+	 */
+	boolean click(int xcoord, int ycoord) {
+		if ((xcoord >= x1) && (xcoord <= x1 + w) && (ycoord >= y1) && (ycoord <= y1 + h)) {
+			if (orientation == VERTICAL) {
+				mouseOffset = y1 + h - ycoord; 
+				startPosition = ycoord;
+			} else {
+				mouseOffset = x1 + w - xcoord; 
+				startPosition = xcoord;
+			}
+			active = true;
+			return true;
+		}
+		active = false;
+		return false;
+	}
+
+	/**
+	 * Mouse drag event function
+	 * 
+	 * @param  xcoord        Mouse x-axis coordinate
+	 * @param  ycoord        Mouse y-axis coordinate
+	 * @param  currentScroll The current scroll position
+	 * @oaram  minScroll     Minimum scroll position
+	 * @oaram  maxScroll     Maximum scroll position
+	 * @retun  The new scroll position of the scrollbar
+	 */
+	int move(int xcoord, int ycoord, int currentScroll, int minScroll, int maxScroll) {
+
+		int mainCoord = ycoord;
+		if (orientation == HORIZONTAL) mainCoord = xcoord;
+
+		int currentPosition = mainCoord + mouseOffset;
+		int elementsMoved = int((currentPosition - (startPosition + mouseOffset)) * movementScaler);
+
+		if (abs(elementsMoved) >= 1) {
+
+			if (inverted) elementsMoved = -elementsMoved;
+			//println(elementsMoved, currentPosition, mouseOffset, startPosition, minScroll, maxScroll);
+
+			if (((elementsMoved < 0) && (currentScroll == minScroll)) || ((elementsMoved > 0) && (currentScroll == maxScroll))) {
+				if (orientation == VERTICAL) {
+					mouseOffset = y1 + h - ycoord;
+					startPosition = ycoord;
+				} else {
+					mouseOffset = x1 + w - xcoord; 
+					startPosition = xcoord;
+				}
+			} else {
+				currentScroll += elementsMoved;
+				if (currentScroll < minScroll) currentScroll = minScroll;
+				else if (currentScroll > maxScroll) currentScroll = maxScroll;
+
+				startPosition = mainCoord;
+			}
+		}
+
+		return currentScroll;
+	}
 }
 
 
@@ -1291,6 +1469,8 @@ void keyReleased() {
 
 /**
  * Copy text from clipboard
+ * 
+ * @return The string contained in the clipboard
  */
 String getStringClipboard() {
 
@@ -1306,7 +1486,7 @@ String getStringClipboard() {
 		{
 			object = contents.getTransferData(flavor);
 			clipboardText = (String) object;
-			println("Clipboard.getFromClipboard() >> Object transferred from clipboard.");
+			//println("Clipboard.getFromClipboard() >> Object transferred from clipboard.");
 		}
 
 		catch (UnsupportedFlavorException e1) // Unlikely but we must catch it

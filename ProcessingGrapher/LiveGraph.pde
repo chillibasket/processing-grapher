@@ -38,6 +38,7 @@ class LiveGraph implements TabAPI {
 	int menuScroll;
 	int menuHeight;
 	String name;
+	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
 
 	String outputfile;
 
@@ -561,6 +562,7 @@ class LiveGraph implements TabAPI {
 			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
 			fill(c_terminal_text);
 			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+			sidebarScroll.update(menuHeight, sH, width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
 
 			sT -= menuScroll;
 			sL -= round(15 * uimult) / 4;
@@ -795,7 +797,11 @@ class LiveGraph implements TabAPI {
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
 	void scrollBarUpdate (int xcoord, int ycoord) {
-
+		if (sidebarScroll.active()) {
+			int previousScroll = menuScroll;
+			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
+			if (previousScroll != menuScroll) redrawUI = true;
+		}
 	}
 
 
@@ -809,19 +815,25 @@ class LiveGraph implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
-		if (menuScroll > 0) sT -= menuScroll;
 		int sL = cR;
-		int sW = width - cR;
-		int sH = height - sT;
+		if (menuScroll > 0) sT -= menuScroll;
+		if (menuScroll != -1) sL -= round(15 * uimult) / 4;
+		final int sW = width - cR;
+		final int sH = height - sT;
 
-		int uH = round(sideItemHeight * uimult);
-		int tH = round((sideItemHeight - 8) * uimult);
-		int iH = round((sideItemHeight - 5) * uimult);
-		int iL = round(sL + (10 * uimult));
-		int iW = int(sW - (20 * uimult));
+		final int uH = round(sideItemHeight * uimult);
+		final int tH = round((sideItemHeight - 8) * uimult);
+		final int iH = round((sideItemHeight - 5) * uimult);
+		final int iL = round(sL + (10 * uimult));
+		final int iW = int(sW - (20 * uimult));
+
+		// Click on sidebar menu scroll bar
+		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
+			startScrolling();
+		}
 
 		// Select output file name and directory
-		if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+		if (menuXYclick(xcoord, ycoord, sT, uH, iH, 1, iL, iW)){
 			if (!recordData) {
 				outputfile = "";
 				selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
@@ -829,7 +841,7 @@ class LiveGraph implements TabAPI {
 		}
 		
 		// Start recording data and saving it to a file
-		else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 2, iL, iW)){
 			if(recordData){
 				stopRecording();
 			} else if(outputfile != "" && outputfile != "No File Set"){
@@ -841,7 +853,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Change graph type
-		else if ((mouseY > sT + (uH * 4.5)) && (mouseY < sT + (uH * 4.5) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 4.5, iL, iW)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -849,26 +861,26 @@ class LiveGraph implements TabAPI {
 			else currentGraph = graphA;
 
 			// Line
-			if ((mouseX > iL) && (mouseX <= iL + iW / 3)) {
+			if (menuXclick(xcoord, iL, iW / 3)) {
 				currentGraph.setGraphType("linechart");
 				redrawContent = redrawUI = true;
 			}
 
 			// Dot
-			else if ((mouseX > iL + (iW / 3)) && (mouseX <= iL + (iW * 2 / 3))) {
+			else if (menuXclick(xcoord, iL + (iW / 3), iW / 3)) {
 				currentGraph.setGraphType("dotchart");
 				redrawContent = redrawUI = true;
 			}
 
 			// Bar
-			else if ((mouseX > iL + (iW * 2 / 3)) && (mouseX <= iL + iW)) {
+			else if (menuXclick(xcoord, iL + (iW * 2 / 3), iW / 3)) {
 				currentGraph.setGraphType("barchart");
 				redrawContent = redrawUI = true;
 			}
 		}
 
 		// Update X axis scaling
-		else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -889,7 +901,7 @@ class LiveGraph implements TabAPI {
 			*/
 
 			// Change X axis maximum value
-			if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+			if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
 				ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.getMaxX()));
 				userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nPlease input a number greater than 0.");
 				if (userInput.checkFloat(userInput.GT, 0)) {
@@ -901,7 +913,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Update Y axis scaling
-		else if ((mouseY > sT + (uH * 6.5)) && (mouseY < sT + (uH * 6.5) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 6.5, iL, iW)){
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -909,7 +921,7 @@ class LiveGraph implements TabAPI {
 			else currentGraph = graphA;
 
 			// Change Y axis minimum value
-			if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+			if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
 				ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.getMinY()));
 				userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
 				if (userInput.checkFloat(userInput.LT, currentGraph.getMaxY())) {
@@ -919,7 +931,7 @@ class LiveGraph implements TabAPI {
 			}
 
 			// Change Y axis maximum value
-			else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+			else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
 				ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.getMaxY()));
 				userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
 				if (userInput.checkFloat(userInput.GT, currentGraph.getMinY())) {
@@ -930,13 +942,13 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Turn auto-scaling on/off
-		else if ((mouseY > sT + (uH * 7.5)) && (mouseY < sT + (uH * 7.5) + iH)) {
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 7.5, iL, iW)) {
 			autoAxis = !autoAxis;
 			redrawUI = true;
 		}
 
 		// Change the input data rate
-		else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10, iL, iW)){
 			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graphA.getXrate()));
 			userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
 			if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
@@ -956,7 +968,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Pause/Resume
-		else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)) {
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)) {
 			pausedCount = dataTable.getRowCount();
 			isPaused = !isPaused;
 			redrawUI = true;
@@ -964,10 +976,10 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Add a new input data column
-		else if ((mouseY > sT + (uH * 12)) && (mouseY < sT + (uH * 12) + iH)){
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 12, iL, iW)){
 			
 			// Graph mode 1
-			if ((mouseX >= iL + iW - (80 * uimult)) && (mouseX < iL + iW - (60 * uimult))) {
+			if (menuXclick(xcoord, iL + iW - int(80 * uimult), int(20 * uimult))) {
 				graphMode = 1;
 				graphA.changeSize(cL, cR, cT, cB);
 				redrawUI = true;
@@ -984,7 +996,7 @@ class LiveGraph implements TabAPI {
 				}
 			
 			// Graph mode 2
-			} else if ((mouseX >= iL + iW - (60 * uimult)) && (mouseX < iL + iW - (40 * uimult))) {
+			} else if (menuXclick(xcoord, iL + iW - int(60 * uimult), int(20 * uimult))) {
 				graphMode = 2;
 				redrawUI = true;
 				redrawContent = true;
@@ -1002,7 +1014,7 @@ class LiveGraph implements TabAPI {
 				}
 
 			// Graph mode 3
-			} else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+			} else if (menuXclick(xcoord, iL + iW - int(40 * uimult), int(20 * uimult))) {
 				graphMode = 3;
 				redrawUI = true;
 				redrawContent = true;
@@ -1021,7 +1033,7 @@ class LiveGraph implements TabAPI {
 				}
 
 			// Graph mode 4
-			} else if ((mouseX >= iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+			} else if (menuXclick(xcoord, iL + iW - int(20 * uimult), int(20 * uimult))) {
 				graphMode = 4;
 				redrawUI = true;
 				redrawContent = true;
@@ -1054,10 +1066,10 @@ class LiveGraph implements TabAPI {
 
 					if (graphAssignment[i] == j + 1) {
 
-						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
+						if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)){
 
 							// Down arrow
-							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
+							if (menuXclick(xcoord, iL + iW - int(20 * uimult), int(20 * uimult))) {
 								graphAssignment[i]++;
 								if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 								redrawUI = true;
@@ -1065,7 +1077,7 @@ class LiveGraph implements TabAPI {
 							}
 
 							// Up arrow
-							else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
+							else if (menuXclick(xcoord, iL + iW - int(40 * uimult), int(20 * uimult))) {
 								graphAssignment[i]--;
 								if (graphAssignment[i] < 1) graphAssignment[i] = 1;
 								redrawUI = true;
