@@ -39,6 +39,7 @@ class LiveGraph implements TabAPI {
 	int menuHeight;
 	String name;
 	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
+	ReentrantLock lock = new ReentrantLock();
 
 	String outputfile;
 
@@ -55,6 +56,9 @@ class LiveGraph implements TabAPI {
 	float xRate;
 	int selectedGraph;
 	boolean autoAxis;
+	boolean autoFrequency;
+	int frequencyCounter;
+	int frequencyTimer;
 	boolean isPaused;
 	int maxSamples;
 	int[] sampleWindow = {1000,1000,1000,1000};
@@ -78,10 +82,10 @@ class LiveGraph implements TabAPI {
 		cT = top;
 		cB = bottom;
 
-		graphA = new Graph(cL, cR, cT, cB, 0, 10, 0, 1, "Graph 1");
-		graphB = new Graph(cL, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 2");
-		graphC = new Graph((cL + cR) / 2, cR, cT, (cT + cB) / 2, 0, 10, 0, 1, "Graph 3");
-		graphD = new Graph((cL + cR) / 2, cR, (cT + cB) / 2, cB, 0, 10, 0, 1, "Graph 4");
+		graphA = new Graph(cL, cR, cT, cB, 0, 20, 0, 1, "Graph 1");
+		graphB = new Graph(cL, cR, (cT + cB) / 2, cB, 0, 20, 0, 1, "Graph 2");
+		graphC = new Graph((cL + cR) / 2, cR, cT, (cT + cB) / 2, 0, 20, 0, 1, "Graph 3");
+		graphD = new Graph((cL + cR) / 2, cR, (cT + cB) / 2, cB, 0, 20, 0, 1, "Graph 4");
 		graphA.setHighlight(true);
 		graphA.setXaxisName("Time (s)");
 		graphB.setXaxisName("Time (s)");
@@ -98,6 +102,9 @@ class LiveGraph implements TabAPI {
 
 		xRate = 100;
 		autoAxis = true;
+		autoFrequency = true;
+		frequencyCounter = 0;
+		frequencyTimer = 0;
 		isPaused = false;
 		
 		drawFrom = 0;
@@ -171,6 +178,7 @@ class LiveGraph implements TabAPI {
 	 * Draw new tab data
 	 */
 	void drawNewData () {
+		lock.lock();
 		int currentCount = dataTable.getRowCount();
 		if (isPaused) {
 			if (pausedCount < currentCount) currentCount = pausedCount;
@@ -227,6 +235,7 @@ class LiveGraph implements TabAPI {
 				drawFrom++;
 			}
 		}
+		lock.unlock();
 	}
 	
 
@@ -433,6 +442,8 @@ class LiveGraph implements TabAPI {
 			}
 			while (dataTable.getColumnCount() > 0) dataTable.removeColumn(0);
 			drawFrom = 0;
+			frequencyCounter = 0;
+			frequencyTimer = 0;
 			redrawContent = true;
 		}
 	}
@@ -448,8 +459,32 @@ class LiveGraph implements TabAPI {
 
 		// Check that the starts with a number
 		if (graphable) {
+			// Get data
 			String[] dataArray = trim(split(inputData, ','));
 			
+			// Check the frequency
+			if (autoFrequency && (frequencyCounter != -1)) {
+				if (frequencyCounter == 0) frequencyTimer = millis();
+				frequencyCounter++;
+				if ((frequencyCounter > 20) && (millis() - frequencyTimer >= 10000)) {
+					float newXrate = 1000.0 * (frequencyCounter) / float(millis() - frequencyTimer);
+					if (abs(newXrate - xRate) > 2) {
+						xRate = roundToSigFig(newXrate, 2);
+						graphA.setXrate(xRate);
+						graphB.setXrate(xRate);
+						graphC.setXrate(xRate);
+						graphD.setXrate(xRate);
+						sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
+						sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
+						sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
+						sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
+						redrawContent = true;
+						redrawUI = true;
+					}
+					frequencyCounter = 0;
+				}
+			}
+
 			// If data column does not exist, add it to the list
 			while(dataColumns.length < dataArray.length){
 				dataColumns = append(dataColumns, "Signal-" + (dataColumns.length + 1));
@@ -514,12 +549,14 @@ class LiveGraph implements TabAPI {
 					dataTable = new CustomTable();
 					drawFrom = 0;
 				}
-			} else if (!isPaused) {
+			} else if (!isPaused && !lock.isLocked()) {
 				// Remove rows from table which don't need to be shown on the graphs anymore
 				while (dataTable.getRowCount() > maxSamples) {
+					lock.lock();
 					dataTable.removeRow(0);
 					drawFrom--;
 					if (drawFrom < 0) drawFrom = 0;
+					lock.unlock();
 				}
 			}
 	
@@ -613,7 +650,7 @@ class LiveGraph implements TabAPI {
 
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 9), iW, tH);
-		drawDatabox("Rate: " + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
+		drawDatabox(((autoFrequency)? "Auto: ":"Rate: ") + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
 		drawButton((isPaused)? "Resume Data [ ▶ ]":"Pause Data [⏸]", (isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW, iH, tH);
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 		drawDatabox("Split", c_idletab_text, iL, sT + (uH * 12), iW - (80 * uimult), iH, tH);
@@ -949,9 +986,16 @@ class LiveGraph implements TabAPI {
 
 		// Change the input data rate
 		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10, iL, iW)){
-			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graphA.getXrate()));
+			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):\n(Leave blank for automatic)", str(graphA.getXrate()));
 			userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
-			if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
+			if (userInput.isEmpty()) {
+				autoFrequency = true;
+				frequencyCounter = 0;
+				frequencyTimer = 0;
+				redrawUI = true;
+
+			} else if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
+				autoFrequency = false;
 				xRate = userInput.getFloat();
 				graphA.setXrate(xRate);
 				graphB.setXrate(xRate);

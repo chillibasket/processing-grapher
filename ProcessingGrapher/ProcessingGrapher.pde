@@ -38,6 +38,7 @@ import static javax.swing.JOptionPane.*;
 
 // Serial port handling
 import processing.serial.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 // Advanced key inputs
 import java.awt.event.KeyEvent;
@@ -310,6 +311,8 @@ void setupProgram() {
 
 	// Start serial port checking thread
 	portList = Serial.list();
+	if (portList.length > 0) currentPort = portList[portList.length - 1];
+
 	thread("checkSerialPortList");
 }
 
@@ -1897,6 +1900,15 @@ public class ValidateInput {
 	 */
 	public ValidateInput(final String heading, final String message, final String defaultText) {
 		inputString = myShowInputDialog(heading, message, defaultText);
+	}
+
+	/**
+	 * Check if input string is empty
+	 * @return True if user input string is empty, false otherwise
+	 */
+	public boolean isEmpty() {
+		if (inputString == null || inputString.isEmpty() || inputString.trim().isEmpty()) return true;
+		return false;
 	}
 
 	/**
