@@ -97,8 +97,13 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (8th August 2021) Version 1.3.1
+	1. ([#22](https://github.com/chillibasket/processing-grapher/issues/22)) Text can now be pasted into the serial console message box; this makes it a lot easier to send recorded messages without having to type them all out again.
+	2. ([#23](https://github.com/chillibasket/processing-grapher/issues/23)) Improved the functionality of all scroll bars so that they can now be clicked on using the mouse and dragged up and down.
+	3. ([#24](https://github.com/chillibasket/processing-grapher/issues/24)) Automatically detect the frequency of incoming serial data so that the x-axis of the real-time graph can be scaled properly without any user input.
+	4. ([#7](https://github.com/chillibasket/processing-grapher/issues/7)) The serial monitor can now differentiate between normal messages and messages which can be plotted on the realtime-graph. A new button has been added in the sidebar menu so that these "Graph Data" messages can be hidden, making it easier to see other messages.
 1. (31st July 2021) Version 1.3.0 [Release]
-	1. ([#20](https://github.com/chillibasket/processing-grapher/issues/20)): Added option to change the colour of keyword tags on the "Serial" tab and signals on the "File Graph" tab. Simply click on the colour on the sidebar menu and select a new one using the colour picker.
+	1. ([#20](https://github.com/chillibasket/processing-grapher/issues/20)) Added option to change the colour of keyword tags on the "Serial" tab and signals on the "File Graph" tab. Simply click on the colour on the sidebar menu and select a new one using the colour picker.
 	2. Minor UI improvements on "File Graph" tab to highlight zoom options. The escape key can now be used to cancel an active zoom operation.
 	3. ([#21](https://github.com/chillibasket/processing-grapher/issues/21)) Added pop-up button which allows you to scroll back down to the newest entry in the "Serial" tab after scrolling up.
 1. (9th May 2021) Version 1.2.4

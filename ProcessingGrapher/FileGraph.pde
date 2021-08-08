@@ -39,6 +39,7 @@ class FileGraph implements TabAPI {
 	int menuScroll;
 	int menuHeight;
 	int menuLevel;
+	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
 
 	String name;
 	String outputfile;
@@ -56,6 +57,7 @@ class FileGraph implements TabAPI {
 	boolean labelling;
 	boolean zoomActive;
 	boolean workerActive;
+	boolean tabIsVisible;
 	int setZoomSize;
 	int selectedSignal;
 	float[] zoomCoordOne = {0, 0, 0, 0};
@@ -85,6 +87,7 @@ class FileGraph implements TabAPI {
 		outputfile = "No File Set";
 		currentfile = "No File Set";
 
+		tabIsVisible = false;
 		zoomActive = false;
 		setZoomSize = -1;
 		labelling = false;
@@ -104,6 +107,16 @@ class FileGraph implements TabAPI {
 	 */
 	String getName () {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 
@@ -427,6 +440,7 @@ class FileGraph implements TabAPI {
 			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
 			fill(c_terminal_text);
 			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+			sidebarScroll.update(menuHeight, sH, width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
 
 			sT -= menuScroll;
 			sL -= round(15 * uimult) / 4;
@@ -792,7 +806,11 @@ class FileGraph implements TabAPI {
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
 	void scrollBarUpdate (int xcoord, int ycoord) {
-
+		if (sidebarScroll.active()) {
+			int previousScroll = menuScroll;
+			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
+			if (previousScroll != menuScroll) redrawUI = true;
+		}
 	}
 
 
@@ -806,29 +824,35 @@ class FileGraph implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
-		if (menuScroll > 0) sT -= menuScroll;
 		int sL = cR;
-		int sW = width - cR;
-		int sH = height - sT;
+		if (menuScroll > 0) sT -= menuScroll;
+		if (menuScroll != -1) sL -= round(15 * uimult) / 4;
+		final int sW = width - cR;
+		final int sH = height - sT;
 
-		int uH = round(sideItemHeight * uimult);
-		int tH = round((sideItemHeight - 8) * uimult);
-		int iH = round((sideItemHeight - 5) * uimult);
-		int iL = round(sL + (10 * uimult));
-		int iW = round(sW - (20 * uimult));
+		final int uH = round(sideItemHeight * uimult);
+		final int tH = round((sideItemHeight - 8) * uimult);
+		final int iH = round((sideItemHeight - 5) * uimult);
+		final int iL = round(sL + (10 * uimult));
+		final int iW = round(sW - (20 * uimult));
+
+		// Click on sidebar menu scroll bar
+		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
+			startScrolling(false);
+		}
 
 		// Root menu level
 		if (menuLevel == 0) {
 
 			// Open data
-			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, 1, iL, iW)){
 				saveFilePath = false;
 				outputfile = "";
 				selectInput("Select *.CSV data file to open", "fileSelected");
 			}
 
 			// Save data - currently disabled
-			else if ((mouseY > sT + (uH * 2)) && (mouseY < sT + (uH * 2) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 2, iL, iW)){
 				if (currentfile != "" && currentfile != "No File Set" && changesMade){
 					saveFilePath = true;
 					outputfile = "";
@@ -837,7 +861,7 @@ class FileGraph implements TabAPI {
 			}
 
 			// Add label
-			else if ((mouseY > sT + (uH * 4.5)) && (mouseY < sT + (uH * 4.5) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 4.5, iL, iW)){
 				if (currentfile != "" && currentfile != "No File Set"){
 					labelling = true;
 					cursor(CROSS);
@@ -845,7 +869,7 @@ class FileGraph implements TabAPI {
 			}
 			
 			// Open the filters sub-menu
-			else if ((mouseY > sT + (uH * 5.5)) && (mouseY < sT + (uH * 5.5) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)){
 				if (currentfile != "" && currentfile != "No File Set"){
 					if (xData == -1 && dataSignals.size() == 1) {
 						selectedSignal = 0;
@@ -861,32 +885,32 @@ class FileGraph implements TabAPI {
 			}
 
 			// Change graph type
-			else if ((mouseY > sT + (uH * 8)) && (mouseY < sT + (uH * 8) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 8, iL, iW)){
 
 				// Line
-				if ((mouseX > iL) && (mouseX <= iL + iW / 3)) {
+				if (menuXclick(xcoord, iL, int(iW / 3))) {
 					graph.setGraphType("linechart");
 					redrawContent = redrawUI = true;
 				}
 
 				// Dot
-				else if ((mouseX > iL + (iW / 3)) && (mouseX <= iL + (iW * 2 / 3))) {
+				else if (menuXclick(xcoord, iL + int(iW / 3), int(iW / 3))) {
 					graph.setGraphType("dotchart");
 					redrawContent = redrawUI = true;
 				}
 
 				// Bar
-				else if ((mouseX > iL + (iW * 2 / 3)) && (mouseX <= iL + iW)) {
+				else if (menuXclick(xcoord, iL + int(2 * iW / 3), int(iW / 3))) {
 					graph.setGraphType("barchart");
 					redrawContent = redrawUI = true;
 				}
 			}
 
 			// Update X axis scaling
-			else if ((mouseY > sT + (uH * 9)) && (mouseY < sT + (uH * 9) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 9, iL, iW)){
 
 				// Change X axis minimum value
-				if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+				if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
 					ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(graph.getMinX()));
 					userInput.setErrorMessage("Error\nInvalid x-axis minimum value entered.\nThe number should be smaller the the maximum value.");
 					if (userInput.checkFloat(userInput.LT, graph.getMaxX())) {
@@ -897,7 +921,7 @@ class FileGraph implements TabAPI {
 				}
 
 				// Change X axis maximum value
-				else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+				else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
 					ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(graph.getMaxX()));
 					userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nThe number should be larger the the minimum value.");
 					if (userInput.checkFloat(userInput.GT, graph.getMinX())) {
@@ -909,10 +933,10 @@ class FileGraph implements TabAPI {
 			}
 
 			// Update Y axis scaling
-			else if ((mouseY > sT + (uH * 10)) && (mouseY < sT + (uH * 10) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10, iL, iW)){
 
 				// Change Y axis minimum value
-				if ((mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+				if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
 					ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(graph.getMinY()));
 					userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
 					if (userInput.checkFloat(userInput.LT, graph.getMaxY())) {
@@ -923,7 +947,7 @@ class FileGraph implements TabAPI {
 				}
 
 				// Change Y axis maximum value
-				else if ((mouseX > iL + (iW / 2) + (6 * uimult)) && (mouseX < iL + iW)) {
+				else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
 					ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(graph.getMaxY()));
 					userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
 					if (userInput.checkFloat(userInput.GT, graph.getMinY())) {
@@ -935,11 +959,11 @@ class FileGraph implements TabAPI {
 			}
 
 			// Zoom Options
-			else if ((mouseY > sT + (uH * 11)) && (mouseY < sT + (uH * 11) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)){
 
 				if (currentfile != "" && currentfile != "No File Set") {
 					// New zoom
-					if ((mouseX > iL) && (mouseX <= iL + iW / 2)) {
+					if (menuXclick(xcoord, iL, iW / 2)) {
 						if (setZoomSize >= 0) {
 							setZoomSize = -1;
 							cursor(ARROW);
@@ -953,7 +977,7 @@ class FileGraph implements TabAPI {
 					}
 
 					// Reset zoom
-					else if ((mouseX > iL + (iW / 2)) && (mouseX <= iL + iW)) {
+					else if (menuXclick(xcoord, iL + (iW / 2), iW / 2)) {
 						zoomActive = false;
 						cursor(ARROW);
 						redrawContent = redrawUI = true;
@@ -962,7 +986,7 @@ class FileGraph implements TabAPI {
 			}
 
 			// Change the input data rate
-			else if ((mouseY > sT + (uH * 13.5)) && (mouseY < sT + (uH * 13.5) + iH)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 13.5, iL, iW)){
 				if (xData == -1) {
 					ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graph.getXrate()));
 					userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
@@ -983,10 +1007,10 @@ class FileGraph implements TabAPI {
 				for(int i = 0; i < dataSignals.size(); i++){
 
 					if (i != xData) {
-						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)){
+						if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)){
 
 							// Remove the signal
-							if ((mouseX > iL + iW - (20 * uimult)) && (mouseX < iL + iW)) {
+							if (menuXclick(xcoord, iL + iW - int(20 * uimult), int(20 * uimult))) {
 								dataSignals.remove(i);
 								dataTable.removeColumn(i);
 								
@@ -1001,7 +1025,7 @@ class FileGraph implements TabAPI {
 								redrawUI = true;
 							}
 
-							else if ((mouseX > iL + iW - (40 * uimult)) && (mouseX < iL + iW - (20 * uimult))) {
+							else if (menuXclick(xcoord, iL + iW - int(40 * uimult), int(20 * uimult))) {
 								previousColor = dataSignals.get(i).signalColor;
 								hueColor = previousColor;
 								newColor = previousColor;
@@ -1036,7 +1060,7 @@ class FileGraph implements TabAPI {
 			else {
 				for (int i = 0; i < dataSignals.size(); i++) {
 					if (i != xData && !dataTable.getColumnTitle(i).contains("l:")) {
-						if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+						if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 							selectedSignal = i;
 							menuLevel = 2;
 							menuScroll = 0;
@@ -1049,7 +1073,7 @@ class FileGraph implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1062,7 +1086,7 @@ class FileGraph implements TabAPI {
 			if (filterClass.filterList.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < filterClass.filterList.length; i++) {
-					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (!filterClass.filterList[i].contains("h:")) {
 							workerActive = true;
 							WorkerThread filterThread = new WorkerThread();
@@ -1079,7 +1103,7 @@ class FileGraph implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1089,7 +1113,7 @@ class FileGraph implements TabAPI {
 		} else if (menuLevel == 3) {
 
 			// Colour hue selection
-			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iW) && (mouseX > iL) && (mouseX < iL + iW)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iW, 1, iL, iW)) {
 				colorMode(HSB, iW, iW, iW);
 				hueColor = color(mouseX - iL, mouseY - (sT + uH), iW);
 				newColor = hueColor;
@@ -1097,7 +1121,7 @@ class FileGraph implements TabAPI {
 				redrawUI = true;
 
 			// Colour brightness selection
-			} else if ((mouseY > sT + (uH * 2.5) + iW) && (mouseY < sT + (uH * 2.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 2.5, iL, iW)) {
 				if (mouseX > iL && mouseX < iL + (iW / 2)) {
 					newColor = lerpColor(c_white, hueColor, (float) (mouseX - iL) / (iW / 2));
 					redrawUI = true;
@@ -1107,7 +1131,7 @@ class FileGraph implements TabAPI {
 				}
 
 			// Submit button
-			} else if ((mouseY > sT + (uH * 6.5) + iW) && (mouseY < sT + (uH * 6.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 6.5, iL, iW)) {
 				dataSignals.get(colorSelector).signalColor = newColor;
 				menuLevel = 0;
 				menuScroll = 0;
@@ -1115,7 +1139,7 @@ class FileGraph implements TabAPI {
 				redrawContent = true;
 
 			// Cancel button
-			} else if ((mouseY > sT + (uH * 7.5) + iW) && (mouseY < sT + (uH * 7.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 7.5, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;

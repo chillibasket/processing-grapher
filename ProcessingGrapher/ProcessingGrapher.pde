@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      31st July 2021
- * @version   1.3.0
+ * @date      8th August 2021
+ * @version   1.3.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,16 +31,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.3.0";
+final String versionNumber = "1.3.1";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
 
 // Serial port handling
 import processing.serial.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 // Advanced key inputs
 import java.awt.event.KeyEvent;
+
+// Copy from and paste to clipboard
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 
 // File dialogue
 import java.io.File;
@@ -176,6 +185,7 @@ int state = 0;
 boolean textInput = false;
 boolean controlKey = false;
 boolean scrollingActive = false;
+boolean contentScrolling = false;
 
 // Tab Bar
 ArrayList<TabAPI> tabObjects = new ArrayList<TabAPI>();
@@ -298,9 +308,12 @@ void setupProgram() {
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
+	tabObjects.get(0).setVisibility(true);
 
 	// Start serial port checking thread
 	portList = Serial.list();
+	if (portList.length > 0) currentPort = portList[portList.length - 1];
+
 	thread("checkSerialPortList");
 }
 
@@ -477,6 +490,16 @@ void drawProgram() {
 	}
 
 	if (!preventDrawing) {
+		// Update mouse scrolling
+		if (scrollingActive) {
+			if (settingsMenuActive && !contentScrolling) {
+				settings.scrollBarUpdate(mouseX, mouseY);
+			} else {
+				TabAPI curTab = tabObjects.get(currentTab);
+				curTab.scrollBarUpdate(mouseX, mouseY);
+			}
+		}
+
 		// Redraw the content area elements
 		if (redrawContent){
 			if (tabObjects.size() > currentTab) {
@@ -702,7 +725,7 @@ void drawColorSelector(color currentColor, float lS, float tS, float iW, float i
 		colorMode(HSB, iW, iW, iW);
 		int curX = -1, curY = -1;
 		for (int i = 0; i < iW; i++) {
-			for (int j = 0; j < iH; j++) {
+			for (int j = 1; j < iH; j++) {
 				color pointColor = color(i, j, iW);
 				if (currentColor == pointColor) {
 					curX = i;
@@ -743,7 +766,6 @@ void drawColorBox2D(color currentColor, color color1, color color2, float lS, fl
 		for (int i = 0; i < iW; i++) {
 			color horizontalColor = lerpColor(color1, color2, (float) (i) / iW);
 			if (currentColor == horizontalColor) {
-				horizontalColor = c_sidebar_accent;
 				curPoint = i;
 			}
 			stroke(horizontalColor);
@@ -751,6 +773,7 @@ void drawColorBox2D(color currentColor, color color1, color color2, float lS, fl
 		}
 		if (curPoint >= 0) { 
 			stroke(c_sidebar_accent);
+			line(lS + curPoint, tS, lS + curPoint, tS + iH);
 			fill(c_sidebar_accent);
 			triangle(lS + curPoint, tS + iH, lS + curPoint - (3 * uimult), tS + iH + (6 * uimult), lS + curPoint + (3 * uimult), tS + iH + (6 * uimult));
 		}
@@ -900,7 +923,38 @@ void drawRectangle(color boxcolor, float lS, float tS, float iW, float iH){
  * @return True if mouse Y-coordinate is on the menu item, false otherwise
  */
 boolean menuYclick(int yPos, int topPos, int unitH, int itemH, float n) {
-	return ((yPos > topPos + (unitH * n)) && (yPos < topPos + (unitH * n) + itemH));
+	return ((yPos >= topPos + (unitH * n)) && (yPos <= topPos + (unitH * n) + itemH));
+}
+
+
+/**
+ * Check in mouse clicked on a sidebar menu item
+ *
+ * @param  xPos    Mouse X-coordinate position
+ * @param  leftPos Left X-coordinate of item
+ * @param  itemW   Width of menu item
+ * @return True if mouse Y-coordinate is on the menu item, false otherwise
+ */
+boolean menuXclick(int xPos, int leftPos, int itemW) {
+	return ((xPos >= leftPos) && (xPos <= leftPos + itemW));
+}
+
+
+/**
+ * Check in mouse clicked on a sidebar menu item
+ *
+ * @oaram  xPos    Mouse X-coordinate position
+ * @param  yPos    Mouse Y-coordinate position
+ * @param  topPos  Top Y-coordinate of menu area
+ * @param  unitH   Height of a standard menu item unit
+ * @param  itemH   Height of menu item
+ * @param  n       Number of units the current item is from the top
+ * @param  leftPos Left X-coordinate of item
+ * @param  unitW   Width of menu item
+ * @return True if mouse Y-coordinate is on the menu item, false otherwise
+ */
+boolean menuXYclick(int xPos, int yPos, int topPos, int unitH, int itemH, float n, int leftPos, int unitW) {
+	return ((yPos >= topPos + (unitH * n)) && (yPos <= topPos + (unitH * n) + itemH) && (xPos >= leftPos) && (xPos <= leftPos + unitW));
 }
 
 
@@ -1072,12 +1126,14 @@ void mousePressed(){
 			if (!settingsMenuActive && mouseX > width - int(40 * uimult)) {
 				settingsMenuActive = true;
 				redrawUI = true;
+				settings.setVisibility(true);
 			}
 
 			// Close settings menu
 			else if (settingsMenuActive && mouseX > width - int(sidebarWidth * uimult)) {
 				settingsMenuActive = false;
 				settings.drawNewData();
+				settings.setVisibility(false);
 				redrawUI = true;
 			}
 
@@ -1085,6 +1141,8 @@ void mousePressed(){
 			else {
 				for (int i = 0; i < tabObjects.size(); i++) {
 					if ((mouseX > i*tabWidth*uimult) && (mouseX < (i+1)*tabWidth*uimult)) {
+						tabObjects.get(currentTab).setVisibility(false);
+						tabObjects.get(i).setVisibility(true);
 						currentTab = i;
 						redrawUI = redrawContent = true;
 					}
@@ -1134,7 +1192,11 @@ void menuClickEvent() {
  * end of mouse drag and drop operations
  */
 void mouseReleased() {
-	if (scrollingActive) scrollingActive = false;
+	if (scrollingActive) {
+		scrollingActive = false;
+		cursor(ARROW);
+		//println("Stopping scroll");
+	}
 }
 
 
@@ -1174,18 +1236,152 @@ void mouseWheel(MouseEvent event) {
 
 
 /**
- * Thread to manage scrollbar drag operations
- *
- * This function is not currently in use
+ * Start scrolling routine
  */
-void scrollBarEvent() {
-	/*
-	while (scrollingActive) {
-		TabAPI curTab = tabObjects.get(currentTab);
-		curTab.scrollBarUpdate(mouseX, mouseY);
-		delay(20);
+void startScrolling(boolean content) {
+	//println("Starting scroll");
+	scrollingActive = true;
+	contentScrolling = content;
+	cursor(HAND);
+}
+
+
+/**
+ * Class to manage the dragging/movement of scrollbars
+ */
+class ScrollBar {
+	int x1, w, y1, h;
+	int totalElements;
+	int totalLength;
+	int startPosition;
+	int mouseOffset;
+	float movementScaler;
+	boolean orientation;
+	boolean inverted;
+	boolean active;
+
+	static public final boolean HORIZONTAL = true;
+	static public final boolean VERTICAL = false;
+	static public final boolean INVERT = true;
+	static public final boolean NORMAL = false;
+
+	/**
+	 * Constructor with scrollbar orientation defined
+	 * 
+	 * @param  orientation Specify horizontal (true) or vertical (false) orientation
+	 */
+	ScrollBar(boolean orientation, boolean inverted) {
+		this.orientation = orientation;
+		this.inverted = inverted;
+		this.mouseOffset = 0;
+		this.active = false;
 	}
-	*/
+
+	/**
+	 * Check whether the scrollbar is active
+	 * 
+	 * @return True if active, false otherwise
+	 */
+	boolean active() {
+		return this.active;
+	}
+
+	/**
+	 * Manually enable or disable the scrollbar
+	 *
+	 * @param  setActive True = enable, false = disable scrollbar
+	 */
+	void active(boolean setActive) {
+		this.active = setActive;
+	}
+
+	/**
+	 * Update the scrollbar position and dimensions
+	 * 
+	 * @param  totalElements Total number of elements in the list
+	 * @param  totalLength   Maximum length of the scroll area width or height in px
+	 * @param  xLeft         Left-most x-axis position of the scrollbar
+	 * @param  yTop          Top-most y-axis position of the scrollbar
+	 * @param  xWidth        X-axis width of the scrollbar
+	 * @param  yHeight       Y-axis height of the scrollbar
+	 */
+	void update(int totalElements, int totalLength, int xLeft, int yTop, int xWidth, int yHeight) {
+		this.totalElements = totalElements;
+		this.totalLength = totalLength;
+		if (orientation == VERTICAL) this.mouseOffset += (yTop + yHeight) - (y1 + h);
+		else this.mouseOffset += (xLeft + xWidth) - (x1 + w);
+		this.x1 = xLeft;
+		this.w = xWidth;
+		this.y1 = yTop;
+		this.h = yHeight;
+		this.movementScaler = (totalElements / (float) totalLength);
+	}
+
+	/**
+	 * Check if mouse has clicked on the scroll bar
+	 * 
+	 * @param  xcoord Mouse x-axis coordinate
+	 * @param  ycoord Mouse y-axis coordinate
+	 * @return True if mouse has clicked on scrollbar, false otherwise
+	 */
+	boolean click(int xcoord, int ycoord) {
+		if ((xcoord >= x1) && (xcoord <= x1 + w) && (ycoord >= y1) && (ycoord <= y1 + h)) {
+			if (orientation == VERTICAL) {
+				mouseOffset = y1 + h - ycoord; 
+				startPosition = ycoord;
+			} else {
+				mouseOffset = x1 + w - xcoord; 
+				startPosition = xcoord;
+			}
+			active = true;
+			return true;
+		}
+		active = false;
+		return false;
+	}
+
+	/**
+	 * Mouse drag event function
+	 * 
+	 * @param  xcoord        Mouse x-axis coordinate
+	 * @param  ycoord        Mouse y-axis coordinate
+	 * @param  currentScroll The current scroll position
+	 * @oaram  minScroll     Minimum scroll position
+	 * @oaram  maxScroll     Maximum scroll position
+	 * @retun  The new scroll position of the scrollbar
+	 */
+	int move(int xcoord, int ycoord, int currentScroll, int minScroll, int maxScroll) {
+
+		int mainCoord = ycoord;
+		if (orientation == HORIZONTAL) mainCoord = xcoord;
+
+		int currentPosition = mainCoord + mouseOffset;
+		int elementsMoved = int((currentPosition - (startPosition + mouseOffset)) * movementScaler);
+
+		if (abs(elementsMoved) >= 1) {
+
+			if (inverted) elementsMoved = -elementsMoved;
+			//println(elementsMoved, currentPosition, mouseOffset, startPosition, minScroll, maxScroll);
+
+			if (((elementsMoved < 0) && (currentScroll == minScroll)) || ((elementsMoved > 0) && (currentScroll == maxScroll))) {
+				if (orientation == VERTICAL) {
+					mouseOffset = y1 + h - ycoord;
+					startPosition = ycoord;
+				} else {
+					mouseOffset = x1 + w - xcoord; 
+					startPosition = xcoord;
+				}
+			} else {
+				currentScroll += elementsMoved;
+				if (currentScroll < minScroll) currentScroll = minScroll;
+				else if (currentScroll > maxScroll) currentScroll = maxScroll;
+
+				startPosition = mainCoord;
+			}
+		}
+
+		return currentScroll;
+	}
 }
 
 
@@ -1197,6 +1393,7 @@ void scrollBarEvent() {
  * keys such as SHIFT and CONTROL
  */
 void keyTyped() {
+
 	if (!controlKey) {
 		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
@@ -1218,7 +1415,8 @@ void keyTyped() {
  * keyTyped() function
  */
 void keyPressed() {
-	
+	//println(keyCode);
+
 	// Check for control key
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = true;
@@ -1229,6 +1427,18 @@ void keyPressed() {
 	// Increase UI scaling (CTRL and +)
 	} else if (controlKey && (key == '=' || key == '+' || keyCode == 61)) {
 		if (uimult < 2.0) uiResize(0.1);
+	// Copy keys
+	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == 67)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_COPY, true);
+		} else currentTab = 0;
+	// Paste keys
+	} else if (controlKey && (key == 'v' || key == 'V' || keyCode == 86)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_PASTE, true);
+		} else currentTab = 0;
 
 	// For all other keys, send them on to the active tab
 	} else if (key == CODED) {
@@ -1264,6 +1474,45 @@ void keyReleased() {
 	if (key == CODED && keyCode == CONTROL) {
 		controlKey = false;
 	}
+}
+
+
+/**
+ * Copy text from clipboard
+ * 
+ * @return The string contained in the clipboard
+ */
+String getStringClipboard() {
+
+	Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard(); 
+	Transferable contents = clipboard.getContents(null);
+	Object object = null;
+	DataFlavor flavor = DataFlavor.stringFlavor;
+	String clipboardText = "";
+
+	if (contents != null && contents.isDataFlavorSupported(flavor))
+	{
+		try
+		{
+			object = contents.getTransferData(flavor);
+			clipboardText = (String) object;
+			//println("Clipboard.getFromClipboard() >> Object transferred from clipboard.");
+		}
+
+		catch (UnsupportedFlavorException e1) // Unlikely but we must catch it
+		{
+			println("Clipboard.getFromClipboard() >> Unsupported flavor: " + e1);
+			//~  e1.printStackTrace();
+		}
+
+		catch (java.io.IOException e2)
+		{
+			println("Clipboard.getFromClipboard() >> Unavailable data: " + e2);
+			//~  e2.printStackTrace();
+		}
+	}
+
+	return clipboardText;
 }
 
 /** @} End of KeyboardMouse */
@@ -1659,6 +1908,15 @@ public class ValidateInput {
 	}
 
 	/**
+	 * Check if input string is empty
+	 * @return True if user input string is empty, false otherwise
+	 */
+	public boolean isEmpty() {
+		if (inputString == null || inputString.isEmpty() || inputString.trim().isEmpty()) return true;
+		return false;
+	}
+
+	/**
 	 * Set which error message is shown if invalid user input is supplied
 	 * @param  error  The error message to display
 	 */
@@ -2040,6 +2298,9 @@ String constrainString(String inputText, float maxWidth) {
 interface TabAPI {
 	// Name of the tab
 	String getName();
+
+	// Show or hide a tab
+	void setVisibility(boolean newState);
 	
 	// Draw functions
 	void drawContent();

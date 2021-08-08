@@ -52,17 +52,20 @@ class SerialMonitor implements TabAPI {
 	boolean recordData;
 	int recordCounter;
 	int fileCounter;
-	final int maxFileRows = 100000;
+	final int maxFileRows = 50000;
 	ArrayList<SerialTag> serialTags = new ArrayList<SerialTag>();
 	
 	int displayRows;
 	final int maxBuffer = 50000;
 	int scrollUp;
+	ScrollBar serialScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.INVERT);
+	ScrollBar sidebarScroll = new ScrollBar(ScrollBar.VERTICAL, ScrollBar.NORMAL);
 
 	String msgText= "";
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
+	boolean tabIsVisible;
 
 	color previousColor = c_red;
 	color hueColor = c_red;
@@ -70,7 +73,8 @@ class SerialMonitor implements TabAPI {
 	int colorSelector = 0;
 
 	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
-	StringList serialBuffer;
+	//StringList serialBuffer;
+	SerialMessages serialBuffer;
 
 
 	/**
@@ -84,6 +88,7 @@ class SerialMonitor implements TabAPI {
 	 */
 	SerialMonitor(String setname, int left, int right, int top, int bottom) {
 		name = setname;
+		tabIsVisible = false;
 		
 		cL = left;
 		cR = right;
@@ -112,7 +117,8 @@ class SerialMonitor implements TabAPI {
 		serialTags.add(new SerialTag("SENT:", c_colorlist[0]));
 		serialTags.add(new SerialTag("[Info]", c_colorlist[1]));
 
-		serialBuffer = new StringList();
+		serialBuffer = new SerialMessages(maxBuffer);
+		//serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 		if (showInstructions) {
 			serialBuffer.append("");
@@ -149,6 +155,16 @@ class SerialMonitor implements TabAPI {
 	 */
 	String getName() {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 
@@ -273,13 +289,14 @@ class SerialMonitor implements TabAPI {
 		textAlign(LEFT, TOP);
 		textFont(mono_font);
 
-		// Figure out size and position of scroll bar indicator
+		// Figure out size and position of vertical scroll bar indicator
 		if (serialBuffer.size() > 0) {
 			int scrollbarSize = totalHeight * displayRows / serialBuffer.size();
 			if (scrollbarSize < yTextHeight) scrollbarSize = yTextHeight;
 			int scrollbarOffset = int((totalHeight - scrollbarSize) * (1 - (scrollUp / float(serialBuffer.size() - displayRows))));
 			fill(c_terminal_text);
 			rect(cL, msgB + scrollbarOffset, border/2, scrollbarSize);
+			serialScroll.update(serialBuffer.size(), totalHeight, cL, msgB + scrollbarOffset, border / 2, scrollbarSize);
 
 			totalHeight -= yTextHeight;
 
@@ -433,7 +450,7 @@ class SerialMonitor implements TabAPI {
 		}
 
 		outputfile = "No File Set";
-		redrawUI = true;
+		if (tabIsVisible) redrawUI = true;
 	}
 
 
@@ -459,7 +476,7 @@ class SerialMonitor implements TabAPI {
 	 */
 	void parsePortData(String inputData, boolean graphable) {
 
-		serialBuffer.append(inputData);
+		serialBuffer.append(inputData, graphable);
 		if (!autoScroll && scrollUp < maxBuffer) scrollUp++;
 
 		// --- Data Recording ---
@@ -492,17 +509,21 @@ class SerialMonitor implements TabAPI {
 			}
 		} else {
 			// --- Data Buffer ---
-			if (serialBuffer.size() >= maxBuffer) {
-				serialBuffer.remove(0);
-			}
+			//if (serialBuffer.size() >= maxBuffer) {
+			//	serialBuffer.remove(0);
+			//}
 		}
 
-		drawNewData = true;
+		if (!serialBuffer.getVisibility() && graphable) {
+			return;
+		} else if (tabIsVisible) {
+			drawNewData = true;
+		}
 	}
 
 
 	/**
-	 * Recover from an rrror when recording data to file
+	 * Recover from an error when recording data to file
 	 *
 	 * @param  continueRecording If we want to continue recording after dealing with the error
 	 */
@@ -586,7 +607,7 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
-		if (menuLevel == 0)	menuHeight = round((14 + serialTags.size()) * uH);
+		if (menuLevel == 0)	menuHeight = round((15 + serialTags.size()) * uH);
 		else if (menuLevel == 1) menuHeight = round((3 + ports.length) * uH);
 		else if (menuLevel == 2) menuHeight = round((3 + baudRateList.length) * uH);
 		else if (menuLevel == 3) menuHeight = round(9 * uH + iW);
@@ -606,6 +627,7 @@ class SerialMonitor implements TabAPI {
 			int scrollbarOffset = round((sH - scrollbarSize) * (menuScroll / float(menuHeight - sH)));
 			fill(c_terminal_text);
 			rect(width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
+			sidebarScroll.update(menuHeight, sH, width - round(15 * uimult) / 2, sT + scrollbarOffset, round(15 * uimult) / 2, scrollbarSize);
 
 			sT -= menuScroll;
 			sL -= round(15 * uimult) / 4;
@@ -647,12 +669,13 @@ class SerialMonitor implements TabAPI {
 			if (recordData) drawDatabox("Clear Terminal", c_idletab_text, iL, sT + (uH * 9), iW, iH, tH);
 			else drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
 			drawButton((autoScroll)? "Autoscroll: On":"Autoscroll: Off", (autoScroll)? c_sidebar_button:c_sidebar_accent, iL, sT + (uH * 10), iW, iH, tH);
+			drawButton((serialBuffer.getVisibility())? "Graph Data: Shown":"Graph Data: Hidden", (serialBuffer.getVisibility())? c_sidebar_button:c_sidebar_accent, iL, sT + (uH * 11), iW, iH, tH);
 
 			// Input Data Columns
-			drawHeading("Colour Tags", iL, sT + (uH * 11.5), iW, tH);
-			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
+			drawHeading("Colour Tags", iL, sT + (uH * 12.5), iW, tH);
+			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 
-			float tHnow = 13.5;
+			float tHnow = 14.5;
 
 			// List of Data Columns
 			for (SerialTag curTag : serialTags) {
@@ -828,9 +851,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp < serialBuffer.size() - displayRows) scrollUp++;
 						else scrollUp = serialBuffer.size() - displayRows;
 						drawNewData = true;
+						if (previousScroll == 0 && scrollUp > 0) {
+							autoScroll = false;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -842,9 +870,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp > 0) scrollUp--;
 						else scrollUp = 0;
 						drawNewData = true;
+						if (previousScroll > 0 && scrollUp == 0) {
+							autoScroll = true;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -856,8 +889,13 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp < serialBuffer.size() - displayRows) scrollUp += displayRows;
 						if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
+						if (previousScroll == 0 && scrollUp > 0) {
+							autoScroll = false;
+							redrawUI = true;
+						}
 						drawNewData = true;
 					}
 					break;
@@ -870,9 +908,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp > 0) scrollUp -= displayRows;
 						if (scrollUp < 0) scrollUp = 0;
 						drawNewData = true;
+						if (previousScroll > 0 && scrollUp == 0) {
+							autoScroll = true;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -884,7 +927,9 @@ class SerialMonitor implements TabAPI {
 					// Scroll serial monitor
 					} else {
 						scrollUp = 0;
+						autoScroll = true;
 						drawNewData = true;
+						redrawUI = true;
 					}
 					break;
 
@@ -895,11 +940,49 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						scrollUp = serialBuffer.size() - displayRows;
 						drawNewData = true;
+						autoScroll = false;
+						redrawUI = true;
 					}
 					break;
 
+				case KeyEvent.VK_COPY: {
+					println("Copying: " + serialBuffer.get(serialBuffer.size() - 1));
+					StringSelection selection = new StringSelection(serialBuffer.get(serialBuffer.size() - 1));
+  					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+  					clipboard.setContents(selection, selection);
+					break;
+				}
+
+				case KeyEvent.VK_PASTE: {
+					String clipboardText = getStringClipboard();
+					if (clipboardText != null && clipboardText.length() > 0) {
+						String msgEnd = "";
+						if (cursorPosition == 0) {
+							msgEnd = msgText;
+							msgText = "";
+						} else if (cursorPosition < msgText.length()) {
+							msgEnd = msgText.substring(cursorPosition, msgText.length());
+							msgText = msgText.substring(0, cursorPosition);
+						}
+						//println("Pasting: " + clipboardText);
+						String clipboardLines[] = clipboardText.split("\\r?\\n");
+						for (int i = 0; i < clipboardLines.length - 1; i++) {
+							if (serialConnected) {
+								serialSend(msgText + clipboardLines[i]);
+							}
+							msgText = "SENT: " + msgText + clipboardLines[i];
+							serialBuffer.append(msgText);
+							msgText = "";
+						}
+						msgText += clipboardLines[clipboardLines.length - 1] + msgEnd;
+						cursorPosition = msgText.length() - msgEnd.length();
+						redrawContent = true;
+					}
+					break;
+				}
 				default:
 					//print("Unknown character: ");
 					//print(keyChar);
@@ -928,6 +1011,12 @@ class SerialMonitor implements TabAPI {
 				redrawContent = true;
 			}
 		}
+
+		// Click on serial monitor scrollbar
+		if ((scrollUp != -1) && serialScroll.click(xcoord, ycoord)) {
+			sidebarScroll.active(false);
+			startScrolling(true);
+		}
 	}
 
 
@@ -941,8 +1030,9 @@ class SerialMonitor implements TabAPI {
 
 		// Coordinate calculation
 		int sT = cT;
+		int sL = cR;
 		if (menuScroll > 0) sT -= menuScroll;
-		final int sL = cR;
+		if (menuScroll != -1) sL -= round(15 * uimult) / 4;
 		final int sW = width - cR;
 		final int sH = height - sT;
 
@@ -954,30 +1044,36 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
+		// Click on sidebar menu scroll bar
+		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
+			serialScroll.active(false);
+			startScrolling(false);
+		}
+
 		// Root menu level
 		if (menuLevel == 0) {
 
 			// COM Port Number
-			if (menuYclick(mouseY, sT, uH, iH, 1)) { //(mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iH)){
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, 1, iL, iW)) {
 				menuLevel = 1;
 				menuScroll = 0;
 				redrawUI = true;
 			}
 
 			// COM Port Baud Rate
-			else if (menuYclick(mouseY, sT, uH, iH, 2)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 2, iL, iW)){
 				menuLevel = 2;
 				menuScroll = 0;
 				redrawUI = true;
 			}
 
 			// Connect to COM port
-			else if (menuYclick(mouseY, sT, uH, iH, 3)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 3, iL, iW)){
 				setupSerial();
 			}
 
 			// Select output file name and directory
-			else if (menuYclick(mouseY, sT, uH, iH, 5.5)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)){
 				if (!recordData) {
 					outputfile = "";
 					selectOutput("Select a location and name for the output *.TXT file", "fileSelected");
@@ -985,7 +1081,7 @@ class SerialMonitor implements TabAPI {
 			}
 			
 			// Start recording data and saving it to a file
-			else if (menuYclick(mouseY, sT, uH, iH, 6.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 6.5, iL, iW)) {
 				if(recordData) {
 					stopRecording();
 				} else if(outputfile != "" && outputfile != "No File Set") {
@@ -994,7 +1090,7 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Clear the terminal buffer
-			else if (menuYclick(mouseY, sT, uH, iH, 9)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 9, iL, iW)) {
 				if (!recordData) {
 					serialBuffer.clear();
 					serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
@@ -1004,13 +1100,20 @@ class SerialMonitor implements TabAPI {
 			}
 
 			// Turn autoscrolling on/off
-			else if (menuYclick(mouseY, sT, uH, iH, 10)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 10, iL, iW)) {
 				autoScroll = !autoScroll;
 				redrawUI = true;
 			}
 
+			// Turn graphable numbers on/off
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)) {
+				serialBuffer.setVisibility(!serialBuffer.getVisibility());
+				redrawContent = true;
+				redrawUI = true;
+			}
+
 			// Add a new colour tag column
-			else if (menuYclick(mouseY, sT, uH, iH, 12.5)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 13.5, iL, iW)) {
 				final String colname = myShowInputDialog("Add a new Colour Tag","Keyword Text:","");
 				if (colname != null && colname.length() > 0){
 					serialTags.add(new SerialTag(colname, c_colorlist[serialTags.size() % c_colorlist.length]));
@@ -1020,22 +1123,22 @@ class SerialMonitor implements TabAPI {
 			}
 			
 			else {
-				float tHnow = 13.5;
+				float tHnow = 14.5;
 
 				// List of Data Columns
 				for(int i = 0; i < serialTags.size(); i++) {
 
-					if (menuYclick(mouseY, sT, uH, iH, tHnow)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 
 						// Remove column
-						if ((mouseX > iL + iW - (20 * uimult)) && (mouseX <= iL + iW)) {
+						if (menuXclick(xcoord, iL + iW - int(20 * uimult), int(20 * uimult))) {
 							serialTags.remove(i);
 							redrawUI = true;
 							drawNewData = true;
 						}
 
 						// Change colour of entry
-						else if ((mouseX >= iL + iW - (40 * uimult)) && (mouseX <= iL + iW - (20 * uimult))) {
+						else if (menuXclick(xcoord, iL + iW - int(40 * uimult), int(40 * uimult))) {
 							previousColor = serialTags.get(i).tagColor;
 							hueColor = previousColor;
 							newColor = previousColor;
@@ -1067,7 +1170,7 @@ class SerialMonitor implements TabAPI {
 			if (ports.length == 0) tHnow++;
 			else {
 				for (int i = 0; i < ports.length; i++) {
-					if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 
 						// If the serial port is already connected to a different port, disconnect it
 						if (serialConnected && portNumber != i) setupSerial();
@@ -1083,7 +1186,7 @@ class SerialMonitor implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1093,7 +1196,7 @@ class SerialMonitor implements TabAPI {
 		} else if (menuLevel == 2) {
 			float tHnow = 1;
 			for (int i = 0; i < baudRateList.length; i++) {
-				if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+				if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 					baudRate = baudRateList[i];
 					menuLevel = 0;
 					menuScroll = 0;
@@ -1110,7 +1213,7 @@ class SerialMonitor implements TabAPI {
 
 			// Cancel button
 			tHnow += 0.5;
-			if ((mouseY > sT + (uH * tHnow)) && (mouseY < sT + (uH * tHnow) + iH)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1120,7 +1223,7 @@ class SerialMonitor implements TabAPI {
 		} else if (menuLevel == 3) {
 
 			// Colour hue selection
-			if ((mouseY > sT + (uH * 1)) && (mouseY < sT + (uH * 1) + iW) && (mouseX > iL) && (mouseX < iL + iW)) {
+			if (menuXYclick(xcoord, ycoord, sT, uH, iW, 1, iL, iW)) {
 				colorMode(HSB, iW, iW, iW);
 				hueColor = color(mouseX - iL, mouseY - (sT + uH), iW);
 				newColor = hueColor;
@@ -1128,7 +1231,7 @@ class SerialMonitor implements TabAPI {
 				redrawUI = true;
 
 			// Colour brightness selection
-			} else if ((mouseY > sT + (uH * 2.5) + iW) && (mouseY < sT + (uH * 2.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 2.5, iL, iW)) {
 				if (mouseX > iL && mouseX < iL + (iW / 2)) {
 					newColor = lerpColor(c_white, hueColor, (float) (mouseX - iL) / (iW / 2));
 					redrawUI = true;
@@ -1138,7 +1241,7 @@ class SerialMonitor implements TabAPI {
 				}
 
 			// Submit button
-			} else if ((mouseY > sT + (uH * 6.5) + iW) && (mouseY < sT + (uH * 6.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 6.5, iL, iW)) {
 				serialTags.get(colorSelector).tagColor = newColor;
 				menuLevel = 0;
 				menuScroll = 0;
@@ -1146,7 +1249,7 @@ class SerialMonitor implements TabAPI {
 				redrawContent = true;
 
 			// Cancel button
-			} else if ((mouseY > sT + (uH * 7.5) + iW) && (mouseY < sT + (uH * 7.5) + iW + iH)) {
+			} else if (menuXYclick(xcoord, ycoord, sT + iW, uH, iH, 7.5, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
 				redrawUI = true;
@@ -1169,10 +1272,18 @@ class SerialMonitor implements TabAPI {
 
 		// Scroll serial monitor
 		} else {
+			int previousScroll = scrollUp;
 			scrollUp -= round(2 * amount);
 			if (scrollUp < 0) scrollUp = 0;
 			else if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
 			drawNewData = true;
+			if (previousScroll == 0 && scrollUp > 0) {
+				autoScroll = false;
+				redrawUI = true;
+			} else if (previousScroll > 0 && scrollUp == 0) {
+				autoScroll = true;
+				redrawUI = true;
+			}
 		}
 
 		redrawUI = true;
@@ -1186,7 +1297,23 @@ class SerialMonitor implements TabAPI {
 	 * @param  ycoord Current mouse y-coordinate position
 	 */
 	void scrollBarUpdate(int xcoord, int ycoord) {
-
+		if (serialScroll.active()) {
+			int previousScroll = scrollUp;
+			scrollUp = serialScroll.move(xcoord, ycoord, scrollUp, 0, serialBuffer.size() - displayRows);
+			if (previousScroll != scrollUp) redrawContent = true;
+			if (previousScroll == 0 && scrollUp > 0) {
+				autoScroll = false;
+				redrawUI = true;
+			} else if (previousScroll > 0 && scrollUp == 0) {
+				autoScroll = true;
+				redrawUI = true;
+			}
+		}
+		if (sidebarScroll.active()) {
+			int previousScroll = menuScroll;
+			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
+			if (previousScroll != menuScroll) redrawUI = true;
+		}
 	}
 
 
@@ -1228,4 +1355,193 @@ class SerialMonitor implements TabAPI {
 			tagColor = setColor;
 		}
 	}
+
+
+	/**
+	 * Data structure to store serial messages and other related info
+	 */
+	class SerialMessages {
+		private int totalMessagesLength;
+		private int lookupTableLength;
+		private int maximumLength;
+
+		private boolean showAllMessages;
+
+		private int bufferEndIdx;
+		private int tableStartIdx;
+		private int tableEndIdx;
+
+		private StringList serialMessagesBuffer; //!< Buffer which contains all received serial messages
+		private IntList textLookupTable;         //!< Table containing indices to all non-graphable serial messages
+
+		/**
+		 * Constructor
+		 * @param  maxLength Maximum number of entries in the serial buffer
+		 */
+		SerialMessages(int maxLength) {
+			this.bufferEndIdx = 0;
+			this.tableStartIdx = 0;
+			this.tableEndIdx = 0;
+			this.totalMessagesLength = 0;
+			this.lookupTableLength = 0;
+			this.showAllMessages = true;
+			this.maximumLength = maxLength;
+			int initialLength = 1000;
+			if (initialLength > maxLength) initialLength = maxLength;
+			this.serialMessagesBuffer = new StringList(initialLength);
+			this.textLookupTable = new IntList(initialLength);
+		}
+
+		/**
+		 * Get the value at the specific index
+		 * @param  index The index at which to retrieve the value
+		 * @return The requested serial message
+		 */
+		public String get(int index) {
+			// If reading from the serial messages buffer directly
+			if (showAllMessages) {
+				// Check that the requested index is within bounds
+				if (index < totalMessagesLength) {
+					// If buffer is full, ensure values wrap around properly
+					if (totalMessagesLength == maximumLength) {
+						index += bufferEndIdx;
+						if (index >= totalMessagesLength) index -= totalMessagesLength;
+					}
+					return serialMessagesBuffer.get(index);
+				}
+			// If only showing non-graphable results, read from the lookup table
+			} else {
+				// Check that the requested index is within bounds
+				if (index < lookupTableLength) {
+					index += tableStartIdx;
+					if (index >= textLookupTable.size()) index -= textLookupTable.size();
+					return serialMessagesBuffer.get(textLookupTable.get(index));
+				}
+			}
+			return null;
+		}
+
+		/**
+		 * Get the number of items in the list
+		 * @return The length of the list (if disabled, graphable entries are excluded)
+		 */
+		public int size() {
+			if (showAllMessages) return totalMessagesLength;
+			return lookupTableLength;
+		}
+
+		/**
+		 * Clear all items from the list
+		 */
+		public void clear() {
+			totalMessagesLength = 0;
+			bufferEndIdx = 0;
+			tableStartIdx = 0;
+			tableEndIdx = 0;
+			lookupTableLength = 0;
+		}
+
+		/**
+		 * Read whether all messages are being shown, or just the non-graphable ones
+		 * @return True = all messages shown, false = non-graphable messages shown
+		 */
+		public boolean getVisibility() {
+			return showAllMessages;
+		}
+
+		/**
+		 * Set whether all messages will be shown, or only the non-graphable ones
+		 * @param  setState True = all messages shown, false = only non-graphable messages shown
+		 */
+		public void setVisibility(boolean setState) {
+			showAllMessages = setState;
+		}
+
+		/**
+		 * Add a new serial message to the list
+		 * @param  message   The serial message to add
+		 * @param  graphable Whether the message only contains numbers and can be graphed
+		 */
+		public void append(String message, boolean graphable) {
+			// If list hasn't reached its max length, append the new value
+			if (totalMessagesLength < maximumLength) {
+				if (totalMessagesLength < serialMessagesBuffer.size()) {
+					serialMessagesBuffer.set(bufferEndIdx, message);
+					if (!graphable) textLookupTable.set(tableEndIdx, bufferEndIdx);
+				} else {
+					serialMessagesBuffer.append(message);
+					textLookupTable.append(0);
+					if (!graphable) textLookupTable.set(tableEndIdx, bufferEndIdx);
+				}
+
+				totalMessagesLength++;
+				bufferEndIdx++;
+				if (!graphable) {
+					tableEndIdx++;
+					lookupTableLength++;
+				}
+
+			// Otherwise overwrite oldest item in list in a circular manner
+			} else {
+				int firstItem = bufferEndIdx;
+				if (firstItem >= serialMessagesBuffer.size()) firstItem = 0;
+				
+				if (textLookupTable.get(tableStartIdx) == firstItem) {
+					lookupTableLength--;
+					tableStartIdx++;
+					if (tableStartIdx >= textLookupTable.size()) tableStartIdx = 0;
+				}
+
+				// Add the item to the list
+				serialMessagesBuffer.set(firstItem, message);
+
+				if (!graphable) {
+					if (tableEndIdx >= textLookupTable.size()) tableEndIdx = 0;
+					textLookupTable.set(tableEndIdx++, firstItem);
+					lookupTableLength++;
+				}
+
+				bufferEndIdx = firstItem + 1;
+			}
+		}
+
+		/**
+		 * Add a new serial message to the list
+		 * @note This is an overload function where it is assumed the message cannot be plotted on a graph
+		 * @see  void append(String message, boolean graphable)
+		 */
+		public void append(String message) {
+			append(message, false);
+		}
+	}
+
+	/**
+	 * Class to deal with highlighting text in the serial monitor
+	 */
+	// class TextHighlight {
+	// 	private boolean active;
+	// 	private int startChar;
+	// 	private int endChar;
+
+	// 	/**
+	// 	 * Constructor
+	// 	 */
+	// 	TextHighlight() {
+	// 		active = false;
+	// 		startChar = 0;
+	// 		endChar = 0;
+	// 	}
+
+	// 	/**
+	// 	 * Check if mouse has clicked on the some text
+	// 	 * 
+	// 	 * @param  xcoord Mouse x-axis coordinate
+	// 	 * @param  ycoord Mouse y-axis coordinate
+	// 	 * @return True if mouse has clicked on scrollbar, false otherwise
+	// 	 */
+	// 	boolean click(int xcoord, int ycoord) {
+
+	// 	}
+
+	// }
 }
