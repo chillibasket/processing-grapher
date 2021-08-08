@@ -43,6 +43,7 @@ class Settings implements TabAPI {
 	String outputfile;
 
 	boolean unsavedChanges = false;
+	boolean tabIsVisible = false;
 	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
 	final String[] lineEndingNames = {"New Line (Default)", "Carriage Return"};
 	final char[] lineEndingList = {'\n', '\r'};
@@ -87,6 +88,16 @@ class Settings implements TabAPI {
 	 */
 	String getName () {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 

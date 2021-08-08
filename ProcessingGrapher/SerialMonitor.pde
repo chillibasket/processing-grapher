@@ -52,7 +52,7 @@ class SerialMonitor implements TabAPI {
 	boolean recordData;
 	int recordCounter;
 	int fileCounter;
-	final int maxFileRows = 100000;
+	final int maxFileRows = 50000;
 	ArrayList<SerialTag> serialTags = new ArrayList<SerialTag>();
 	
 	int displayRows;
@@ -65,6 +65,7 @@ class SerialMonitor implements TabAPI {
 	int cursorPosition;
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
+	boolean tabIsVisible;
 
 	color previousColor = c_red;
 	color hueColor = c_red;
@@ -72,7 +73,8 @@ class SerialMonitor implements TabAPI {
 	int colorSelector = 0;
 
 	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
-	StringList serialBuffer;
+	//StringList serialBuffer;
+	SerialMessages serialBuffer;
 
 
 	/**
@@ -86,6 +88,7 @@ class SerialMonitor implements TabAPI {
 	 */
 	SerialMonitor(String setname, int left, int right, int top, int bottom) {
 		name = setname;
+		tabIsVisible = false;
 		
 		cL = left;
 		cR = right;
@@ -114,7 +117,8 @@ class SerialMonitor implements TabAPI {
 		serialTags.add(new SerialTag("SENT:", c_colorlist[0]));
 		serialTags.add(new SerialTag("[Info]", c_colorlist[1]));
 
-		serialBuffer = new StringList();
+		serialBuffer = new SerialMessages(maxBuffer);
+		//serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 		if (showInstructions) {
 			serialBuffer.append("");
@@ -151,6 +155,16 @@ class SerialMonitor implements TabAPI {
 	 */
 	String getName() {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 
@@ -275,7 +289,7 @@ class SerialMonitor implements TabAPI {
 		textAlign(LEFT, TOP);
 		textFont(mono_font);
 
-		// Figure out size and position of scroll bar indicator
+		// Figure out size and position of vertical scroll bar indicator
 		if (serialBuffer.size() > 0) {
 			int scrollbarSize = totalHeight * displayRows / serialBuffer.size();
 			if (scrollbarSize < yTextHeight) scrollbarSize = yTextHeight;
@@ -436,7 +450,7 @@ class SerialMonitor implements TabAPI {
 		}
 
 		outputfile = "No File Set";
-		redrawUI = true;
+		if (tabIsVisible) redrawUI = true;
 	}
 
 
@@ -462,7 +476,7 @@ class SerialMonitor implements TabAPI {
 	 */
 	void parsePortData(String inputData, boolean graphable) {
 
-		serialBuffer.append(inputData);
+		serialBuffer.append(inputData, graphable);
 		if (!autoScroll && scrollUp < maxBuffer) scrollUp++;
 
 		// --- Data Recording ---
@@ -495,17 +509,21 @@ class SerialMonitor implements TabAPI {
 			}
 		} else {
 			// --- Data Buffer ---
-			if (serialBuffer.size() >= maxBuffer) {
-				serialBuffer.remove(0);
-			}
+			//if (serialBuffer.size() >= maxBuffer) {
+			//	serialBuffer.remove(0);
+			//}
 		}
 
-		drawNewData = true;
+		if (!serialBuffer.getVisibility() && graphable) {
+			return;
+		} else if (tabIsVisible) {
+			drawNewData = true;
+		}
 	}
 
 
 	/**
-	 * Recover from an rrror when recording data to file
+	 * Recover from an error when recording data to file
 	 *
 	 * @param  continueRecording If we want to continue recording after dealing with the error
 	 */
@@ -589,7 +607,7 @@ class SerialMonitor implements TabAPI {
 
 		String[] ports = Serial.list();
 
-		if (menuLevel == 0)	menuHeight = round((14 + serialTags.size()) * uH);
+		if (menuLevel == 0)	menuHeight = round((15 + serialTags.size()) * uH);
 		else if (menuLevel == 1) menuHeight = round((3 + ports.length) * uH);
 		else if (menuLevel == 2) menuHeight = round((3 + baudRateList.length) * uH);
 		else if (menuLevel == 3) menuHeight = round(9 * uH + iW);
@@ -651,12 +669,13 @@ class SerialMonitor implements TabAPI {
 			if (recordData) drawDatabox("Clear Terminal", c_idletab_text, iL, sT + (uH * 9), iW, iH, tH);
 			else drawButton("Clear Terminal", c_sidebar_button, iL, sT + (uH * 9), iW, iH, tH);
 			drawButton((autoScroll)? "Autoscroll: On":"Autoscroll: Off", (autoScroll)? c_sidebar_button:c_sidebar_accent, iL, sT + (uH * 10), iW, iH, tH);
+			drawButton((serialBuffer.getVisibility())? "Graph Data: Shown":"Graph Data: Hidden", (serialBuffer.getVisibility())? c_sidebar_button:c_sidebar_accent, iL, sT + (uH * 11), iW, iH, tH);
 
 			// Input Data Columns
-			drawHeading("Colour Tags", iL, sT + (uH * 11.5), iW, tH);
-			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
+			drawHeading("Colour Tags", iL, sT + (uH * 12.5), iW, tH);
+			drawButton("Add New Tag", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 
-			float tHnow = 13.5;
+			float tHnow = 14.5;
 
 			// List of Data Columns
 			for (SerialTag curTag : serialTags) {
@@ -832,9 +851,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp < serialBuffer.size() - displayRows) scrollUp++;
 						else scrollUp = serialBuffer.size() - displayRows;
 						drawNewData = true;
+						if (previousScroll == 0 && scrollUp > 0) {
+							autoScroll = false;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -846,9 +870,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp > 0) scrollUp--;
 						else scrollUp = 0;
 						drawNewData = true;
+						if (previousScroll > 0 && scrollUp == 0) {
+							autoScroll = true;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -860,8 +889,13 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp < serialBuffer.size() - displayRows) scrollUp += displayRows;
 						if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
+						if (previousScroll == 0 && scrollUp > 0) {
+							autoScroll = false;
+							redrawUI = true;
+						}
 						drawNewData = true;
 					}
 					break;
@@ -874,9 +908,14 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						if (scrollUp > 0) scrollUp -= displayRows;
 						if (scrollUp < 0) scrollUp = 0;
 						drawNewData = true;
+						if (previousScroll > 0 && scrollUp == 0) {
+							autoScroll = true;
+							redrawUI = true;
+						}
 					}
 					break;
 
@@ -888,7 +927,9 @@ class SerialMonitor implements TabAPI {
 					// Scroll serial monitor
 					} else {
 						scrollUp = 0;
+						autoScroll = true;
 						drawNewData = true;
+						redrawUI = true;
 					}
 					break;
 
@@ -899,8 +940,11 @@ class SerialMonitor implements TabAPI {
 						redrawUI = true;
 					// Scroll serial monitor
 					} else {
+						int previousScroll = scrollUp;
 						scrollUp = serialBuffer.size() - displayRows;
 						drawNewData = true;
+						autoScroll = false;
+						redrawUI = true;
 					}
 					break;
 
@@ -1061,8 +1105,15 @@ class SerialMonitor implements TabAPI {
 				redrawUI = true;
 			}
 
+			// Turn graphable numbers on/off
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)) {
+				serialBuffer.setVisibility(!serialBuffer.getVisibility());
+				redrawContent = true;
+				redrawUI = true;
+			}
+
 			// Add a new colour tag column
-			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 12.5, iL, iW)) {
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 13.5, iL, iW)) {
 				final String colname = myShowInputDialog("Add a new Colour Tag","Keyword Text:","");
 				if (colname != null && colname.length() > 0){
 					serialTags.add(new SerialTag(colname, c_colorlist[serialTags.size() % c_colorlist.length]));
@@ -1072,7 +1123,7 @@ class SerialMonitor implements TabAPI {
 			}
 			
 			else {
-				float tHnow = 13.5;
+				float tHnow = 14.5;
 
 				// List of Data Columns
 				for(int i = 0; i < serialTags.size(); i++) {
@@ -1221,10 +1272,18 @@ class SerialMonitor implements TabAPI {
 
 		// Scroll serial monitor
 		} else {
+			int previousScroll = scrollUp;
 			scrollUp -= round(2 * amount);
 			if (scrollUp < 0) scrollUp = 0;
 			else if (scrollUp > serialBuffer.size() - displayRows) scrollUp = serialBuffer.size() - displayRows;
 			drawNewData = true;
+			if (previousScroll == 0 && scrollUp > 0) {
+				autoScroll = false;
+				redrawUI = true;
+			} else if (previousScroll > 0 && scrollUp == 0) {
+				autoScroll = true;
+				redrawUI = true;
+			}
 		}
 
 		redrawUI = true;
@@ -1242,6 +1301,13 @@ class SerialMonitor implements TabAPI {
 			int previousScroll = scrollUp;
 			scrollUp = serialScroll.move(xcoord, ycoord, scrollUp, 0, serialBuffer.size() - displayRows);
 			if (previousScroll != scrollUp) redrawContent = true;
+			if (previousScroll == 0 && scrollUp > 0) {
+				autoScroll = false;
+				redrawUI = true;
+			} else if (previousScroll > 0 && scrollUp == 0) {
+				autoScroll = true;
+				redrawUI = true;
+			}
 		}
 		if (sidebarScroll.active()) {
 			int previousScroll = menuScroll;
@@ -1289,4 +1355,193 @@ class SerialMonitor implements TabAPI {
 			tagColor = setColor;
 		}
 	}
+
+
+	/**
+	 * Data structure to store serial messages and other related info
+	 */
+	class SerialMessages {
+		private int totalMessagesLength;
+		private int lookupTableLength;
+		private int maximumLength;
+
+		private boolean showAllMessages;
+
+		private int bufferEndIdx;
+		private int tableStartIdx;
+		private int tableEndIdx;
+
+		private StringList serialMessagesBuffer; //!< Buffer which contains all received serial messages
+		private IntList textLookupTable;         //!< Table containing indices to all non-graphable serial messages
+
+		/**
+		 * Constructor
+		 * @param  maxLength Maximum number of entries in the serial buffer
+		 */
+		SerialMessages(int maxLength) {
+			this.bufferEndIdx = 0;
+			this.tableStartIdx = 0;
+			this.tableEndIdx = 0;
+			this.totalMessagesLength = 0;
+			this.lookupTableLength = 0;
+			this.showAllMessages = true;
+			this.maximumLength = maxLength;
+			int initialLength = 1000;
+			if (initialLength > maxLength) initialLength = maxLength;
+			this.serialMessagesBuffer = new StringList(initialLength);
+			this.textLookupTable = new IntList(initialLength);
+		}
+
+		/**
+		 * Get the value at the specific index
+		 * @param  index The index at which to retrieve the value
+		 * @return The requested serial message
+		 */
+		public String get(int index) {
+			// If reading from the serial messages buffer directly
+			if (showAllMessages) {
+				// Check that the requested index is within bounds
+				if (index < totalMessagesLength) {
+					// If buffer is full, ensure values wrap around properly
+					if (totalMessagesLength == maximumLength) {
+						index += bufferEndIdx;
+						if (index >= totalMessagesLength) index -= totalMessagesLength;
+					}
+					return serialMessagesBuffer.get(index);
+				}
+			// If only showing non-graphable results, read from the lookup table
+			} else {
+				// Check that the requested index is within bounds
+				if (index < lookupTableLength) {
+					index += tableStartIdx;
+					if (index >= textLookupTable.size()) index -= textLookupTable.size();
+					return serialMessagesBuffer.get(textLookupTable.get(index));
+				}
+			}
+			return null;
+		}
+
+		/**
+		 * Get the number of items in the list
+		 * @return The length of the list (if disabled, graphable entries are excluded)
+		 */
+		public int size() {
+			if (showAllMessages) return totalMessagesLength;
+			return lookupTableLength;
+		}
+
+		/**
+		 * Clear all items from the list
+		 */
+		public void clear() {
+			totalMessagesLength = 0;
+			bufferEndIdx = 0;
+			tableStartIdx = 0;
+			tableEndIdx = 0;
+			lookupTableLength = 0;
+		}
+
+		/**
+		 * Read whether all messages are being shown, or just the non-graphable ones
+		 * @return True = all messages shown, false = non-graphable messages shown
+		 */
+		public boolean getVisibility() {
+			return showAllMessages;
+		}
+
+		/**
+		 * Set whether all messages will be shown, or only the non-graphable ones
+		 * @param  setState True = all messages shown, false = only non-graphable messages shown
+		 */
+		public void setVisibility(boolean setState) {
+			showAllMessages = setState;
+		}
+
+		/**
+		 * Add a new serial message to the list
+		 * @param  message   The serial message to add
+		 * @param  graphable Whether the message only contains numbers and can be graphed
+		 */
+		public void append(String message, boolean graphable) {
+			// If list hasn't reached its max length, append the new value
+			if (totalMessagesLength < maximumLength) {
+				if (totalMessagesLength < serialMessagesBuffer.size()) {
+					serialMessagesBuffer.set(bufferEndIdx, message);
+					if (!graphable) textLookupTable.set(tableEndIdx, bufferEndIdx);
+				} else {
+					serialMessagesBuffer.append(message);
+					textLookupTable.append(0);
+					if (!graphable) textLookupTable.set(tableEndIdx, bufferEndIdx);
+				}
+
+				totalMessagesLength++;
+				bufferEndIdx++;
+				if (!graphable) {
+					tableEndIdx++;
+					lookupTableLength++;
+				}
+
+			// Otherwise overwrite oldest item in list in a circular manner
+			} else {
+				int firstItem = bufferEndIdx;
+				if (firstItem >= serialMessagesBuffer.size()) firstItem = 0;
+				
+				if (textLookupTable.get(tableStartIdx) == firstItem) {
+					lookupTableLength--;
+					tableStartIdx++;
+					if (tableStartIdx >= textLookupTable.size()) tableStartIdx = 0;
+				}
+
+				// Add the item to the list
+				serialMessagesBuffer.set(firstItem, message);
+
+				if (!graphable) {
+					if (tableEndIdx >= textLookupTable.size()) tableEndIdx = 0;
+					textLookupTable.set(tableEndIdx++, firstItem);
+					lookupTableLength++;
+				}
+
+				bufferEndIdx = firstItem + 1;
+			}
+		}
+
+		/**
+		 * Add a new serial message to the list
+		 * @note This is an overload function where it is assumed the message cannot be plotted on a graph
+		 * @see  void append(String message, boolean graphable)
+		 */
+		public void append(String message) {
+			append(message, false);
+		}
+	}
+
+	/**
+	 * Class to deal with highlighting text in the serial monitor
+	 */
+	// class TextHighlight {
+	// 	private boolean active;
+	// 	private int startChar;
+	// 	private int endChar;
+
+	// 	/**
+	// 	 * Constructor
+	// 	 */
+	// 	TextHighlight() {
+	// 		active = false;
+	// 		startChar = 0;
+	// 		endChar = 0;
+	// 	}
+
+	// 	/**
+	// 	 * Check if mouse has clicked on the some text
+	// 	 * 
+	// 	 * @param  xcoord Mouse x-axis coordinate
+	// 	 * @param  ycoord Mouse y-axis coordinate
+	// 	 * @return True if mouse has clicked on scrollbar, false otherwise
+	// 	 */
+	// 	boolean click(int xcoord, int ycoord) {
+
+	// 	}
+
+	// }
 }

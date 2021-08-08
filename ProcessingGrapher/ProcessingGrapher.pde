@@ -7,7 +7,7 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      2nd August 2021
+ * @date      8th August 2021
  * @version   1.3.1
  * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -308,6 +308,7 @@ void setupProgram() {
 	tabObjects.add(new SerialMonitor("Serial", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new LiveGraph("Live Graph", 0, tabWidth2, tabTop, tabBottom));
 	tabObjects.add(new FileGraph("File Graph", 0, tabWidth2, tabTop, tabBottom));
+	tabObjects.get(0).setVisibility(true);
 
 	// Start serial port checking thread
 	portList = Serial.list();
@@ -1125,12 +1126,14 @@ void mousePressed(){
 			if (!settingsMenuActive && mouseX > width - int(40 * uimult)) {
 				settingsMenuActive = true;
 				redrawUI = true;
+				settings.setVisibility(true);
 			}
 
 			// Close settings menu
 			else if (settingsMenuActive && mouseX > width - int(sidebarWidth * uimult)) {
 				settingsMenuActive = false;
 				settings.drawNewData();
+				settings.setVisibility(false);
 				redrawUI = true;
 			}
 
@@ -1138,6 +1141,8 @@ void mousePressed(){
 			else {
 				for (int i = 0; i < tabObjects.size(); i++) {
 					if ((mouseX > i*tabWidth*uimult) && (mouseX < (i+1)*tabWidth*uimult)) {
+						tabObjects.get(currentTab).setVisibility(false);
+						tabObjects.get(i).setVisibility(true);
 						currentTab = i;
 						redrawUI = redrawContent = true;
 					}
@@ -2293,6 +2298,9 @@ String constrainString(String inputText, float maxWidth) {
 interface TabAPI {
 	// Name of the tab
 	String getName();
+
+	// Show or hide a tab
+	void setVisibility(boolean newState);
 	
 	// Draw functions
 	void drawContent();

@@ -57,6 +57,7 @@ class FileGraph implements TabAPI {
 	boolean labelling;
 	boolean zoomActive;
 	boolean workerActive;
+	boolean tabIsVisible;
 	int setZoomSize;
 	int selectedSignal;
 	float[] zoomCoordOne = {0, 0, 0, 0};
@@ -86,6 +87,7 @@ class FileGraph implements TabAPI {
 		outputfile = "No File Set";
 		currentfile = "No File Set";
 
+		tabIsVisible = false;
 		zoomActive = false;
 		setZoomSize = -1;
 		labelling = false;
@@ -105,6 +107,16 @@ class FileGraph implements TabAPI {
 	 */
 	String getName () {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 

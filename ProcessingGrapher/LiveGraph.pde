@@ -48,6 +48,7 @@ class LiveGraph implements TabAPI {
 	int graphMode;
 	CustomTable dataTable;
 	boolean recordData;
+	boolean tabIsVisible;
 	int recordCounter;
 	int fileCounter;
 	int maxFileRows = 100000;
@@ -76,6 +77,7 @@ class LiveGraph implements TabAPI {
 	 */
 	LiveGraph (String setname, int left, int right, int top, int bottom) {
 		name = setname;
+		tabIsVisible = false;
 		
 		cL = left;
 		cR = right;
@@ -126,6 +128,16 @@ class LiveGraph implements TabAPI {
 	 */
 	String getName () {
 		return name;
+	}
+
+
+	/**
+	 * Set tab as being active or hidden
+	 * 
+	 * @param  newState True = active, false = hidden
+	 */
+	void setVisibility(boolean newState) {
+		tabIsVisible = newState;
 	}
 
 
@@ -366,7 +378,7 @@ class LiveGraph implements TabAPI {
 			emergencyOutputSave(false);
 		}
 		outputfile = "No File Set";
-		redrawUI = true;
+		if (tabIsVisible) redrawUI = true;
 	}
 
 
@@ -444,7 +456,7 @@ class LiveGraph implements TabAPI {
 			drawFrom = 0;
 			frequencyCounter = 0;
 			frequencyTimer = 0;
-			redrawContent = true;
+			if (tabIsVisible) redrawContent = true;
 		}
 	}
 
@@ -560,7 +572,7 @@ class LiveGraph implements TabAPI {
 				}
 			}
 	
-			drawNewData = true;
+			if (tabIsVisible) drawNewData = true;
 		}
 	}
 
