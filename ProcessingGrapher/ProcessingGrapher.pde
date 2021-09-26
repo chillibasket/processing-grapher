@@ -148,7 +148,7 @@ float serialStopbits = 1.0;
 
 /**
  * Class containing all relevant info for a serial port connection
- * @TODO - Use this class to replace the variables being used above
+ * @todo - Use this class to replace the variables being used above
  *//*
 class SerialPortItem {
 	public Serial port;
