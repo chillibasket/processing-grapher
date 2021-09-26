@@ -213,7 +213,7 @@ String userInputString = null;
 int startTime;
 PGraphics mainCanvas;
 
-// Options are: FX2D (Recommended), JAVA2D
+// Options are: FX2D (Recommended for Windows and Mac), JAVA2D (Recommended for Linux)
 final String activeRenderer = FX2D;
 
 
@@ -1394,6 +1394,10 @@ class ScrollBar {
  */
 void keyTyped() {
 
+	// Ignore special characters
+	if (key == ENTER || key == RETURN || key == BACKSPACE || key == DELETE || key == ESC) return;
+
+	// Only process key typed event if the control key is not pressed
 	if (!controlKey) {
 		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, (keyCode == 0)? key: keyCode, false);
@@ -1415,51 +1419,74 @@ void keyTyped() {
  * keyTyped() function
  */
 void keyPressed() {
-	//println(keyCode);
+
+	boolean coded = (key == CODED);
+
+	// Ensure that all special characters used by the program are marked as coded keys
+	if (keyCode == KeyEvent.VK_ENTER 
+		|| keyCode == KeyEvent.VK_BACK_SPACE 
+		|| keyCode == KeyEvent.VK_ESCAPE 
+		|| keyCode == KeyEvent.VK_DELETE)
+	{
+		coded = true;
+	}
+
+	// Close alerts 
+	if (keyCode == KeyEvent.VK_ESCAPE && alertActive) {
+		key = 0;
+		alertActive = false;
+		redrawUI = true;
+		redrawContent = true;
+		return;
+	}
 
 	// Check for control key
-	if (key == CODED && keyCode == CONTROL) {
+	if (coded && keyCode == CONTROL) {
 		controlKey = true;
 
 	// Decrease UI scaling (CTRL and -)
-	} else if (controlKey && (key == '-' || key == '_' || keyCode == 45)) {
+	} else if (controlKey && (key == '-' || key == '_' || keyCode == KeyEvent.VK_MINUS)){
 		if (uimult > 0.5) uiResize(-0.1);
+
 	// Increase UI scaling (CTRL and +)
-	} else if (controlKey && (key == '=' || key == '+' || keyCode == 61)) {
+	} else if (controlKey && (key == '=' || key == '+' || keyCode == KeyEvent.VK_EQUALS)) {
 		if (uimult < 2.0) uiResize(0.1);
+
 	// Copy keys
-	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == 67)) {
+	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == KeyEvent.VK_C)) {
 		if (tabObjects.size() > currentTab) {
 			TabAPI curTab = tabObjects.get(currentTab);
 			curTab.keyboardInput(key, KeyEvent.VK_COPY, true);
-		} else currentTab = 0;
+		} else {
+			currentTab = 0;
+		}
+
 	// Paste keys
-	} else if (controlKey && (key == 'v' || key == 'V' || keyCode == 86)) {
+	} else if (controlKey && (key == 'v' || key == 'V' || keyCode == KeyEvent.VK_V)) {
 		if (tabObjects.size() > currentTab) {
 			TabAPI curTab = tabObjects.get(currentTab);
 			curTab.keyboardInput(key, KeyEvent.VK_PASTE, true);
-		} else currentTab = 0;
+		} else {
+			currentTab = 0;
+		}
 
 	// For all other keys, send them on to the active tab
-	} else if (key == CODED) {
-		if (settingsMenuActive && (mouseX >= width - (sidebarWidth * uimult))) {
+	} else if (coded) {
+		if (settingsMenuActive) { // && (mouseX >= width - (sidebarWidth * uimult))) {
 			settings.keyboardInput(key, keyCode, true);
 		} else {
 			if (tabObjects.size() > currentTab) {
 				TabAPI curTab = tabObjects.get(currentTab);
 				curTab.keyboardInput(key, keyCode, true);
-			} else currentTab = 0;
+			} else {
+				currentTab = 0;
+			}
 		}
 	}
-	
+
 	// Prevent the escape key from closing the application
-	if (key == ESC) {
+	if (keyCode == KeyEvent.VK_ESCAPE) {
 		key = 0;
-		if (alertActive) {
-			alertActive = false;
-			redrawUI = true;
-			redrawContent = true;
-		}
 	}
 }
 
@@ -1610,7 +1637,14 @@ void serialEvent (Serial myPort) {
 			inString = myPort.readString();
 		}
 
+		// Deal with null error
+		if (inString == null) return;
+
+		// Trim away blank spaces and line endings
 		inString = trim(inString);
+
+		// Ignore empty messages
+		if (inString.length() == 0) return;
 
 		// Remove line ending characters... is this needed?
 		//inString = inString.replace("\n", "");

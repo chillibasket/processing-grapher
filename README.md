@@ -49,6 +49,16 @@ A full description and set of instructions can be found on my website: [https://
 </br>
 </br>
 
+### Using the Program on Linux
+To use the program on Linux, there are two additional steps that need to be taken:
+1. Change the renderer on line 217 to `final String activeRenderer = JAVA2D`. Unfortunately the renderer used on the other platforms (JavaFX) currently has some compatibility issues on Linux.
+2. If the error message `Permission Denied` appears when trying to connect to a serial port, this means that your current user account doesn't have the permissions set up to access the serial ports. To solve you can either run the program using `sudo`, or you can set up your user so that it has access to the ports using these two commands (replace `<user>` with the account username):
+	- `sudo usermod -a -G dialout <user>`
+	- `sudo usermod -a -G tty <user>` 
+	- Reboot the computer to apply the changes. 
+</br>
+</br>
+
 ### Creating a Stand-alone Program
 It is possible to create a stand-alone version of the program, which does not require the Processing IDE to run.
 
@@ -97,6 +107,9 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (26th September 2021) Version 1.3.2
+	1. ([#25](https://github.com/chillibasket/processing-grapher/issues/25)) Fix issue where user-selected serial port was not retained on Linux, and improved serial port message error handling.
+	2. ([#25](https://github.com/chillibasket/processing-grapher/issues/25)) Improve key event handling, making it more consistent across all platforms.
 1. (8th August 2021) Version 1.3.1
 	1. ([#22](https://github.com/chillibasket/processing-grapher/issues/22)) Text can now be pasted into the serial console message box; this makes it a lot easier to send recorded messages without having to type them all out again.
 	2. ([#23](https://github.com/chillibasket/processing-grapher/issues/23)) Improved the functionality of all scroll bars so that they can now be clicked on using the mouse and dragged up and down.

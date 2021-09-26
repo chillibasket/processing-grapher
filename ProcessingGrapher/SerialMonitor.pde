@@ -1176,6 +1176,7 @@ class SerialMonitor implements TabAPI {
 						if (serialConnected && portNumber != i) setupSerial();
 
 						portNumber = i;
+						currentPort = portList[portNumber];
 						menuLevel = 0;
 						menuScroll = 0;
 						redrawUI = true;
