@@ -56,13 +56,15 @@ class LiveGraph implements TabAPI {
 	int pausedCount;
 	float xRate;
 	int selectedGraph;
-	boolean autoAxis;
-	boolean autoFrequency;
-	int frequencyCounter;
-	int frequencyTimer;
-	boolean isPaused;
-	int maxSamples;
+	int autoAxis;            //! Graph axis scaling: 0 = Manual, 1 = Expand Only, 2 = Auto expand and contract
+	boolean autoFrequency;   //! Detect data sampling rate: True = Automatic, False = Manual
+	int frequencyCounter;    //! Counter used to detect sampling rate
+	int frequencyTimer;      //! Timer used to detect sampling rate
+	boolean isPaused;        //! Play/Pause data on live graphs: True = paused, False = playing
+	int maxSamples;          //! Maximum number of samples to record and display on the graphs
 	int[] sampleWindow = {1000,1000,1000,1000};
+	float[] newMinimum = {0,0,0,0};
+	float[] newMaximum = {0,0,0,0};
 	int signalListChange;
 
 
@@ -103,7 +105,7 @@ class LiveGraph implements TabAPI {
 		fileCounter = 0;
 
 		xRate = 100;
-		autoAxis = true;
+		autoAxis = 1;
 		autoFrequency = true;
 		frequencyCounter = 0;
 		frequencyTimer = 0;
@@ -221,6 +223,15 @@ class LiveGraph implements TabAPI {
 
 			maxSamples = currentCount - drawFrom;
 			if (drawFrom < 0) drawFrom = 0;
+			newMinimum[0] = Float.NaN;
+			newMinimum[1] = Float.NaN;
+			newMinimum[2] = Float.NaN;
+			newMinimum[3] = Float.NaN;
+
+			newMaximum[0] = Float.NaN;
+			newMaximum[1] = Float.NaN;
+			newMaximum[2] = Float.NaN;
+			newMaximum[3] = Float.NaN;
 
 			for (int j = drawFrom; j < currentCount; j++) {
 				for (int i = 0; i < dataTable.getColumnCount(); i++) {
@@ -228,16 +239,16 @@ class LiveGraph implements TabAPI {
 						float dataPoint = (float) dataTable.getDouble(j, i);
 						if (dataPoint != dataPoint) dataPoint = 99999999;
 						if (graphAssignment[i] == 2 && graphMode >= 2 && samplesB <= drawFrom) {
-							checkGraphSize(dataPoint, graphB);
+							checkGraphSize(dataPoint, 1);
 							graphB.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 3 && graphMode >= 3 && samplesC <= drawFrom) {
-							checkGraphSize(dataPoint, graphC);
+							checkGraphSize(dataPoint, 2);
 							graphC.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 4 && graphMode >= 4 && samplesD <= drawFrom) {
-							checkGraphSize(dataPoint, graphD);
+							checkGraphSize(dataPoint, 3);
 							graphD.plotData(dataPoint, i);
 						} else if (graphAssignment[i] == 1 && samplesA <= drawFrom) {
-							checkGraphSize(dataPoint, graphA);
+							checkGraphSize(dataPoint, 0);
 							graphA.plotData(dataPoint, i);
 						}
 					} catch (Exception e) {
@@ -246,31 +257,71 @@ class LiveGraph implements TabAPI {
 				}
 				drawFrom++;
 			}
+
+			updateGraphSize(graphA, 0);
+			if (graphMode >= 2) updateGraphSize(graphB, 1);
+			if (graphMode >= 3) updateGraphSize(graphC, 2);
+			if (graphMode >= 4) updateGraphSize(graphD, 3);
 		}
 		lock.unlock();
 	}
 	
 
 	/**
-	 * Resize graph y-axis if data point is out of bounds
+	 * Update minimum and maximum datapoint arrays
 	 *
-	 * @param  dataPoint   Y-coordinate of new data point
-	 * @param  graphSelect Which if the 4 graphs to check
+	 * @param  dataPoint    Y-coordinate of new data point
+	 * @param  currentGrpah Array index of the graph
 	 */
-	void checkGraphSize (float dataPoint, Graph currentGraph) {
+	void checkGraphSize (float dataPoint, int currentGraph) {
 		
 		// If data exceeds graph size, resize the graph
-		if (autoAxis && dataPoint !=  99999999) {
+		if (autoAxis != 0 && dataPoint !=  99999999) {
 
-			if (dataPoint < currentGraph.getMinY()) {
-				currentGraph.setMinY(floorToSigFig(dataPoint, 1));
-				currentGraph.drawGrid();
-				redrawUI = true;
+			// Find minimum point
+			if (dataPoint < newMinimum[currentGraph] || Float.isNaN(newMinimum[currentGraph])) {
+				newMinimum[currentGraph] = dataPoint;
 			}
-			else if (dataPoint > currentGraph.getMaxY()) {
-				currentGraph.setMaxY(ceilToSigFig(dataPoint, 1));
-				currentGraph.drawGrid();
-				redrawUI = true;
+			// Find maximum point
+			else if (dataPoint > newMaximum[currentGraph] || Float.isNaN(newMaximum[currentGraph])) {
+				newMaximum[currentGraph] = dataPoint;
+			}
+		}
+	}
+
+
+	/**
+	 * Resize graph y-axis if data point is out of bounds
+	 *
+	 * @param  currentGraph Which if the 4 graphs to check
+	 * @param  graphIndx    Array index of the graph
+	 */
+	void updateGraphSize(Graph currentGraph, int graphIndex) {
+
+		if (autoAxis != 0 && !Float.isNaN(newMinimum[graphIndex]) && !Float.isNaN(newMaximum[graphIndex])) {
+			newMinimum[graphIndex] = floorToSigFig(newMinimum[graphIndex], 1);
+			newMaximum[graphIndex] = ceilToSigFig(newMaximum[graphIndex], 1);
+
+			if (autoAxis == 1) {
+				if (currentGraph.getMinY() > newMinimum[graphIndex]) {
+					currentGraph.setMinY(newMinimum[graphIndex]);
+					currentGraph.drawGrid();
+					redrawUI = true;
+				} else if (currentGraph.getMaxY() < newMaximum[graphIndex]) {
+					currentGraph.setMaxY(newMaximum[graphIndex]);
+					currentGraph.drawGrid();
+					redrawUI = true;
+				}
+			} else if (autoAxis == 2) {
+				if (currentGraph.getMinY() != newMinimum[graphIndex]) {
+					currentGraph.setMinY(newMinimum[graphIndex]);
+					currentGraph.drawGrid();
+					redrawUI = true;
+				} else if (currentGraph.getMaxY() != newMaximum[graphIndex]) {
+					currentGraph.setMaxY(newMaximum[graphIndex]);
+					currentGraph.drawGrid();
+					redrawUI = true;
+				}
 			}
 		}
 	}
@@ -658,12 +709,23 @@ class LiveGraph implements TabAPI {
 		drawDatabox(str(currentGraph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
 		drawDatabox(str(currentGraph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawButton((autoAxis)? "Scale: Auto":"Scale: Manual", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
+		if (autoAxis == 2) drawButton("Scale: Full Auto", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
+		else if (autoAxis == 1) drawButton("Scale: Auto Expand", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
+		else drawButton("Scale: Manual", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
 
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 9), iW, tH);
 		drawDatabox(((autoFrequency)? "Auto: ":"Rate: ") + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
-		drawButton((isPaused)? "Resume Data":"Pause Data", (isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW, iH, tH);
+		//drawButton((isPaused)? "Resume Data":"Pause Data", (isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW, iH, tH);
+		drawButton("", (!isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW / 4, iH, tH);
+		drawTriangle(c_sidebar_text, iL + (12 * uimult), sT + (uH * 11) + (8 * uimult), iL + (12 * uimult), sT + (uH * 11) + iH - (8 * uimult), iL + (iW / 4) - (12 * uimult), sT + (uH * 11) + (tH / 2) + 1);
+		drawButton("", (isPaused)? c_sidebar_accent:c_sidebar_button, iL + (iW / 4), sT + (uH * 11), iW / 4 + 1, iH, tH);
+		drawButton("Clear", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+		drawRectangle(c_sidebar_text, iL + (iW / 4) + (12 * uimult), sT + (uH * 11) + (8 * uimult), 3 * uimult, iH - (16 * uimult));
+		drawRectangle(c_sidebar_text, iL + (iW / 2) - (12 * uimult), sT + (uH * 11) + (8 * uimult), -3 * uimult, iH - (16 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW / 4), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 		drawDatabox("Split", c_idletab_text, iL, sT + (uH * 12), iW - (80 * uimult), iH, tH);
 		drawButton("1", (graphMode == 1)? c_sidebar_accent:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 12), 20 * uimult, iH, tH);
@@ -992,7 +1054,8 @@ class LiveGraph implements TabAPI {
 
 		// Turn auto-scaling on/off
 		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 7.5, iL, iW)) {
-			autoAxis = !autoAxis;
+			autoAxis++;
+			if (autoAxis > 2) autoAxis = 0;
 			redrawUI = true;
 		}
 
@@ -1023,12 +1086,35 @@ class LiveGraph implements TabAPI {
 			}
 		}
 
-		// Pause/Resume
+		// Play/pause and reset
 		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)) {
-			pausedCount = dataTable.getRowCount();
-			isPaused = !isPaused;
-			redrawUI = true;
-			redrawContent = true;
+
+			// Play
+			if (menuXclick(xcoord, iL, iW / 4)) {
+				if (isPaused) {
+					pausedCount = dataTable.getRowCount();
+					isPaused = false;
+					redrawUI = true;
+					redrawContent = true;
+				}
+
+			// Pause
+			} else if (menuXclick(xcoord, iL + (iW / 4) + 1, iW / 4)) {
+				if (!isPaused) {
+					pausedCount = dataTable.getRowCount();
+					isPaused = true;
+					redrawUI = true;
+					redrawContent = true;
+				}
+			
+			// Clear graphs
+			} else if (menuXclick(xcoord, iL + (iW / 2) + 1, iW / 2)) {
+				// Reset the signal list
+				dataTable.clearRows();
+				drawFrom = 0;
+				redrawUI = true;
+				redrawContent = true;
+			}
 		}
 
 		// Add a new input data column
