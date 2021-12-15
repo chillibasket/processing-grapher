@@ -913,6 +913,24 @@ void drawRectangle(color boxcolor, float lS, float tS, float iW, float iH){
 
 
 /**
+ * Draw a simple rectangle on the sidebar
+ *
+ * @param  boxcolor Background fill colour of the rectangle
+ * @param  lS        Top-left X-coordinate of the button
+ * @param  tS        Top-left Y-coordinate of the button
+ * @param  iW        Width of the button
+ * @param  iH        Height of the button
+ */       
+void drawTriangle(color itemcolor, float x1, float y1, float x2, float y2, float x3, float y3){
+	if (y1 >= tabTop && y1 <= height && y2 >= tabTop && y2 <= height && y3 >= tabTop && y3 <= height) {
+		noStroke();
+		fill(itemcolor);
+		triangle(x1, y1, x2, y2, x3, y3);
+	}
+}
+
+
+/**
  * Check in mouse clicked on a sidebar menu item
  *
  * @param  yPos    Mouse Y-coordinate

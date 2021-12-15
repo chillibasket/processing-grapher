@@ -716,7 +716,16 @@ class LiveGraph implements TabAPI {
 		// Input Data Columns
 		drawHeading("Data Format", iL, sT + (uH * 9), iW, tH);
 		drawDatabox(((autoFrequency)? "Auto: ":"Rate: ") + xRate + "Hz", iL, sT + (uH * 10), iW, iH, tH);
-		drawButton((isPaused)? "Resume Data":"Pause Data", (isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW, iH, tH);
+		//drawButton((isPaused)? "Resume Data":"Pause Data", (isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW, iH, tH);
+		drawButton("", (!isPaused)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 11), iW / 4, iH, tH);
+		drawTriangle(c_sidebar_text, iL + (12 * uimult), sT + (uH * 11) + (8 * uimult), iL + (12 * uimult), sT + (uH * 11) + iH - (8 * uimult), iL + (iW / 4) - (12 * uimult), sT + (uH * 11) + (tH / 2) + 1);
+		drawButton("", (isPaused)? c_sidebar_accent:c_sidebar_button, iL + (iW / 4), sT + (uH * 11), iW / 4 + 1, iH, tH);
+		drawButton("Clear", c_sidebar_button, iL + (iW / 2), sT + (uH * 11), iW / 2, iH, tH);
+		drawRectangle(c_sidebar_text, iL + (iW / 4) + (12 * uimult), sT + (uH * 11) + (8 * uimult), 3 * uimult, iH - (16 * uimult));
+		drawRectangle(c_sidebar_text, iL + (iW / 2) - (12 * uimult), sT + (uH * 11) + (8 * uimult), -3 * uimult, iH - (16 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW / 4), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+		drawRectangle(c_sidebar_divider, iL + (iW / 2), sT + (uH * 11) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
+
 		//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
 		drawDatabox("Split", c_idletab_text, iL, sT + (uH * 12), iW - (80 * uimult), iH, tH);
 		drawButton("1", (graphMode == 1)? c_sidebar_accent:c_sidebar_button, iL + iW - (80 * uimult), sT + (uH * 12), 20 * uimult, iH, tH);
@@ -1077,12 +1086,35 @@ class LiveGraph implements TabAPI {
 			}
 		}
 
-		// Pause/Resume
+		// Play/pause and reset
 		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 11, iL, iW)) {
-			pausedCount = dataTable.getRowCount();
-			isPaused = !isPaused;
-			redrawUI = true;
-			redrawContent = true;
+
+			// Play
+			if (menuXclick(xcoord, iL, iW / 4)) {
+				if (isPaused) {
+					pausedCount = dataTable.getRowCount();
+					isPaused = false;
+					redrawUI = true;
+					redrawContent = true;
+				}
+
+			// Pause
+			} else if (menuXclick(xcoord, iL + (iW / 4) + 1, iW / 4)) {
+				if (!isPaused) {
+					pausedCount = dataTable.getRowCount();
+					isPaused = true;
+					redrawUI = true;
+					redrawContent = true;
+				}
+			
+			// Clear graphs
+			} else if (menuXclick(xcoord, iL + (iW / 2) + 1, iW / 2)) {
+				// Reset the signal list
+				dataTable.clearRows();
+				drawFrom = 0;
+				redrawUI = true;
+				redrawContent = true;
+			}
 		}
 
 		// Add a new input data column

@@ -107,8 +107,9 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
-1. (5th December 2021) Version 1.3.4
+1. (15th December 2021) Version 1.3.4
     1. ([#28](https://github.com/chillibasket/processing-grapher/issues/28)) Added option to automatically scale the live graph both in and out depending on visible data. 
+    2. ([#30](https://github.com/chillibasket/processing-grapher/issues/30)) Rearranged Pause/Play button on "Live Graph" tab and added button to clear all graphs.
 1. (26th September 2021) Version 1.3.2
 	1. ([#25](https://github.com/chillibasket/processing-grapher/issues/25)) Fix issue where user-selected serial port was not retained on Linux, and improved serial port message error handling.
 	2. ([#25](https://github.com/chillibasket/processing-grapher/issues/25)) Improve key event handling, making it more consistent across all platforms.
