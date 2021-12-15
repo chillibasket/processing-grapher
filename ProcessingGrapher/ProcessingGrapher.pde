@@ -1490,7 +1490,7 @@ void keyPressed() {
 
 	// For all other keys, send them on to the active tab
 	} else if (coded) {
-		if (settingsMenuActive) { // && (mouseX >= width - (sidebarWidth * uimult))) {
+		if (settingsMenuActive && (keyCode == KeyEvent.VK_ESCAPE || (mouseX >= width - (sidebarWidth * uimult)))) {
 			settings.keyboardInput(key, keyCode, true);
 		} else {
 			if (tabObjects.size() > currentTab) {
