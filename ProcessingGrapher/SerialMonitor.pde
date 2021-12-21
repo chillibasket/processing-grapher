@@ -76,6 +76,8 @@ class SerialMonitor implements TabAPI {
 	SerialMessages serialBuffer;
 	//PGraphics serialGraphics;
 
+	SerialTextSelection textSelection = new SerialTextSelection();
+
 
 	/**
 	 * Constructor
@@ -324,6 +326,27 @@ class SerialMonitor implements TabAPI {
 
 					fill(c_terminal_text);
 					text(">>", cR - 2*border, msgB + totalHeight);
+				}
+
+				// If text is highlighted, draw the background
+				if (textSelection.valid) {
+					if (textSelection.startLine < textIndex && textSelection.endLine > textIndex) {
+						fill(c_highlight_background);
+						rect(cL + 2*border, msgB + totalHeight, textRow.length() * charWidth, yTextHeight);
+					} else if (textSelection.startLine == textIndex && textSelection.endLine == textIndex && textSelection.startChar < textRow.length()) {
+						fill(c_highlight_background);
+						int endChar = textSelection.endChar;
+						if (endChar > textRow.length()) endChar = textRow.length();
+						rect(cL + 2*border + charWidth * textSelection.startChar, msgB + totalHeight, (endChar - textSelection.startChar) * charWidth, yTextHeight);
+					} else if (textSelection.startLine == textIndex && textSelection.endLine > textIndex && textSelection.startChar < textRow.length()) {
+						fill(c_highlight_background);
+						rect(cL + 2*border + charWidth * textSelection.startChar, msgB + totalHeight, (textRow.length() - textSelection.startChar) * charWidth, yTextHeight);
+					} else if (textSelection.startLine < textIndex && textSelection.endLine == textIndex) {
+						fill(c_highlight_background);
+						int endChar = textSelection.endChar;
+						if (endChar > textRow.length()) endChar = textRow.length();
+						rect(cL + 2*border, msgB + totalHeight, endChar * charWidth, yTextHeight);
+					}
 				}
 
 				// Print the text
@@ -778,6 +801,10 @@ class SerialMonitor implements TabAPI {
 						menuLevel = 0;
 						menuScroll = 0;
 						redrawUI = true;
+					} else if (textSelection.valid) {
+						textSelection.valid = false;
+						textSelection.active = false;
+						redrawContent = true;
 					}
 					break;
 				case ENTER:
@@ -949,10 +976,33 @@ class SerialMonitor implements TabAPI {
 					break;
 
 				case KeyEvent.VK_COPY: {
-					println("Copying: " + serialBuffer.get(serialBuffer.size() - 1));
-					StringSelection selection = new StringSelection(serialBuffer.get(serialBuffer.size() - 1));
-  					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-  					clipboard.setContents(selection, selection);
+					
+					if (textSelection.valid) {
+						String copyText = "";
+
+						for (int i = textSelection.startLine; i <= textSelection.endLine; i++) {
+							if (textSelection.startLine == textSelection.endLine) {
+								copyText = serialBuffer.get(i);
+								copyText = copyText.substring(textSelection.startChar, textSelection.endChar);
+							} else if (i == textSelection.startLine) {
+								String tempString = serialBuffer.get(i);
+								copyText += tempString.substring(textSelection.startChar);
+								copyText += '\n';
+							} else if (i == textSelection.endLine) {
+								String tempString = serialBuffer.get(i);
+								copyText += tempString.substring(0, textSelection.endChar);
+							} else {
+								copyText += serialBuffer.get(i);
+								copyText += '\n';
+							}
+						}
+
+						println("Copying: " + copyText);
+						StringSelection selection = new StringSelection(copyText);
+						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+						clipboard.setContents(selection, selection);
+					}
+					
 					break;
 				}
 
@@ -1009,13 +1059,49 @@ class SerialMonitor implements TabAPI {
 				autoScroll = true;
 				redrawUI = true;
 				redrawContent = true;
+				return;
 			}
 		}
 
 		// Click on serial monitor scrollbar
 		if ((scrollUp != -1) && serialScroll.click(xcoord, ycoord)) {
 			sidebarScroll.active(false);
+			textSelection.active = false;
 			startScrolling(true);
+			return;
+		}
+
+		// Text selection in message area
+		if ((ycoord > msgB) && (ycoord < cB - border*2)) {
+			sidebarScroll.active(false);
+			serialScroll.active(false);
+			// Figure out where in the serial messages was clicked!!!
+			int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
+			if (selectedLine > displayRows) selectedLine = displayRows;
+			
+			int textIndex = (serialBuffer.size() - selectedLine - scrollUp);
+			if (textIndex < 0) textIndex = 0;
+			String textRow = serialBuffer.get(textIndex);
+
+			textFont(mono_font);
+			final float charWidth = textWidth("a");
+			textFont(base_font);
+
+			final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
+			int selectedChar = int((xcoord - (cL + 2*border)) / charWidth);
+			if (selectedChar < 0) selectedChar = 0;
+			else if (selectedChar > maxChars) selectedChar = maxChars;
+
+			println(textIndex);
+			println(selectedChar);
+			textSelection.startLine = textIndex;
+			textSelection.startChar = selectedChar;
+			textSelection.endLine = textIndex;
+			textSelection.endChar = selectedChar;
+			textSelection.active = true;
+			textSelection.valid = false;
+			startScrolling(true);
+			redrawContent = true;
 		}
 	}
 
@@ -1047,6 +1133,7 @@ class SerialMonitor implements TabAPI {
 		// Click on sidebar menu scroll bar
 		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
 			serialScroll.active(false);
+			textSelection.active = false;
 			startScrolling(false);
 		}
 
@@ -1310,12 +1397,68 @@ class SerialMonitor implements TabAPI {
 				redrawUI = true;
 			}
 		}
-		if (sidebarScroll.active()) {
+
+		else if (sidebarScroll.active()) {
 			int previousScroll = menuScroll;
 			menuScroll = sidebarScroll.move(xcoord, ycoord, menuScroll, 0, menuHeight - (height - cT));
 			if (previousScroll != menuScroll) redrawUI = true;
 		}
-	}
+
+		else if (textSelection.active) {
+			// Figure out where in the serial messages was clicked!!!
+			int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
+			if (selectedLine > displayRows) {
+				if (scrollUp < serialBuffer.size() - displayRows) {
+					scrollUp++;
+					selectedLine = displayRows + 1;
+				} else {
+					selectedLine = displayRows;
+				}
+			} else if (selectedLine < 0) {
+				if (scrollUp > 0) {
+					scrollUp--;
+					selectedLine = 0;
+				} else {
+					selectedLine = 0;
+				}
+			}
+
+			int textIndex = (serialBuffer.size() - selectedLine - scrollUp);
+			if (textIndex < 0) textIndex = 0;
+			String textRow = serialBuffer.get(textIndex);
+
+			textFont(mono_font);
+			final float charWidth = textWidth("a");
+			textFont(base_font);
+
+			final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
+			int selectedChar = int((xcoord - (cL + 2*border)) / charWidth) + 1;
+			if (selectedChar < 0) selectedChar = 0;
+			else if (selectedChar > maxChars) selectedChar = maxChars;
+
+			if (!textSelection.inverted && (textIndex < textSelection.startLine || (textIndex == textSelection.startLine && selectedChar < textSelection.startChar))) {
+				textSelection.inverted = true;
+				textSelection.endLine = textSelection.startLine;
+				textSelection.endChar = textSelection.startChar;
+			} else if (textSelection.inverted && (textIndex > textSelection.endLine || (textIndex == textSelection.endLine && selectedChar > textSelection.endChar))) {
+				textSelection.inverted = false;
+				textSelection.startLine = textSelection.endLine;
+				textSelection.startChar = textSelection.endChar;
+			}
+
+			if (textSelection.inverted) {
+				textSelection.startLine = textIndex;
+				textSelection.startChar = selectedChar;
+			} else {
+				textSelection.endLine = textIndex;
+				textSelection.endChar = selectedChar;
+			}
+
+			textSelection.active = true;
+			textSelection.valid = true;
+			redrawContent = true;
+		}
+ 	}
 
 
 	/**
@@ -1355,6 +1498,20 @@ class SerialMonitor implements TabAPI {
 			tagText = setText;
 			tagColor = setColor;
 		}
+	}
+
+
+	/**
+	 * Data structure to store info related to selected/highlighted text
+	 */
+	class SerialTextSelection {
+		public int startLine = 0;
+		public int startChar = 0;
+		public int endLine = 0;
+		public int endChar = 0;
+		public boolean active = false;
+		public boolean valid = false;
+		public boolean inverted = false;
 	}
 
 

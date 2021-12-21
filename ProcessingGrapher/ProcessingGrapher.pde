@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      5th December 2021
- * @version   1.3.4
+ * @date      21st December 2021
+ * @version   1.3.5
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.3.4";
+final String versionNumber = "1.3.5";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -133,6 +133,7 @@ color c_message_box_outline;
 color c_alert_message_box;
 color c_info_message_box;
 color c_status_bar;
+color c_highlight_background;
 
 // Serial Port Variables
 Serial myPort;

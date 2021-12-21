@@ -107,6 +107,8 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (21st December 2021) Version 1.3.5
+    1. ([#31](https://github.com/chillibasket/processing-grapher/issues/31)) Implemented serial monitor text selection/highlighting. The selected text can also be copied using the `CTRL-C` keyboard combination.
 1. (15th December 2021) Version 1.3.4
     1. ([#28](https://github.com/chillibasket/processing-grapher/issues/28)) Added option to automatically scale the live graph both in and out depending on visible data. 
     2. ([#30](https://github.com/chillibasket/processing-grapher/issues/30)) Rearranged Pause/Play button on "Live Graph" tab and added button to clear all graphs.

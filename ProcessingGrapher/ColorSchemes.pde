@@ -30,6 +30,7 @@ void loadColorScheme(int mode) {
 			c_alert_message_box = c_tabbar;
 			c_info_message_box = color(229, 229, 229);
 			c_status_bar = c_message_text;
+			c_highlight_background = c_tabbar;
 			break;
 
 		// Dark mode - One Dark Gravity
@@ -57,6 +58,7 @@ void loadColorScheme(int mode) {
 			c_alert_message_box = c_tabbar;
 			c_info_message_box = c_tabbar;
 			c_status_bar = c_terminal_text;
+			c_highlight_background = c_tabbar;
 			break;
 
 		// Dark mode - Monokai (default)
@@ -85,6 +87,7 @@ void loadColorScheme(int mode) {
 			c_alert_message_box = c_tabbar;
 			c_info_message_box = c_darkgrey;
 			c_status_bar = c_lightgrey;
+			c_highlight_background = c_tabbar;
 			break;
 	}
 
