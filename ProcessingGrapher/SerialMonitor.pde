@@ -66,6 +66,7 @@ class SerialMonitor implements TabAPI {
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
 	boolean tabIsVisible;
+	int msgBtnSize = 0;
 
 	color previousColor = c_red;
 	color hueColor = c_red;
@@ -73,10 +74,11 @@ class SerialMonitor implements TabAPI {
 	int colorSelector = 0;
 
 	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
-	SerialMessages serialBuffer;
+	SerialMessages serialBuffer;                              //! Ring buffer used to store serial messages
 	//PGraphics serialGraphics;
 
-	SerialTextSelection textSelection = new SerialTextSelection();
+	TextSelection inputTextSelection = new TextSelection();   //! Selection/highlighting of serial input text area
+	TextSelection serialTextSelection = new TextSelection();  //! Selection/highlighting of serial monitor text area
 
 
 	/**
@@ -188,7 +190,7 @@ class SerialMonitor implements TabAPI {
 
 		// Message text button
 		String msgBtnText = "Send:";
-		final int msgBtnSize = int(textWidth(msgBtnText)); 
+		msgBtnSize = int(textWidth(msgBtnText)); 
 
 		fill(c_terminal_text);
 		text(msgBtnText, cL + 2*msgBorder, cT + msgBorder + 6.5 * uimult);
@@ -225,6 +227,18 @@ class SerialMonitor implements TabAPI {
 		// Validate the bounds
 		if (msgTextBounds[0] < 0) msgTextBounds[0] = 0;
 		if (msgTextBounds[1] < 0) msgTextBounds[1] = 0; 
+
+		// If text is highlighted, draw the background
+		if (inputTextSelection.valid && (inputTextSelection.startChar <= msgTextBounds[1]) && (inputTextSelection.endChar >= msgTextBounds[0])) {
+			fill(c_highlight_background);
+			noStroke();
+			rectMode(CORNERS);
+			float leftHighlight = cL + 4*msgBorder + msgBtnSize;
+			float rightHighlight = leftHighlight + (msgTextBounds[1] - msgTextBounds[0]) * charWidth;
+			if (inputTextSelection.startChar > msgTextBounds[0]) leftHighlight += (inputTextSelection.startChar - msgTextBounds[0]) * charWidth;
+			if (inputTextSelection.endChar < msgTextBounds[1]) rightHighlight -= (msgTextBounds[1] - inputTextSelection.endChar) * charWidth;
+			rect(leftHighlight, cT + msgBorder + round(9 * uimult), rightHighlight, cT + msgBorder + round(9 * uimult) + yTextHeight);
+		}
 
 		// Draw cursor
 		fill(c_terminal_text);
@@ -329,23 +343,16 @@ class SerialMonitor implements TabAPI {
 				}
 
 				// If text is highlighted, draw the background
-				if (textSelection.valid) {
-					if (textSelection.startLine < textIndex && textSelection.endLine > textIndex) {
-						fill(c_highlight_background);
+				if (serialTextSelection.valid) {
+					fill(c_highlight_background);
+					if (serialTextSelection.startLine < textIndex && serialTextSelection.endLine > textIndex) {
 						rect(cL + 2*border, msgB + totalHeight, textRow.length() * charWidth, yTextHeight);
-					} else if (textSelection.startLine == textIndex && textSelection.endLine == textIndex && textSelection.startChar < textRow.length()) {
-						fill(c_highlight_background);
-						int endChar = textSelection.endChar;
-						if (endChar > textRow.length()) endChar = textRow.length();
-						rect(cL + 2*border + charWidth * textSelection.startChar, msgB + totalHeight, (endChar - textSelection.startChar) * charWidth, yTextHeight);
-					} else if (textSelection.startLine == textIndex && textSelection.endLine > textIndex && textSelection.startChar < textRow.length()) {
-						fill(c_highlight_background);
-						rect(cL + 2*border + charWidth * textSelection.startChar, msgB + totalHeight, (textRow.length() - textSelection.startChar) * charWidth, yTextHeight);
-					} else if (textSelection.startLine < textIndex && textSelection.endLine == textIndex) {
-						fill(c_highlight_background);
-						int endChar = textSelection.endChar;
-						if (endChar > textRow.length()) endChar = textRow.length();
-						rect(cL + 2*border, msgB + totalHeight, endChar * charWidth, yTextHeight);
+					} else if (serialTextSelection.startLine == textIndex && serialTextSelection.endLine == textIndex) {
+						rect(cL + 2*border + charWidth * serialTextSelection.startChar, msgB + totalHeight, (serialTextSelection.endChar - serialTextSelection.startChar) * charWidth, yTextHeight);
+					} else if (serialTextSelection.startLine == textIndex && serialTextSelection.endLine > textIndex) {
+						rect(cL + 2*border + charWidth * serialTextSelection.startChar, msgB + totalHeight, (textRow.length() - serialTextSelection.startChar) * charWidth, yTextHeight);
+					} else if (serialTextSelection.startLine < textIndex && serialTextSelection.endLine == textIndex) {
+						rect(cL + 2*border, msgB + totalHeight, serialTextSelection.endChar * charWidth, yTextHeight);
 					}
 				}
 
@@ -801,9 +808,13 @@ class SerialMonitor implements TabAPI {
 						menuLevel = 0;
 						menuScroll = 0;
 						redrawUI = true;
-					} else if (textSelection.valid) {
-						textSelection.valid = false;
-						textSelection.active = false;
+					} else if (serialTextSelection.valid) {
+						serialTextSelection.valid = false;
+						serialTextSelection.active = false;
+						redrawContent = true;
+					} else if (inputTextSelection.valid) {
+						inputTextSelection.valid = false;
+						inputTextSelection.active = false;
 						redrawContent = true;
 					}
 					break;
@@ -977,26 +988,32 @@ class SerialMonitor implements TabAPI {
 
 				case KeyEvent.VK_COPY: {
 					
-					if (textSelection.valid) {
+					if (serialTextSelection.valid) {
 						String copyText = "";
 
-						for (int i = textSelection.startLine; i <= textSelection.endLine; i++) {
-							if (textSelection.startLine == textSelection.endLine) {
-								copyText = serialBuffer.get(i);
-								copyText = copyText.substring(textSelection.startChar, textSelection.endChar);
-							} else if (i == textSelection.startLine) {
-								String tempString = serialBuffer.get(i);
-								copyText += tempString.substring(textSelection.startChar);
-								copyText += '\n';
-							} else if (i == textSelection.endLine) {
-								String tempString = serialBuffer.get(i);
-								copyText += tempString.substring(0, textSelection.endChar);
+						for (int i = serialTextSelection.startLine; i <= serialTextSelection.endLine; i++) {
+							String tempString = serialBuffer.get(i);
+							if (serialTextSelection.startLine == serialTextSelection.endLine) {
+								copyText = tempString.substring(serialTextSelection.startChar, serialTextSelection.endChar);
+							} else if (i == serialTextSelection.startLine) {
+								if (serialTextSelection.startChar > 0) {
+									copyText += tempString.substring(serialTextSelection.startChar) + '\n';
+								}
+							} else if (i == serialTextSelection.endLine) {
+								copyText += tempString.substring(0, serialTextSelection.endChar);
 							} else {
-								copyText += serialBuffer.get(i);
-								copyText += '\n';
+								copyText += tempString + '\n';
 							}
 						}
 
+						println("Copying: " + copyText);
+						StringSelection selection = new StringSelection(copyText);
+						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+						clipboard.setContents(selection, selection);
+					}
+
+					else if (inputTextSelection.valid) {
+						String copyText = msgText.substring(inputTextSelection.startChar, inputTextSelection.endChar);
 						println("Copying: " + copyText);
 						StringSelection selection = new StringSelection(copyText);
 						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -1029,6 +1046,9 @@ class SerialMonitor implements TabAPI {
 						}
 						msgText += clipboardLines[clipboardLines.length - 1] + msgEnd;
 						cursorPosition = msgText.length() - msgEnd.length();
+
+						inputTextSelection.valid = false;
+						inputTextSelection.active = false;
 						redrawContent = true;
 					}
 					break;
@@ -1066,7 +1086,8 @@ class SerialMonitor implements TabAPI {
 		// Click on serial monitor scrollbar
 		if ((scrollUp != -1) && serialScroll.click(xcoord, ycoord)) {
 			sidebarScroll.active(false);
-			textSelection.active = false;
+			serialTextSelection.active = false;
+			inputTextSelection.active = false;
 			startScrolling(true);
 			return;
 		}
@@ -1075,31 +1096,20 @@ class SerialMonitor implements TabAPI {
 		if ((ycoord > msgB) && (ycoord < cB - border*2)) {
 			sidebarScroll.active(false);
 			serialScroll.active(false);
-			// Figure out where in the serial messages was clicked!!!
-			int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
-			if (selectedLine > displayRows) selectedLine = displayRows;
-			
-			int textIndex = (serialBuffer.size() - selectedLine - scrollUp);
-			if (textIndex < 0) textIndex = 0;
-			String textRow = serialBuffer.get(textIndex);
+			inputTextSelection.active = false;
+			inputTextSelection.valid = false;
+			serialTextSelectionCalculation(xcoord, ycoord, true);
+			startScrolling(true);
+			redrawContent = true;
+		}
 
-			textFont(mono_font);
-			final float charWidth = textWidth("a");
-			textFont(base_font);
-
-			final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
-			int selectedChar = int((xcoord - (cL + 2*border)) / charWidth);
-			if (selectedChar < 0) selectedChar = 0;
-			else if (selectedChar > maxChars) selectedChar = maxChars;
-
-			println(textIndex);
-			println(selectedChar);
-			textSelection.startLine = textIndex;
-			textSelection.startChar = selectedChar;
-			textSelection.endLine = textIndex;
-			textSelection.endChar = selectedChar;
-			textSelection.active = true;
-			textSelection.valid = false;
+		// Text selection in input area
+		if ((ycoord > cT) && (ycoord < msgB)) {
+			sidebarScroll.active(false);
+			serialScroll.active(false);
+			serialTextSelection.active = false;
+			serialTextSelection.valid = false;
+			inputTextSelectionCalculation(xcoord, ycoord, true);
 			startScrolling(true);
 			redrawContent = true;
 		}
@@ -1133,7 +1143,8 @@ class SerialMonitor implements TabAPI {
 		// Click on sidebar menu scroll bar
 		if ((menuScroll != -1) && sidebarScroll.click(xcoord, ycoord)) {
 			serialScroll.active(false);
-			textSelection.active = false;
+			serialTextSelection.active = false;
+			inputTextSelection.active = false;
 			startScrolling(false);
 		}
 
@@ -1404,58 +1415,13 @@ class SerialMonitor implements TabAPI {
 			if (previousScroll != menuScroll) redrawUI = true;
 		}
 
-		else if (textSelection.active) {
-			// Figure out where in the serial messages was clicked!!!
-			int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
-			if (selectedLine > displayRows) {
-				if (scrollUp < serialBuffer.size() - displayRows) {
-					scrollUp++;
-					selectedLine = displayRows + 1;
-				} else {
-					selectedLine = displayRows;
-				}
-			} else if (selectedLine < 0) {
-				if (scrollUp > 0) {
-					scrollUp--;
-					selectedLine = 0;
-				} else {
-					selectedLine = 0;
-				}
-			}
+		else if (serialTextSelection.active) {
+			serialTextSelectionCalculation(xcoord, ycoord, false);
+			drawNewData = true;
+		}
 
-			int textIndex = (serialBuffer.size() - selectedLine - scrollUp);
-			if (textIndex < 0) textIndex = 0;
-			String textRow = serialBuffer.get(textIndex);
-
-			textFont(mono_font);
-			final float charWidth = textWidth("a");
-			textFont(base_font);
-
-			final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
-			int selectedChar = int((xcoord - (cL + 2*border)) / charWidth) + 1;
-			if (selectedChar < 0) selectedChar = 0;
-			else if (selectedChar > maxChars) selectedChar = maxChars;
-
-			if (!textSelection.inverted && (textIndex < textSelection.startLine || (textIndex == textSelection.startLine && selectedChar < textSelection.startChar))) {
-				textSelection.inverted = true;
-				textSelection.endLine = textSelection.startLine;
-				textSelection.endChar = textSelection.startChar;
-			} else if (textSelection.inverted && (textIndex > textSelection.endLine || (textIndex == textSelection.endLine && selectedChar > textSelection.endChar))) {
-				textSelection.inverted = false;
-				textSelection.startLine = textSelection.endLine;
-				textSelection.startChar = textSelection.endChar;
-			}
-
-			if (textSelection.inverted) {
-				textSelection.startLine = textIndex;
-				textSelection.startChar = selectedChar;
-			} else {
-				textSelection.endLine = textIndex;
-				textSelection.endChar = selectedChar;
-			}
-
-			textSelection.active = true;
-			textSelection.valid = true;
+		else if (inputTextSelection.active) {
+			inputTextSelectionCalculation(xcoord, ycoord, false);
 			redrawContent = true;
 		}
  	}
@@ -1482,6 +1448,96 @@ class SerialMonitor implements TabAPI {
 
 
 	/**
+	 * New serial monitor text selection calculations
+	 */
+	void serialTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
+		
+		// Figure out where in the serial messages was clicked
+		int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
+
+		// Apply limits and perform automatic scrolling of text is mouse exceeds bounds
+		if (selectedLine > displayRows) {
+			if (!selectionStart && (scrollUp < serialBuffer.size() - displayRows)) {
+				scrollUp++;
+				selectedLine = displayRows + 1;
+			} else {
+				selectedLine = displayRows;
+			}
+		} else if (selectedLine < 0) {
+			if (!selectionStart && (scrollUp > 0)) {
+				scrollUp--;
+				selectedLine = 0;
+			} else {
+				selectedLine = 0;
+			}
+		}
+
+		// Get the actual index of the serial message text
+		int textIndex = (serialBuffer.size() - selectedLine - scrollUp);
+		if (textIndex < 0) textIndex = 0;
+		else if (textIndex >= serialBuffer.size()) textIndex = serialBuffer.size() - 1;
+
+		// Retreive the text in the selected row
+		final String textRow = serialBuffer.get(textIndex);
+
+		// Calculate the width of a single character, and the maximum row width (note: assumes mono-spaced font)
+		textFont(mono_font);
+		final float charWidth = textWidth("a");
+		final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
+		textFont(base_font);
+
+		// Figure out which character was selection
+		int selectedChar = int((xcoord - (cL + 2*border)) / charWidth) + 1;
+		if (selectedChar < 0) selectedChar = 0;
+
+		// Ensure character is within bounds
+		else if (selectedChar >= textRow.length()) selectedChar = textRow.length();
+		else if (selectedChar > maxChars) selectedChar = maxChars;
+
+		serialTextSelection.setNewSelection(selectionStart, textIndex, selectedChar);
+	}
+
+
+	/**
+	 * New serial monitor text selection calculations
+	 */
+	void inputTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
+
+		// Calculate the width of a single character, and the maximum row width (note: assumes mono-spaced font)
+		textFont(mono_font);
+		final float charWidth = textWidth("a");
+		final int maxChars = floor((cR - 2*cL - 5*border) / charWidth);
+		textFont(base_font);
+
+		// Figure out which character was selection
+		int selectedChar = msgTextBounds[0] + int((xcoord - (cL + 4*msgBorder + msgBtnSize)) / charWidth);
+
+		// Apply limits and perform automatic scaling
+		if (selectedChar < msgTextBounds[0]) {
+			if (msgTextBounds[0] > 0) {
+				msgTextBounds[0]--;
+				msgTextBounds[1]--;
+				if (cursorPosition > msgTextBounds[1]) cursorPosition--;
+			}
+			selectedChar = msgTextBounds[0];
+		} else if (selectedChar > msgTextBounds[1]) {
+			if (msgTextBounds[1] < msgText.length()) {
+				msgTextBounds[0]++;
+				msgTextBounds[1]++;
+				if (cursorPosition < msgTextBounds[0]) cursorPosition++;
+			}
+			selectedChar = msgTextBounds[1];
+		}
+
+		if (selectionStart) {
+			cursorPosition = selectedChar;
+		}
+
+		inputTextSelection.setNewSelection(selectionStart, 0, selectedChar);
+	}
+
+
+	/**
 	 * Data structure to store info related to each colour tag
 	 */
 	class SerialTag {
@@ -1504,14 +1560,59 @@ class SerialMonitor implements TabAPI {
 	/**
 	 * Data structure to store info related to selected/highlighted text
 	 */
-	class SerialTextSelection {
+	class TextSelection {
 		public int startLine = 0;
 		public int startChar = 0;
 		public int endLine = 0;
 		public int endChar = 0;
 		public boolean active = false;
 		public boolean valid = false;
-		public boolean inverted = false;
+		private boolean inverted = false;
+
+		/**
+		 * Set a new starting or end position for the selection
+		 * @param  selectionStart  True = start position of selection, False = new end position
+		 * @param  newLine         Line index of the new selection position
+		 * @param  newChar         Character index of the new selection position
+		 */
+		public void setNewSelection(boolean selectionStart, int newLine, int newChar) {
+
+			// If the supplied position related to the start position of the selection
+			if (selectionStart) {
+				this.startLine = newLine;
+				this.startChar = newChar;
+				this.endLine = newLine;
+				this.endChar = newChar;
+				this.valid = false;
+
+			// If the end position of the selection needs to be updated
+			} else {
+
+				// Figure out if the selection direction needs to be switched
+				if (!this.inverted && (newLine < this.startLine || (newLine == this.startLine && newChar < this.startChar))) {
+					this.inverted = true;
+					this.endLine = this.startLine;
+					this.endChar = this.startChar;
+				} else if (this.inverted && (newLine > this.endLine || (newLine == this.endLine && newChar > this.endChar))) {
+					this.inverted = false;
+					this.startLine = this.endLine;
+					this.startChar = this.endChar;
+				}
+
+				// Save the new position in the variables
+				if (this.inverted) {
+					this.startLine = newLine;
+					this.startChar = newChar;
+				} else {
+					this.endLine = newLine;
+					this.endChar = newChar;
+				}
+
+				this.valid = true;
+			}
+
+			this.active = true;
+		}
 	}
 
 

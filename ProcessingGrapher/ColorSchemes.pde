@@ -58,7 +58,7 @@ void loadColorScheme(int mode) {
 			c_alert_message_box = c_tabbar;
 			c_info_message_box = c_tabbar;
 			c_status_bar = c_terminal_text;
-			c_highlight_background = c_tabbar;
+			c_highlight_background = color(61, 67, 80);//c_tabbar;
 			break;
 
 		// Dark mode - Monokai (default)
