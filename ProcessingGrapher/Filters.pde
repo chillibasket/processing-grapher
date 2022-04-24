@@ -42,10 +42,9 @@ class Filters {
 	                            "Absolute Value:  |x|", 
 	                            "Squared:  x^2", 
 	                            "Derivative:  Δx/dt", 
-	                            "Integral:  Σxdt",
-	                       "h:More coming soon!"};
+	                            "Integral:  Σxdt"};
 
-	String[] filterSlug = {"h", "avg", "tv", "lp", "hp", "h", "abs", "squ", "Δ/dt", "Σdt", "h"};
+	String[] filterSlug = {"h", "avg", "tv", "lp", "hp", "h", "abs", "squ", "Δ/dt", "Σdt"};
 
 	/**
 	 * Default Constructor

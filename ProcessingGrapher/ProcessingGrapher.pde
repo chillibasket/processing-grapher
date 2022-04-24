@@ -1489,6 +1489,15 @@ void keyPressed() {
 			currentTab = 0;
 		}
 
+	// Select all keys
+	} else if (controlKey && (key == 'a' || key == 'A' || keyCode == KeyEvent.VK_A)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_ALL_CANDIDATES, true);
+		} else {
+			currentTab = 0;
+		}
+
 	// For all other keys, send them on to the active tab
 	} else if (coded) {
 		if (settingsMenuActive && (keyCode == KeyEvent.VK_ESCAPE || (mouseX >= width - (sidebarWidth * uimult)))) {
@@ -1547,7 +1556,7 @@ String getStringClipboard() {
 
 		catch (UnsupportedFlavorException e1) // Unlikely but we must catch it
 		{
-			println("Clipboard.getFromClipboard() >> Unsupported flavor: " + e1);
+			println("Clipboard.getFromClipboard() >> Unsupported flavour: " + e1);
 			//~  e1.printStackTrace();
 		}
 

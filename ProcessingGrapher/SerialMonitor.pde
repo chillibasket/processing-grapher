@@ -79,6 +79,7 @@ class SerialMonitor implements TabAPI {
 
 	TextSelection inputTextSelection = new TextSelection();   //! Selection/highlighting of serial input text area
 	TextSelection serialTextSelection = new TextSelection();  //! Selection/highlighting of serial monitor text area
+	int activeArea = 0;
 
 
 	/**
@@ -241,10 +242,12 @@ class SerialMonitor implements TabAPI {
 		}
 
 		// Draw cursor
-		fill(c_terminal_text);
-		stroke(c_terminal_text);
-		rectMode(CORNER);
-		rect(cL + 4*msgBorder + msgBtnSize + (cursorPosition - msgTextBounds[0]) * charWidth + round(1*uimult), cT + msgBorder + round(9 * uimult), round(2*uimult), round(13 * uimult));
+		if (!inputTextSelection.valid && activeArea == 0) {
+			fill(c_terminal_text);
+			stroke(c_terminal_text);
+			rectMode(CORNER);
+			rect(cL + 4*msgBorder + msgBtnSize + (cursorPosition - msgTextBounds[0]) * charWidth + round(1*uimult), cT + msgBorder + round(9 * uimult), round(2*uimult), round(13 * uimult));
+		}
 
 		// Message text
 		rectMode(CORNERS);
@@ -785,6 +788,17 @@ class SerialMonitor implements TabAPI {
 
 		// For standard characters, simply type them into the message box
 		if (!codedKey && 32 <= keyChar && keyChar <= 126) {
+			
+			// If text is selected, overwrite it
+			serialTextSelection.setVisibility(false);
+			if (inputTextSelection.valid) {
+				String msg = msgText.substring(0,inputTextSelection.startChar) + msgText.substring(inputTextSelection.endChar,msgText.length());
+				msgText = msg;
+				cursorPosition = inputTextSelection.startChar;
+				inputTextSelection.setVisibility(false);
+			}
+
+			// Add the new text to the message string
 			if (cursorPosition < msgText.length()) {
 				if (cursorPosition == 0) {
 					msgText = keyChar + msgText;
@@ -797,6 +811,7 @@ class SerialMonitor implements TabAPI {
 				msgText += keyChar;
 			}
 			cursorPosition++;
+			activeArea = 0;
 			redrawContent = true;
 
 		// Test for all other keys in a slightly slower switch statement			
@@ -809,12 +824,10 @@ class SerialMonitor implements TabAPI {
 						menuScroll = 0;
 						redrawUI = true;
 					} else if (serialTextSelection.valid) {
-						serialTextSelection.valid = false;
-						serialTextSelection.active = false;
+						serialTextSelection.setVisibility(false);
 						redrawContent = true;
 					} else if (inputTextSelection.valid) {
-						inputTextSelection.valid = false;
-						inputTextSelection.active = false;
+						inputTextSelection.setVisibility(false);
 						redrawContent = true;
 					}
 					break;
@@ -836,35 +849,51 @@ class SerialMonitor implements TabAPI {
 
 				case BACKSPACE:
 					if (msgText != "") {
-						if (cursorPosition < msgText.length() && cursorPosition > 0) {
-							String msg = msgText.substring(0,cursorPosition-1) + msgText.substring(cursorPosition,msgText.length());
+						if (inputTextSelection.valid) {
+							String msg = msgText.substring(0,inputTextSelection.startChar) + msgText.substring(inputTextSelection.endChar,msgText.length());
 							msgText = msg;
-							cursorPosition--;
-						} else if (cursorPosition >= msgText.length() && msgText.length() > 1) {
-							msgText = msgText.substring(0, msgText.length()-1);
-							cursorPosition--;
-							if (cursorPosition < 0) cursorPosition = 0;
-						} else if (cursorPosition >= msgText.length() && msgText.length() <= 1) {
-							msgText = "";
-							cursorPosition = 0;
+							cursorPosition = inputTextSelection.startChar;
+							inputTextSelection.setVisibility(false);
+						} else {
+							if (cursorPosition < msgText.length() && cursorPosition > 0) {
+								String msg = msgText.substring(0,cursorPosition-1) + msgText.substring(cursorPosition,msgText.length());
+								msgText = msg;
+								cursorPosition--;
+							} else if (cursorPosition >= msgText.length() && msgText.length() > 1) {
+								msgText = msgText.substring(0, msgText.length()-1);
+								cursorPosition--;
+								if (cursorPosition < 0) cursorPosition = 0;
+							} else if (cursorPosition >= msgText.length() && msgText.length() <= 1) {
+								msgText = "";
+								cursorPosition = 0;
+							}
 						}
+						activeArea = 0;
 						redrawContent = true;
 					}
 					break;
 
 				case DELETE:
 					if (msgText != "") {
-						if (cursorPosition + 1 < msgText.length() && cursorPosition > 0) {
-							String msg = msgText.substring(0,cursorPosition) + msgText.substring(cursorPosition + 1,msgText.length());
+						if (inputTextSelection.valid) {
+							String msg = msgText.substring(0,inputTextSelection.startChar) + msgText.substring(inputTextSelection.endChar,msgText.length());
 							msgText = msg;
-						} else if (cursorPosition + 1 == msgText.length() && msgText.length() > 1) {
-							msgText = msgText.substring(0, msgText.length()-1);
-						} else if (cursorPosition==0 && msgText.length() > 1) {
-							msgText = msgText.substring(1, msgText.length());
-						} else if (cursorPosition==0 && msgText.length() <= 1) {
-							msgText = "";
-							cursorPosition = 0;
+							cursorPosition = inputTextSelection.startChar;
+							inputTextSelection.setVisibility(false);
+						} else {
+							if (cursorPosition + 1 < msgText.length() && cursorPosition > 0) {
+								String msg = msgText.substring(0,cursorPosition) + msgText.substring(cursorPosition + 1,msgText.length());
+								msgText = msg;
+							} else if (cursorPosition + 1 == msgText.length() && msgText.length() > 1) {
+								msgText = msgText.substring(0, msgText.length()-1);
+							} else if (cursorPosition==0 && msgText.length() > 1) {
+								msgText = msgText.substring(1, msgText.length());
+							} else if (cursorPosition==0 && msgText.length() <= 1) {
+								msgText = "";
+								cursorPosition = 0;
+							}
 						}
+						activeArea = 0;
 						redrawContent = true;
 					}
 					break;
@@ -872,12 +901,16 @@ class SerialMonitor implements TabAPI {
 				case RIGHT:
 					if (cursorPosition < msgText.length()) cursorPosition++;
 					else cursorPosition = msgText.length();
+					serialTextSelection.setVisibility(false);
+					activeArea = 0;
 					redrawContent = true;
 					break;
 
 				case LEFT:
 					if (cursorPosition > 0) cursorPosition--;
 					else cursorPosition = 0;
+					serialTextSelection.setVisibility(false);
+					activeArea = 0;
 					redrawContent = true;
 					break;
 
@@ -986,6 +1019,26 @@ class SerialMonitor implements TabAPI {
 					}
 					break;
 
+				case KeyEvent.VK_ALL_CANDIDATES: {
+					// Select all - text
+					if (activeArea == 0) {
+						serialTextSelection.setVisibility(false);
+						inputTextSelection.startChar = 0;
+						inputTextSelection.endChar = msgText.length();
+						cursorPosition = msgText.length();
+						inputTextSelection.setVisibility(true);
+					} else if (activeArea == 1) {
+						inputTextSelection.setVisibility(false);
+						serialTextSelection.startLine = 0;
+						serialTextSelection.startChar = 0;
+						serialTextSelection.endLine = serialBuffer.size() - 1;
+						serialTextSelection.endChar = serialBuffer.get(serialTextSelection.endLine).length();
+						serialTextSelection.setVisibility(true);
+					}
+					redrawContent = true;
+					break;
+				}
+
 				case KeyEvent.VK_COPY: {
 					
 					if (serialTextSelection.valid) {
@@ -1047,8 +1100,7 @@ class SerialMonitor implements TabAPI {
 						msgText += clipboardLines[clipboardLines.length - 1] + msgEnd;
 						cursorPosition = msgText.length() - msgEnd.length();
 
-						inputTextSelection.valid = false;
-						inputTextSelection.active = false;
+						inputTextSelection.setVisibility(false);
 						redrawContent = true;
 					}
 					break;
@@ -1093,11 +1145,11 @@ class SerialMonitor implements TabAPI {
 		}
 
 		// Text selection in message area
-		if ((ycoord > msgB) && (ycoord < cB - border*2)) {
+		if ((ycoord > msgB) && (ycoord < cB - border*1.5)) {
 			sidebarScroll.active(false);
 			serialScroll.active(false);
-			inputTextSelection.active = false;
-			inputTextSelection.valid = false;
+			inputTextSelection.setVisibility(false);
+			activeArea = 1;
 			serialTextSelectionCalculation(xcoord, ycoord, true);
 			startScrolling(true);
 			redrawContent = true;
@@ -1107,8 +1159,8 @@ class SerialMonitor implements TabAPI {
 		if ((ycoord > cT) && (ycoord < msgB)) {
 			sidebarScroll.active(false);
 			serialScroll.active(false);
-			serialTextSelection.active = false;
-			serialTextSelection.valid = false;
+			serialTextSelection.setVisibility(false);
+			activeArea = 0;
 			inputTextSelectionCalculation(xcoord, ycoord, true);
 			startScrolling(true);
 			redrawContent = true;
@@ -1416,13 +1468,15 @@ class SerialMonitor implements TabAPI {
 		}
 
 		else if (serialTextSelection.active) {
-			serialTextSelectionCalculation(xcoord, ycoord, false);
-			drawNewData = true;
+			if (serialTextSelectionCalculation(xcoord, ycoord, false)) {
+				drawNewData = true;
+			}
 		}
 
 		else if (inputTextSelection.active) {
-			inputTextSelectionCalculation(xcoord, ycoord, false);
-			redrawContent = true;
+			if (inputTextSelectionCalculation(xcoord, ycoord, false)) {
+				redrawContent = true;
+			}
 		}
  	}
 
@@ -1450,7 +1504,7 @@ class SerialMonitor implements TabAPI {
 	/**
 	 * New serial monitor text selection calculations
 	 */
-	void serialTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
+	boolean serialTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
 		
 		// Figure out where in the serial messages was clicked
 		int selectedLine = displayRows - ((ycoord - msgB) / yTextHeight);
@@ -1488,20 +1542,21 @@ class SerialMonitor implements TabAPI {
 
 		// Figure out which character was selection
 		int selectedChar = int((xcoord - (cL + 2*border)) / charWidth) + 1;
+		if (selectionStart) selectedChar--;
 		if (selectedChar < 0) selectedChar = 0;
 
 		// Ensure character is within bounds
 		else if (selectedChar >= textRow.length()) selectedChar = textRow.length();
 		else if (selectedChar > maxChars) selectedChar = maxChars;
 
-		serialTextSelection.setNewSelection(selectionStart, textIndex, selectedChar);
+		return serialTextSelection.setNewSelection(selectionStart, textIndex, selectedChar);
 	}
 
 
 	/**
 	 * New serial monitor text selection calculations
 	 */
-	void inputTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
+	boolean inputTextSelectionCalculation(int xcoord, int ycoord, boolean selectionStart) {
 
 		// Calculate the width of a single character, and the maximum row width (note: assumes mono-spaced font)
 		textFont(mono_font);
@@ -1533,7 +1588,7 @@ class SerialMonitor implements TabAPI {
 			cursorPosition = selectedChar;
 		}
 
-		inputTextSelection.setNewSelection(selectionStart, 0, selectedChar);
+		return inputTextSelection.setNewSelection(selectionStart, 0, selectedChar);
 	}
 
 
@@ -1569,13 +1624,30 @@ class SerialMonitor implements TabAPI {
 		public boolean valid = false;
 		private boolean inverted = false;
 
+
+		/**
+		 * Enable or disable the text selection
+		 */ 
+		public void setVisibility(boolean selectionState) {
+			if (selectionState) {
+				valid = true;
+			} else {
+				valid = false;
+				active = false;
+				inverted = false;
+			}
+		}
+
 		/**
 		 * Set a new starting or end position for the selection
 		 * @param  selectionStart  True = start position of selection, False = new end position
 		 * @param  newLine         Line index of the new selection position
 		 * @param  newChar         Character index of the new selection position
 		 */
-		public void setNewSelection(boolean selectionStart, int newLine, int newChar) {
+		public boolean setNewSelection(boolean selectionStart, int newLine, int newChar) {
+
+			if (this.inverted && newLine == this.startLine && newChar == this.startChar) return false;
+			else if (!this.inverted && newLine == this.endLine && newChar == this.endChar) return false;
 
 			// If the supplied position related to the start position of the selection
 			if (selectionStart) {
@@ -1608,10 +1680,13 @@ class SerialMonitor implements TabAPI {
 					this.endChar = newChar;
 				}
 
-				this.valid = true;
+				if (this.endLine > this.startLine || this.endChar > this.startChar) {
+					this.valid = true;
+				}
 			}
 
 			this.active = true;
+			return true;
 		}
 	}
 
