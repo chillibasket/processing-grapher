@@ -7,12 +7,12 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      21st December 2021
- * @version   1.3.5
+ * @date      11th June 2022
+ * @version   1.4.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.3.5";
+final String versionNumber = "1.4.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;

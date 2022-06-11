@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -200,6 +200,7 @@ class FileGraph implements TabAPI {
 				if (newoutput.contains(".csv")) {
 					//outputfile = newoutput;
 					currentfile = newoutput;
+					xData = -1;
 					workerActive = true;
 					WorkerThread loadingThread = new WorkerThread();
 					loadingThread.loadFile();
@@ -233,7 +234,7 @@ class FileGraph implements TabAPI {
 			for (int i = 0; i < dataTable.getColumnCount(); i++) {
 				
 				String columnTitle = dataTable.getColumnTitle(i);
-				if (columnTitle.contains("x:")) {
+				if (columnTitle.contains("x:") || columnTitle.contains("X:")) {
 					xData = i;
 				} else if (columnTitle.contains("l:")) {
 					columnTitle = split(columnTitle, ':')[1];
