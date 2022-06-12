@@ -1059,7 +1059,7 @@ class SerialMonitor implements TabAPI {
 							}
 						}
 
-						println("Copying: " + copyText);
+						//println("Copying: " + copyText);
 						StringSelection selection = new StringSelection(copyText);
 						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 						clipboard.setContents(selection, selection);
@@ -1067,7 +1067,7 @@ class SerialMonitor implements TabAPI {
 
 					else if (inputTextSelection.valid) {
 						String copyText = msgText.substring(inputTextSelection.startChar, inputTextSelection.endChar);
-						println("Copying: " + copyText);
+						//println("Copying: " + copyText);
 						StringSelection selection = new StringSelection(copyText);
 						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 						clipboard.setContents(selection, selection);
@@ -1140,7 +1140,7 @@ class SerialMonitor implements TabAPI {
 			sidebarScroll.active(false);
 			serialTextSelection.active = false;
 			inputTextSelection.active = false;
-			startScrolling(true);
+			startScrolling(true, 0);
 			return;
 		}
 
@@ -1151,7 +1151,7 @@ class SerialMonitor implements TabAPI {
 			inputTextSelection.setVisibility(false);
 			activeArea = 1;
 			serialTextSelectionCalculation(xcoord, ycoord, true);
-			startScrolling(true);
+			startScrolling(true, 1);
 			redrawContent = true;
 		}
 
@@ -1162,7 +1162,7 @@ class SerialMonitor implements TabAPI {
 			serialTextSelection.setVisibility(false);
 			activeArea = 0;
 			inputTextSelectionCalculation(xcoord, ycoord, true);
-			startScrolling(true);
+			startScrolling(true, 1);
 			redrawContent = true;
 		}
 	}

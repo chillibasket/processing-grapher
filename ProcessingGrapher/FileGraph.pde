@@ -200,6 +200,7 @@ class FileGraph implements TabAPI {
 				if (newoutput.contains(".csv")) {
 					//outputfile = newoutput;
 					currentfile = newoutput;
+					outputfile = "No File Set";
 					xData = -1;
 					workerActive = true;
 					WorkerThread loadingThread = new WorkerThread();
@@ -695,7 +696,7 @@ class FileGraph implements TabAPI {
 					}
 
 					// Draw the label and get the x-axis position
-					float xPosition = graph.setXlabel(xcoord, labelColumn);
+					float xPosition = graph.setXlabel(xcoord, labelColumn, dataSignals.get(labelColumn).signalColor);
 
 					// Set the correct entry in the label column
 					if (xData != -1) {
@@ -1232,7 +1233,7 @@ class FileGraph implements TabAPI {
 					}
 				}
 
-				double[] outputData = filterClass.runFilter(filter, signalData, xAxisData);
+				double[] outputData = filterClass.runFilter(filter, signalData, xAxisData, currentfile);
 
 				if (outputData != null) {
 					String signalName = filterClass.filterSlug[filter] + "[" + dataTable.getColumnTitle(signal) + "]";

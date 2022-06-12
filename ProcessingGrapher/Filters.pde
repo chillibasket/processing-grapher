@@ -63,7 +63,7 @@ class Filters {
 	/**
 	 * Run the specified filter on the provided data
 	 */
-	public double[] runFilter(int filterType, double[] signalData, double[] xAxisData) {
+	public double[] runFilter(int filterType, double[] signalData, double[] xAxisData, String currentFileLocation) {
 
 		double[] outputData = null;
 
@@ -160,7 +160,47 @@ class Filters {
 			// Fast Fourier Transform
 			case 10:
 			case 11: {
-				alertMessage("Coming Soon\nThe FFT feature is still being developed!");
+				double[] amplitudeAxis = null;
+				double[] frequencyAxis = new double[signalData.length];
+				double samplingFrequency = 0;
+
+				// Figure out the sampling frequency
+				for (int i = 0; i < xAxisData.length - 1; i++) {
+					samplingFrequency += xAxisData[i+1] - xAxisData[i];
+				}
+				samplingFrequency /= xAxisData.length - 1;
+				samplingFrequency = 1 / samplingFrequency;
+				//println("freq: " + samplingFrequency);
+
+				// Run the FFT
+				FastFourierTransform fft = new FastFourierTransform();
+				amplitudeAxis = fft.processForward(signalData, samplingFrequency, frequencyAxis);
+
+				if (frequencyAxis == null || amplitudeAxis == null) {
+					alertMessage("Fast Fourier Transform\nError: Unable to calculate the FFT");
+				} else {
+					double maxAmplitude = 0;
+					int maxAmpIndex = 0;
+
+					// Save the result to a file
+					String[] lines = new String[amplitudeAxis.length + 1];
+					lines[0] = "x:Frequency (Hz),Amplitude";
+					for (int i = 0; i < amplitudeAxis.length; i++) {
+						lines[i+1] = frequencyAxis[i] + "," + amplitudeAxis[i];
+
+						if (maxAmplitude < amplitudeAxis[i]) {
+							maxAmplitude = amplitudeAxis[i];
+							maxAmpIndex = i;
+						}
+					}
+
+					String newFileLocation = currentFileLocation.substring(0,currentFileLocation.length()-4) + "_fft.csv";
+					saveStrings(newFileLocation, lines);
+					DecimalFormat format = new DecimalFormat("0.#####");
+					alertMessage("Fast Fourier Transform\nDominant frequency:   " + 
+						format.format(frequencyAxis[maxAmpIndex]) + " Hz\n(Assuming time axis was in seconds)\n" + 
+						"\nFull spectrogram is saved at:\n" + newFileLocation);
+				}
 				break;
 			}
 
@@ -567,36 +607,38 @@ class Filters {
 	 */
 	public class FastFourierTransform {
 
-		public double[] process(double[] signalData, double samplingFrequency, double[] amplitudeArray)
+		public double[] processForward(double[] signalData, double samplingFrequency, double[] frequencyAxis)
 		{
 			// Figure out length of FFT (it must be a factor of 2)
 			int signalLength = signalData.length;
-            int pt = signalLength;
-            pt--;
-            pt |= pt >> 1;
-            pt |= pt >> 2;
-            pt |= pt >> 4;
-            pt |= pt >> 8;
-            pt |= pt >> 16;
-            pt++;
+			int pt = signalLength;
+			pt--;
+			pt |= pt >> 1;
+			pt |= pt >> 2;
+			pt |= pt >> 4;
+			pt |= pt >> 8;
+			pt |= pt >> 16;
+			pt++;
 
-            // Generate the complex data array
-            double[] complexArray = new double[pt * 2];
-            for (int i = 0; i < pt * 2; i++) complexArray[i] = 0;
-            for (int i = 0; i < signalLength; i++) complexArray[i * 2] = signalData[i];
+			// Generate the complex data array
+			double[] complexArray = new double[pt * 2];
+			for (int i = 0; i < pt * 2; i++) complexArray[i] = 0;
+			for (int i = 0; i < signalLength; i++) complexArray[i * 2] = signalData[i];
 
-            // Calculate the FFT
-            fft(complexArray, pt, 1);
+			// Calculate the FFT
+			fft(complexArray, pt, 1);
 
-            // Get the amplitude of the complex number
-            amplitudeArray = new double[signalLength];
-            for (int i = 0; i < signalLength; i++) {
-            	amplitudeArray[i] = java.lang.Math.sqrt((complexArray[i * 2] * complexArray[i * 2]) + (complexArray[i*2 + 1] * complexArray[i*2 + 1]));
-            }
+			// Get the amplitude of the complex number
+			double[] amplitudeArray = new double[signalLength];
+			for (int i = 0; i < signalLength; i++) {
+				amplitudeArray[i] = java.lang.Math.sqrt((complexArray[i * 2] * complexArray[i * 2]) + (complexArray[i*2 + 1] * complexArray[i*2 + 1]));
+			}
 
-            // Generate the frequency axis
-            double[] frequencyAxis = new double[signalLength];
-            for (int i = 0; i < signalLength; i++) frequencyAxis[i] = i * samplingFrequency / pt;
+			// Generate the frequency axis
+			//frequencyAxis = new double[signalLength];
+			if (frequencyAxis != null && frequencyAxis.length >= signalData.length) {
+				for (int i = 0; i < signalLength; i++) frequencyAxis[i] = i * samplingFrequency / pt;
+			}
 
 			return amplitudeArray;
 		}
@@ -652,7 +694,7 @@ class Filters {
 				}
 				j += m;
 
-				print(i); print(" , "); println(j);
+				//print(i); print(" , "); println(j);
 			}
 
 			// Danielson-Lanzcos routine
@@ -746,19 +788,28 @@ class Filters {
 
 			int[] cycleEnd = { 0 };
 			double[] startPoint = { xData[0], yData[0] };
-			double avgStepDistance = distance(xData[0], yData[0], xData[1], yData[0]);
+			double avgStepDistance = distance(xData[0], yData[0], xData[1], yData[1]);
+			double avgXstep = java.lang.Math.abs(xData[1] - xData[0]);
+			double avgYstep = java.lang.Math.abs(yData[1] - yData[0]);
 
 			for (int i = 2; i < xData.length; i++) {
 				// Update the average distance between points
 				avgStepDistance = ((avgStepDistance * i) + distance(xData[i-1], yData[i-1], xData[i], yData[i])) / (double)(i + 1);
+				avgXstep = ((avgXstep * i) + java.lang.Math.abs(xData[i] - xData[i-1])) / (double)(i + 1);
+				avgYstep = ((avgYstep * i) + java.lang.Math.abs(yData[i] - yData[i-1])) / (double)(i + 1);
 
 				// If the current point is closer to the start point than half the
 				// average distance, then a full loop has probably been completed
-				if (distance(startPoint[0], startPoint[1], xData[i], yData[i]) < avgStepDistance * 0.5) {
+				double currentDistance = distance(startPoint[0], startPoint[1], xData[i], yData[i]);
+				if  (
+					  (currentDistance < avgStepDistance * 0.5) 
+					  && (java.lang.Math.abs(xData[i] - startPoint[0]) < avgXstep * 0.5)
+					  && (java.lang.Math.abs(yData[i] - startPoint[1]) < avgYstep * 0.5)
+					) {
 					cycleEnd = append(cycleEnd, i);
 					startPoint[0] = xData[i];
 					startPoint[1] = yData[i];
-					//println(i);
+					//println("Index: " + i + ", Avg Step: " + avgStepDistance + ", Dist: " + currentDistance + ", Avg X: " + avgXstep);
 
 					// Increment twice to prevent the next point from triggering a loop detection
 					i++;
