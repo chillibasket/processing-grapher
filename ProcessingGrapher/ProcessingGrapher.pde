@@ -7,12 +7,12 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      21st December 2021
- * @version   1.3.5
+ * @date      12th June 2022
+ * @version   1.4.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.3.5";
+final String versionNumber = "1.4.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -693,7 +693,7 @@ void drawLoadingScreen() {
 	textSize(int(14 * uimult));
 	text("Loading v" + versionNumber, width / 2, (height / 2) + int(20 * uimult));
 	fill(c_terminal_text);
-	text("(C) Copyright 2018-2021 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
+	text("(C) Copyright 2018-2022 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 }
 
@@ -1257,11 +1257,16 @@ void mouseWheel(MouseEvent event) {
 /**
  * Start scrolling routine
  */
-void startScrolling(boolean content) {
+void startScrolling(boolean content, int cursorType) {
 	//println("Starting scroll");
 	scrollingActive = true;
 	contentScrolling = content;
-	cursor(HAND);
+	if (cursorType == 1) cursor(TEXT);
+	else cursor(HAND);
+}
+
+void startScrolling(boolean content) {
+	startScrolling(content, 0);
 }
 
 
@@ -1825,7 +1830,7 @@ String myShowInputDialog(final String heading, final String message, final Strin
 
 		// Send it over to the tabs that require it
 		for (TabAPI curTab : tabObjects) {
-			if(curTab.getOutput() == "") {
+			if (curTab.getOutput() == "") {
 				// Get absolute path of file and convert backslashes into normal slashes
 				String newFile = join(split(selection.getAbsolutePath(), '\\'), "/");
 				curTab.setOutput(newFile);
@@ -1834,7 +1839,7 @@ String myShowInputDialog(final String heading, final String message, final Strin
 
 	} else {
 		for (TabAPI curTab : tabObjects) {
-			if(curTab.getOutput() == "") {
+			if (curTab.getOutput() == "") {
 				curTab.setOutput("No File Set");
 			}
 		}

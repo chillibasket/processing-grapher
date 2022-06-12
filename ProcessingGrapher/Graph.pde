@@ -10,7 +10,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2021 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -311,13 +311,13 @@ class Graph {
 	 * Draw a X-axis label onto the graph
 	 *
 	 * @param  xCoord The X-coordinate on the screen
+	 * @param  signalColor The colour in which the label should be drawn
 	 * @return The X-axis value of the label position on the graph
 	 */
-	float setXlabel(float xCoord, int type) {
+	float setXlabel(float xCoord, int type, color signalColor) {
 		if (xCoord < gL || xCoord > gR) return 0;
 
-		int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
-		graphics.stroke(c_colorlist[colorIndex]);
+		graphics.stroke(signalColor);
 		graphics.strokeWeight(1 * uimult);
 
 		graphics.line(xCoord, gT, xCoord, gB);
