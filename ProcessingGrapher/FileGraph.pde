@@ -83,7 +83,8 @@ class FileGraph implements TabAPI {
 		xData = -1;     // -1 if no data column contains x-axis data
 
 		graph = new Graph(cL, cR, cT, cB, 0, 100, 0, 10, "Graph 1");
-		graph.setHighlight(true);
+		graph.scale(uimult);
+		graph.selected(true);
 		outputfile = "No File Set";
 		currentfile = "No File Set";
 
@@ -167,7 +168,8 @@ class FileGraph implements TabAPI {
 		cT = newT;
 		cB = newB;
 
-		graph.changeSize(cL, cR, cT, cB);
+		graph.scale(uimult);
+		graph.setSize(cL, cR, cT, cB);
 		//drawContent();
 	}
 
@@ -251,11 +253,11 @@ class FileGraph implements TabAPI {
 			}
 
 			redrawUI = true;
-			if (xData == -1) graph.setXaxisName("Time (s)");
+			if (xData == -1) graph.xAxisTitle("Time (s)");
 			else {
 				try {
 					String xAxisName = split(dataTable.getColumnTitle(xData), ':')[1];
-					graph.setXaxisName(xAxisName);
+					graph.xAxisTitle(xAxisName);
 				} catch (Exception e) {
 					println("Error when trying to set X-axis name: " + e);
 				}
@@ -291,7 +293,7 @@ class FileGraph implements TabAPI {
 						if(minx > row.getDouble(xData)) minx = row.getDouble(xData);
 						if(maxx < row.getDouble(xData)) maxx = row.getDouble(xData);
 					} else {
-						maxx += 1.0 / graph.getXrate();
+						maxx += 1.0 / graph.frequency();
 					}
 
 					for(int i = 0; i < dataTable.getColumnCount(); i++){
@@ -305,7 +307,7 @@ class FileGraph implements TabAPI {
 				// Only update axis values if zoom isn't active
 				if (zoomActive == false) {
 					// Set these min and max values
-					graph.setMinMax((float) floorToSigFig(minx, 2), (float) ceilToSigFig(maxx, 2), (float) floorToSigFig(miny, 2), (float) ceilToSigFig(maxy, 2));
+					graph.limits((float) floorToSigFig(minx, 2), (float) ceilToSigFig(maxx, 2), (float) floorToSigFig(miny, 2), (float) ceilToSigFig(maxy, 2));
 				}
 
 				// Draw the axes and grid
@@ -330,13 +332,13 @@ class FileGraph implements TabAPI {
 								try {
 									double dataX = row.getDouble(xData);
 									double dataPoint = row.getDouble(i);
-									if(Double.isNaN(dataX) || Double.isNaN(dataPoint)) dataPoint = dataX = 99999999;
+									if(Double.isNaN(dataX) || Double.isNaN(dataPoint)) dataPoint = dataX = Float.MAX_VALUE;
 									
 									// Only plot it if it is within the X-axis data range
-									if (dataX >= graph.getMinX() && dataX <= graph.getMaxX()) {
+									if (dataX >= graph.xMin() && dataX <= graph.xMax()) {
 										if (dataTable.getColumnTitle(i).contains("l:")) {
-											if (dataPoint == 1) graph.plotXlabel((float) dataX, i, dataSignals.get(i).signalColor);
-										} else graph.plotData((float) dataPoint, (float) dataX, i, dataSignals.get(i).signalColor);
+											if (dataPoint == 1) graph.xLabel((float) dataX, dataSignals.get(i).signalColor);
+										} else graph.plotData((float) dataX, (float) dataPoint, i, dataSignals.get(i).signalColor);
 									}
 								} catch (Exception e) {
 									println("Error trying to plot file data.");
@@ -349,13 +351,13 @@ class FileGraph implements TabAPI {
 							try {
 
 								// Only start plotting when desired X-point has arrived
-								float currentX = counter / graph.getXrate();
-								if (currentX >= graph.getMinX() && currentX <= graph.getMaxX()) {
+								float currentX = counter / graph.frequency();
+								if (currentX >= graph.xMin() && currentX <= graph.xMax()) {
 									double dataPoint = row.getDouble(i);
-									if (Double.isNaN(dataPoint)) dataPoint = 99999999;
+									if (Double.isNaN(dataPoint)) dataPoint = Float.MAX_VALUE;
 									if (dataTable.getColumnTitle(i).contains("l:")) {
-										if (dataPoint == 1) graph.plotXlabel((float) currentX, i, dataSignals.get(i).signalColor);
-									} else graph.plotData((float) dataPoint, (float) currentX, i, dataSignals.get(i).signalColor);
+										if (dataPoint == 1) graph.xLabel((float) currentX, dataSignals.get(i).signalColor);
+									} else graph.plotData((float) currentX, (float) dataPoint, i, dataSignals.get(i).signalColor);
 								}
 							} catch (Exception e) {
 								println("Error trying to plot file data.");
@@ -474,19 +476,19 @@ class FileGraph implements TabAPI {
 			
 			// Graph type
 			drawHeading("Graph Options", iL, sT + (uH * 7), iW, tH);
-			drawButton("Line", (graph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
-			drawButton("Dots", (graph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
-			drawButton("Bar", (graph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
+			drawButton("Line", (graph.graphType() == Graph.LINE_CHART)? c_sidebar_accent:c_sidebar_button, iL, sT + (uH * 8), iW / 3, iH, tH);
+			drawButton("Dots", (graph.graphType() == Graph.DOT_CHART)? c_sidebar_accent:c_sidebar_button, iL + (iW / 3), sT + (uH * 8), iW / 3, iH, tH);
+			drawButton("Bar", (graph.graphType() == Graph.BAR_CHART)? c_sidebar_accent:c_sidebar_button, iL + (iW * 2 / 3), sT + (uH * 8), iW / 3, iH, tH);
 			drawRectangle(c_sidebar_divider, iL + (iW / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 			drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 8) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
 			// Graph scaling / segmentation
-			drawDatabox(str(graph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+			drawDatabox(str(graph.xMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
 			drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 9), 12 * uimult, iH, tH);
-			drawDatabox(str(graph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
-			drawDatabox(str(graph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+			drawDatabox(str(graph.xMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 9), (iW / 2) - (6 * uimult), iH, tH);
+			drawDatabox(str(graph.yMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL, sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
 			drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 10), 12 * uimult, iH, tH);
-			drawDatabox(str(graph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
+			drawDatabox(str(graph.yMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), iL + (iW / 2) + (6 * uimult), sT + (uH * 10), (iW / 2) - (6 * uimult), iH, tH);
 
 			// Zoom Options
 			if (currentfile != ""  && currentfile != "No File Set") {
@@ -501,7 +503,7 @@ class FileGraph implements TabAPI {
 			// Input Data Columns
 			drawHeading("Data Format", iL, sT + (uH * 12.5), iW, tH);
 			if (xData != -1) drawButton("X: " + split(dataSignals.get(xData).signalText, ':')[1], c_sidebar_button, iL, sT + (uH * 13.5), iW, iH, tH);
-			else drawDatabox("Rate: " + graph.getXrate() + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
+			else drawDatabox("Rate: " + graph.frequency() + "Hz", iL, sT + (uH * 13.5), iW, iH, tH);
 			//drawButton("Add Column", c_sidebar_button, iL, sT + (uH * 12.5), iW, iH, tH);
 
 			float tHnow = 14.5;
@@ -696,12 +698,12 @@ class FileGraph implements TabAPI {
 					}
 
 					// Draw the label and get the x-axis position
-					float xPosition = graph.setXlabel(xcoord, labelColumn, dataSignals.get(labelColumn).signalColor);
+					float xPosition = graph.xLabel(xcoord, dataSignals.get(labelColumn).signalColor);
 
 					// Set the correct entry in the label column
 					if (xData != -1) {
 						// Calculate approximately where in the sequence the label should go
-						int startPosition = round((xPosition - graph.getMinX()) / (graph.getMaxX() - graph.getMinX()) * (dataTable.getRowCount() - 1));
+						int startPosition = round((xPosition - graph.xMin()) / (graph.xMax() - graph.xMin()) * (dataTable.getRowCount() - 1));
 						if (startPosition < 0) startPosition = 0;
 						else if (startPosition >= dataTable.getRowCount()) startPosition = dataTable.getRowCount() - 1;
 
@@ -726,7 +728,7 @@ class FileGraph implements TabAPI {
 							dataTable.setInt(startPosition, "l:Labels", 1);
 						}
 					} else {
-						int startPosition = round(xPosition * graph.getXrate());
+						int startPosition = round(xPosition * graph.frequency());
 						if (startPosition < 0) startPosition = 0;
 						else if (startPosition >= dataTable.getRowCount()) startPosition = dataTable.getRowCount() - 1;
 						dataTable.setInt(startPosition, "l:Labels", 1);
@@ -742,8 +744,8 @@ class FileGraph implements TabAPI {
 
 		else if (setZoomSize == 0) {
 			if (graph.onGraph(xcoord, ycoord)) {
-				zoomCoordOne[0] = (graph.xGraphPos(xcoord) * (graph.getMaxX() - graph.getMinX())) + graph.getMinX();
-				zoomCoordOne[1] = ((1 - graph.yGraphPos(ycoord)) * (graph.getMaxY() - graph.getMinY())) + graph.getMinY();
+				zoomCoordOne[0] = (graph.xGraphPos(xcoord) * (graph.xMax() - graph.xMin())) + graph.xMin();
+				zoomCoordOne[1] = ((1 - graph.yGraphPos(ycoord)) * (graph.yMax() - graph.yMin())) + graph.yMin();
 				stroke(c_graph_axis);
 				strokeWeight(1 * uimult);
 				line(xcoord - (5 * uimult), ycoord, xcoord + (5 * uimult), ycoord);
@@ -753,25 +755,25 @@ class FileGraph implements TabAPI {
 
 		} else if (setZoomSize == 1) {
 			if (graph.onGraph(xcoord, ycoord)) {
-				zoomCoordOne[2] = (graph.xGraphPos(xcoord) * (graph.getMaxX() - graph.getMinX())) + graph.getMinX();
-				zoomCoordOne[3] = ((1 - graph.yGraphPos(ycoord)) * (graph.getMaxY() - graph.getMinY())) + graph.getMinY();
+				zoomCoordOne[2] = (graph.xGraphPos(xcoord) * (graph.xMax() - graph.xMin())) + graph.xMin();
+				zoomCoordOne[3] = ((1 - graph.yGraphPos(ycoord)) * (graph.yMax() - graph.yMin())) + graph.yMin();
 				setZoomSize = -1;
 				zoomActive = true;
 
 				if (zoomCoordOne[0] < zoomCoordOne[2]) {
-					graph.setMinX(floorToSigFig(zoomCoordOne[0], 4));
-					graph.setMaxX(ceilToSigFig(zoomCoordOne[2], 4));
+					graph.xMin(floorToSigFig(zoomCoordOne[0], 4));
+					graph.xMax(ceilToSigFig(zoomCoordOne[2], 4));
 				} else {
-					graph.setMaxX(ceilToSigFig(zoomCoordOne[0], 4));
-					graph.setMinX(floorToSigFig(zoomCoordOne[2], 4));
+					graph.xMax(ceilToSigFig(zoomCoordOne[0], 4));
+					graph.xMin(floorToSigFig(zoomCoordOne[2], 4));
 				}
 
 				if (zoomCoordOne[1] < zoomCoordOne[3]) {
-					graph.setMinY(floorToSigFig(zoomCoordOne[1], 4));
-					graph.setMaxY(ceilToSigFig(zoomCoordOne[3], 4));
+					graph.yMin(floorToSigFig(zoomCoordOne[1], 4));
+					graph.yMax(ceilToSigFig(zoomCoordOne[3], 4));
 				} else {
-					graph.setMaxY(ceilToSigFig(zoomCoordOne[1], 4));
-					graph.setMinY(floorToSigFig(zoomCoordOne[3], 4));
+					graph.yMax(ceilToSigFig(zoomCoordOne[1], 4));
+					graph.yMin(floorToSigFig(zoomCoordOne[3], 4));
 				}
 
 				redrawContent = true;
@@ -891,19 +893,19 @@ class FileGraph implements TabAPI {
 
 				// Line
 				if (menuXclick(xcoord, iL, int(iW / 3))) {
-					graph.setGraphType("linechart");
+					graph.graphType(Graph.LINE_CHART);
 					redrawContent = redrawUI = true;
 				}
 
 				// Dot
 				else if (menuXclick(xcoord, iL + int(iW / 3), int(iW / 3))) {
-					graph.setGraphType("dotchart");
+					graph.graphType(Graph.DOT_CHART);
 					redrawContent = redrawUI = true;
 				}
 
 				// Bar
 				else if (menuXclick(xcoord, iL + int(2 * iW / 3), int(iW / 3))) {
-					graph.setGraphType("barchart");
+					graph.graphType(Graph.BAR_CHART);
 					redrawContent = redrawUI = true;
 				}
 			}
@@ -913,10 +915,10 @@ class FileGraph implements TabAPI {
 
 				// Change X axis minimum value
 				if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
-					ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(graph.getMinX()));
+					ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(graph.xMin()));
 					userInput.setErrorMessage("Error\nInvalid x-axis minimum value entered.\nThe number should be smaller the the maximum value.");
-					if (userInput.checkFloat(userInput.LT, graph.getMaxX())) {
-						graph.setMinX(userInput.getFloat());
+					if (userInput.checkFloat(userInput.LT, graph.xMax())) {
+						graph.xMin(userInput.getFloat());
 						zoomActive = true;
 					} 
 					redrawContent = redrawUI = true;
@@ -924,10 +926,10 @@ class FileGraph implements TabAPI {
 
 				// Change X axis maximum value
 				else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
-					ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(graph.getMaxX()));
+					ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(graph.xMax()));
 					userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nThe number should be larger the the minimum value.");
-					if (userInput.checkFloat(userInput.GT, graph.getMinX())) {
-						graph.setMaxX(userInput.getFloat());
+					if (userInput.checkFloat(userInput.GT, graph.xMin())) {
+						graph.xMax(userInput.getFloat());
 						zoomActive = true;
 					} 
 					redrawContent = redrawUI = true;
@@ -939,10 +941,10 @@ class FileGraph implements TabAPI {
 
 				// Change Y axis minimum value
 				if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
-					ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(graph.getMinY()));
+					ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(graph.yMin()));
 					userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
-					if (userInput.checkFloat(userInput.LT, graph.getMaxY())) {
-						graph.setMinY(userInput.getFloat());
+					if (userInput.checkFloat(userInput.LT, graph.yMax())) {
+						graph.yMin(userInput.getFloat());
 						zoomActive = true;
 					} 
 					redrawContent = redrawUI = true;
@@ -950,10 +952,10 @@ class FileGraph implements TabAPI {
 
 				// Change Y axis maximum value
 				else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
-					ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(graph.getMaxY()));
+					ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(graph.yMax()));
 					userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
-					if (userInput.checkFloat(userInput.GT, graph.getMinY())) {
-						graph.setMaxY(userInput.getFloat());
+					if (userInput.checkFloat(userInput.GT, graph.yMin())) {
+						graph.yMax(userInput.getFloat());
 						zoomActive = true;
 					} 
 					redrawContent = redrawUI = true;
@@ -990,11 +992,11 @@ class FileGraph implements TabAPI {
 			// Change the input data rate
 			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 13.5, iL, iW)){
 				if (xData == -1) {
-					ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graph.getXrate()));
+					ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):", str(graph.frequency()));
 					userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
 					if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
 						float newXrate = userInput.getFloat();
-						graph.setXrate(newXrate);
+						graph.frequency(newXrate);
 						redrawContent = true;
 						redrawUI = true;
 					}
@@ -1229,7 +1231,7 @@ class FileGraph implements TabAPI {
 					xAxisData = new double[signalData.length];
 					xAxisData[0] = 0;
 					for (int i = 1; i < signalData.length; i++) {
-						xAxisData[i] = xAxisData[i - 1] + (1.0 / graph.getXrate());
+						xAxisData[i] = xAxisData[i - 1] + (1.0 / graph.frequency());
 					}
 				}
 
