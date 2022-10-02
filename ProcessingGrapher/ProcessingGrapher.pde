@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      12th June 2022
- * @version   1.4.0
+ * @date      2nd September 2022
+ * @version   1.5.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.4.0";
+final String versionNumber = "1.5.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
