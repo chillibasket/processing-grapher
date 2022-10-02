@@ -107,7 +107,9 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
-1. (12th June 2022) Version 1.4.0
+1. (2nd September 2022) Version 1.5.0
+	1. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Implemented option to use one of the data signals as the x-axis on the "Live Graph" tab.
+1. (12th June 2022) Version 1.4.0 [Release]
     1. ([#32](https://github.com/chillibasket/processing-grapher/issues/32)) Added an "Enclosed Area" filter option on the "File Graph" tab. If there are any loops/cycles within the data, the filter will calculate the area contained within that enclosed cycle.
     2. ([#33](https://github.com/chillibasket/processing-grapher/issues/33)) Added a "Fourier Transform" (FFT) filter option on the "File Graph" tab. This allows the frequency spectrum of a signal to be analysed.
     3. Some general bug fixes and UI improvements.
