@@ -174,6 +174,16 @@ class SerialMonitor implements TabAPI {
 
 
 	/**
+	 * Set current side menu level
+	 * 
+	 * @param  newLevel The new menu level
+	 */
+	void setMenuLevel(int newLevel) {
+		menuLevel = newLevel;
+	}
+
+
+	/**
 	 * Redraw all tab content
 	 */
 	void drawContent() {
@@ -770,12 +780,19 @@ class SerialMonitor implements TabAPI {
 			drawButton("Confirm", c_sidebar_button, iL, sT + (uH * 6.5) + iW, iW, iH, tH);
 			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * 7.5) + iW, iW, iH, tH);
 		}
+	}
 
-		// Draw bottom info bar
+
+	/**
+	 * Draw the btoom information bar
+	 */
+	void drawInfoBar() {
+		int sW = width - cR;
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_status_bar);
-		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
+		text("Output: " + constrainString(outputfile, width - sW - round(175 * uimult) - textWidth("Output: ")), 
+			round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 

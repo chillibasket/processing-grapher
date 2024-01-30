@@ -102,6 +102,16 @@ class Settings implements TabAPI {
 
 
 	/**
+	 * Set current side menu level
+	 * 
+	 * @param  newLevel The new menu level
+	 */
+	void setMenuLevel(int newLevel) {
+		menuLevel = newLevel;
+	}
+
+
+	/**
 	 * Redraw all tab content
 	 */
 	void drawContent () {
@@ -446,6 +456,14 @@ class Settings implements TabAPI {
 			tHnow += 0.5;
 			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
+	}
+
+
+	/**
+	 * Draw the btoom information bar
+	 */
+	void drawInfoBar() {
+		// Empty
 	}
 
 

@@ -152,6 +152,16 @@ class LiveGraph implements TabAPI {
 
 
 	/**
+	 * Set current side menu level
+	 * 
+	 * @param  newLevel The new menu level
+	 */
+	void setMenuLevel(int newLevel) {
+		// Do nothing
+	}
+
+
+	/**
 	 * Redraw all tab content
 	 */
 	void drawContent () {
@@ -645,6 +655,7 @@ class LiveGraph implements TabAPI {
 			}
 	
 			// --- Data Recording ---
+			lock.lock();
 			TableRow newRow = dataTable.addRow();
 			//float[] newData = new float[dataArray.length];
 
@@ -660,6 +671,7 @@ class LiveGraph implements TabAPI {
 					println(" - When parsing live graph data");
 				}
 			}
+			lock.unlock();
 
 			//graphA.bufferNewData(newData);
 
@@ -679,13 +691,15 @@ class LiveGraph implements TabAPI {
 					int dotPos = outputfile.lastIndexOf(".");
 					String nextoutputfile = outputfile.substring(0, dotPos);
 					nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".csv";
-					if (!dataTable.openCSVoutput(nextoutputfile)) {
-						emergencyOutputSave(true);
-					}
 
 					// Ensure table is empty
-					dataTable = new CustomTable();
+					dataTable.clearRows();
 					drawFrom = 0;
+
+					if (!dataTable.openCSVoutput(nextoutputfile)) {
+						//emergencyOutputSave(true);
+						println("Failed to start recording to a new output file");
+					}
 				}
 			} else if (!isPaused && !lock.isLocked()) {
 				// Remove rows from table which don't need to be shown on the graphs anymore
@@ -843,11 +857,19 @@ class LiveGraph implements TabAPI {
 
 			if (itemCount == 0) drawText("Empty", c_idletab_text, iL + iW / 2, sT + (uH * (tHnow - itemCount - 0.75)), iW / 2, iH * 3 / 4);
 		}
+	}
 
+
+	/**
+	 * Draw the btoom information bar
+	 */
+	void drawInfoBar() {
+		int sW = width - cR;
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_status_bar);
-		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
+		text("Output: " + constrainString(outputfile, width - sW - round(175 * uimult) - textWidth("Output: ")), 
+			round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 

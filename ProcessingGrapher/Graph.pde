@@ -680,7 +680,6 @@ class Graph {
 		// Ensure that the element actually exists in data arrays
 		while(lastY.length < type + 1) lastY = append(lastY, Float.MIN_VALUE);
 		while(lastX.length < type + 1) lastX = append(lastX, -xStep);
-
 		plotData(dataY, lastX[type] + xStep, type);
 	}
 
@@ -693,7 +692,7 @@ class Graph {
 	 */
 	void plotData(float dataY, float dataX, int type) {
 		int colorIndex = type - (c_colorlist.length * floor(type / c_colorlist.length));
-		plotData(dataY, dataX, type, c_colorlist[colorIndex]);
+		plotData(dataX, dataY, type, c_colorlist[colorIndex]);
 	}
 	/** @} */	
 

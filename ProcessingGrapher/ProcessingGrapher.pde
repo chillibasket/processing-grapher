@@ -7,12 +7,12 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      2nd September 2022
- * @version   1.5.0
+ * @date      5 February 2024
+ * @version   1.6.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2019-2024 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.5.0";
+final String versionNumber = "1.6.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -523,6 +523,7 @@ void drawProgram() {
 		if (redrawUI){
 			drawTabs(currentTab);
 			drawSidebar();
+			drawInfoBar();
 			redrawUI = false;
 		}
 
@@ -663,6 +664,100 @@ void drawSidebar () {
 			curTab.drawSidebar();
 		} else currentTab = 0;
 	}
+}
+
+
+/**
+ * Draw the Bottom Bar
+ *
+ * This function draws the right-side menu area
+ * for the current tab and the bottom status bar
+ */
+void drawInfoBar () {
+
+	// Setup drawing parameters
+	rectMode(CORNER);
+	noStroke();
+	textAlign(CENTER, CENTER);
+
+	// Calculate sizing of info bar
+	final int sW = round(sidebarWidth * uimult);
+	final int bW = round(70 * uimult);
+	final int pW = round(70 * uimult);
+	final int cW = round(bottombarHeight * uimult);
+	final int bH = round(bottombarHeight * uimult);
+
+	final int cL = width - sW - pW - cW - bW - round(4*uimult);
+	final int cR = width - sW - pW - bW - round(4*uimult);
+	final int pL = width - sW - pW - bW - round(2*uimult);
+	final int pR = width - sW - bW - round(2*uimult);
+	final int bL = width - sW - bW - round(0*uimult);
+	final int bR = width - sW - round(0*uimult);
+
+	// Bottom info area
+	fill(c_tabbar);
+	rect(0, height - bH, width - sW + 1, bH);
+
+	// Connected/Disconnected
+	if (serialConnected) {
+		fill(c_status_bar);
+		rect(cL, height - bH, cW, bH);
+		fill(c_idletab);
+		circle(cL + (cW / 2) + round(1*uimult), height - (bH / 2) - round(1*uimult), round(6*uimult));
+		circle(cL + (cW / 2) - round(1*uimult), height - (bH / 2) + round(1*uimult), round(6*uimult));
+		stroke(c_idletab);
+		strokeWeight(1 * uimult);
+		line(cL + round(5*uimult), height - round(5*uimult), cR - round(5*uimult), height - bH + round(5*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(1*uimult), height - bH + round(1*uimult), cR - round(1*uimult), height - round(1*uimult));
+		noStroke();
+	} else {
+		fill(c_idletab);
+		rect(cL, height - bH, cW, bH);
+		fill(c_status_bar);
+		circle(cL + (cW / 2) + round(2*uimult), height - (bH / 2) - round(2*uimult), round(6*uimult));
+		circle(cL + (cW / 2) - round(2*uimult), height - (bH / 2) + round(2*uimult), round(6*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(5*uimult), height - round(5*uimult), cR - round(5*uimult), height - bH + round(5*uimult));
+		stroke(c_idletab);
+		strokeWeight(5 * uimult);
+		line(cL + round(2*uimult), height - bH + round(2*uimult), cR - round(2*uimult), height - round(2*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(7*uimult), height - bH + round(7*uimult), cR - round(7*uimult), height - round(7*uimult));
+		noStroke();
+	}
+
+	// Serial port
+	String[] ports = Serial.list();
+	fill(c_idletab);
+	rect(pL, height - bH, pW, bH);
+	textAlign(CENTER, TOP);
+	textFont(base_font);
+	fill(c_status_bar);
+	String portString = ports[portNumber];
+	if (currentPort != "") portString = currentPort;
+	portString = constrainString(portString, pW * 3 / 4);
+	text(portString, pL + (pW / 2), height - bH + round(2*uimult));
+	
+	// Baud rates
+	fill(c_idletab);
+	rect(bL, height - bH, bW, bH);
+	textAlign(CENTER, TOP);
+	textFont(base_font);
+	fill(c_status_bar);
+	text(str(baudRate), bL + (bW / 2), height - bH + round(2*uimult));
+
+	// Bar outline
+	fill(c_tabbar_h);
+	rect(0, height - bH, width - sW + round(1*uimult), round(1 * uimult));
+
+	if (tabObjects.size() > currentTab) {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.drawInfoBar();
+	} else currentTab = 0;
 }
 
 
@@ -1167,6 +1262,42 @@ void mousePressed(){
 					}
 				}
 			}
+		}
+
+		// If mouse is over the info bar
+		else if ((mouseY > height - (bottombarHeight * uimult)) && (mouseX < width - (sidebarWidth * uimult))) {
+			// Calculate sizing of info bar
+			final int sW = round(sidebarWidth * uimult);
+			final int bW = round(70 * uimult);
+			final int pW = round(70 * uimult);
+			final int cW = round(bottombarHeight * uimult);
+
+			final int cL = width - sW - pW - cW - bW - round(4*uimult);
+			final int cR = width - sW - pW - bW - round(4*uimult);
+			final int pL = width - sW - pW - bW - round(2*uimult);
+			final int pR = width - sW - bW - round(2*uimult);
+			final int bL = width - sW - bW - round(0*uimult);
+			final int bR = width - sW - round(0*uimult);
+
+			// Connect/disconnect button
+			if ((mouseX >= cL) && (mouseX <= cR)) {
+				setupSerial();
+				redrawUI = true;
+				redrawContent = true;
+			// Port selection button
+			} else if ((mouseX >= pL) && (mouseX <= pR)) {
+				currentTab = 0;
+				tabObjects.get(currentTab).setMenuLevel(1);
+				redrawContent = true;
+				redrawUI = true;
+			// Baud rate selection button
+			} else if ((mouseX >= bL) && (mouseX <= bR)) {
+				currentTab = 0;
+				tabObjects.get(currentTab).setMenuLevel(2);
+				redrawContent = true;
+				redrawUI = true;
+			}
+
 		}
 
 		// If mouse is hovering over the side bar
@@ -1759,6 +1890,9 @@ void checkSerialPortList() {
 				setupSerial();
 				alertMessage("Error\nThe serial port has been disconnected");
 			}
+			//else if (serialConnected) {
+			//	serialSend("1,2,3,4,5");
+			//}
 
 			if (different) {
 				redrawUI = true;
@@ -2373,7 +2507,8 @@ interface TabAPI {
 	void drawContent();
 	void drawNewData();
 	void drawSidebar();
-	
+	void drawInfoBar();
+
 	// Mouse clicks
 	void menuClick (int xcoord, int ycoord);
 	void contentClick (int xcoord, int ycoord);
@@ -2382,7 +2517,7 @@ interface TabAPI {
 
 	// Keyboard input
 	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey);
-	
+
 	// Change content area size
 	void changeSize(int newL, int newR, int newT, int newB);
 	
@@ -2393,6 +2528,9 @@ interface TabAPI {
 	// Serial communication
 	void connectionEvent(boolean status);
 	void parsePortData(String inputData, boolean graphable);
+
+	// Set menu settings
+	void setMenuLevel(int newLevel);
 
 	// Exit function
 	boolean checkSafeExit();

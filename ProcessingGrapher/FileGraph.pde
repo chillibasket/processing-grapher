@@ -122,6 +122,16 @@ class FileGraph implements TabAPI {
 
 
 	/**
+	 * Set current side menu level
+	 * 
+	 * @param  newLevel The new menu level
+	 */
+	void setMenuLevel(int newLevel) {
+		menuLevel = newLevel;
+	}
+
+
+	/**
 	 * Redraw all tab content
 	 */
 	void drawContent () {
@@ -583,11 +593,19 @@ class FileGraph implements TabAPI {
 			drawButton("Confirm", c_sidebar_button, iL, sT + (uH * 6.5) + iW, iW, iH, tH);
 			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * 7.5) + iW, iW, iH, tH);
 		}
+	}
 
+
+	/**
+	 * Draw the btoom information bar
+	 */
+	void drawInfoBar() {
+		int sW = width - cR;
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_status_bar);
-		text("Input: " + constrainString(currentfile, width - sW - round(30 * uimult) - textWidth("Input: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
+		text("Input: " + constrainString(currentfile, width - sW - round(175 * uimult) - textWidth("Input: ")), 
+			round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 
