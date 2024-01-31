@@ -681,6 +681,23 @@ class FileGraph implements TabAPI {
 						redrawUI = true;
 					}
 					break;
+
+
+				case KeyEvent.VK_F4:
+					// Save file
+					if (currentfile != "" && currentfile != "No File Set" && changesMade){
+						saveFilePath = true;
+						outputfile = "";
+						selectOutput("Select where to save the *.CSV file", "fileSelected");
+					}
+					break;
+
+				case KeyEvent.VK_F5:
+					// Open file
+					saveFilePath = false;
+					outputfile = "";
+					selectInput("Select *.CSV data file to open", "fileSelected");
+					break;
 			}
 		}
 	}
@@ -873,12 +890,12 @@ class FileGraph implements TabAPI {
 				selectInput("Select *.CSV data file to open", "fileSelected");
 			}
 
-			// Save data - currently disabled
+			// Save data
 			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 2, iL, iW)){
 				if (currentfile != "" && currentfile != "No File Set" && changesMade){
 					saveFilePath = true;
 					outputfile = "";
-					selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
+					selectOutput("Select where to save the *.CSV file", "fileSelected");
 				}
 			}
 

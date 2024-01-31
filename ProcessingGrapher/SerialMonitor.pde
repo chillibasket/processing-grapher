@@ -66,6 +66,7 @@ class SerialMonitor implements TabAPI {
 	int[] msgTextBounds = {0,0};
 	boolean autoScroll;
 	boolean tabIsVisible;
+	boolean infoTextVisible = false;
 	int msgBtnSize = 0;
 
 	color previousColor = c_red;
@@ -126,6 +127,7 @@ class SerialMonitor implements TabAPI {
 		//serialBuffer = new StringList();
 		serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 		if (showInstructions) {
+			infoTextVisible = true;
 			serialBuffer.append("");
 			serialBuffer.append("[Info] Connecting to a Serial Device");
 			serialBuffer.append("1. In the right sidebar, select the COM port");
@@ -503,6 +505,16 @@ class SerialMonitor implements TabAPI {
 	 * @param  status True if a device has connected, false if disconnected
 	 */
 	void connectionEvent (boolean status) {
+		if (status && infoTextVisible) {
+			infoTextVisible = false;
+			if (!recordData) {
+				serialBuffer.clear();
+				serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
+				scrollUp = 0;
+				serialTextSelection.setVisibility(false);
+				drawNewData = true;
+			}
+		}
 
 		// On disconnect
 		if (!status) {
@@ -857,6 +869,7 @@ class SerialMonitor implements TabAPI {
 						msgText = "SENT: " + msgText;
 						//serialBuffer = append(serialBuffer, msgText);
 						serialBuffer.append(msgText);
+						inputTextSelection.setVisibility(false);
 						msgText = "";
 						cursorPosition = 0;
 						if (!autoScroll) scrollUp++;
@@ -1122,6 +1135,24 @@ class SerialMonitor implements TabAPI {
 					}
 					break;
 				}
+
+				case KeyEvent.VK_F4:
+					// Set output file
+					if (!recordData) {
+						outputfile = "";
+						selectOutput("Select a location and name for the output *.TXT file", "fileSelected");
+					}
+					break;
+
+				case KeyEvent.VK_F6:
+					// Start/stop recording
+					if(recordData) {
+						stopRecording();
+					} else if(outputfile != "" && outputfile != "No File Set") {
+						startRecording();
+					}
+					break;
+
 				default:
 					//print("Unknown character: ");
 					//print(keyChar);
@@ -1262,6 +1293,7 @@ class SerialMonitor implements TabAPI {
 					serialBuffer.clear();
 					serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 					scrollUp = 0;
+					serialTextSelection.setVisibility(false);
 					drawNewData = true;
 				}
 			}

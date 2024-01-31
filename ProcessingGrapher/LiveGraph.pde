@@ -879,10 +879,7 @@ class LiveGraph implements TabAPI {
 	 * @param  key The character of the key that was pressed
 	 */
 	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
-		if (!codedKey && key == 's' && serialConnected) {
-			thread("serialSendDialog");
-
-		} else if (codedKey) {
+		if (codedKey) {
 			switch (keyCodeInt) {
 				case UP:
 					// Scroll menu bar
@@ -933,6 +930,23 @@ class LiveGraph implements TabAPI {
 					if (mouseX >= cR && menuScroll != -1) {
 						menuScroll = 0;
 						redrawUI = true;
+					}
+					break;
+
+				case KeyEvent.VK_F4:
+					// Set output file
+					if (!recordData) {
+						outputfile = "";
+						selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
+					}
+					break;
+
+				case KeyEvent.VK_F6:
+					// Start/stop recording
+					if(recordData){
+						stopRecording();
+					} else if(outputfile != "" && outputfile != "No File Set"){
+						startRecording();
 					}
 					break;
 			}

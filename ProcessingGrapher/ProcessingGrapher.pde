@@ -12,7 +12,7 @@
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2019-2024 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2018-2024 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -788,7 +788,7 @@ void drawLoadingScreen() {
 	textSize(int(14 * uimult));
 	text("Loading v" + versionNumber, width / 2, (height / 2) + int(20 * uimult));
 	fill(c_terminal_text);
-	text("(C) Copyright 2018-2022 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
+	text("(C) Copyright 2018-2024 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 }
 
@@ -1607,6 +1607,45 @@ void keyPressed() {
 	} else if (controlKey && (key == '=' || key == '+' || keyCode == KeyEvent.VK_EQUALS)) {
 		if (uimult < 2.0) uiResize(0.1);
 
+	// Send a serial message
+	} else if (controlKey && (key == 'm' || key == 'M' || keyCode == KeyEvent.VK_M) && serialConnected) {
+		thread("serialSendDialog");
+
+	// Save or set output file location
+	} else if (controlKey && (key == 's' || key == 'S' || keyCode == KeyEvent.VK_S)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F4, true);
+			controlKey = false;
+		} else {
+			currentTab = 0;
+		}
+
+	// Open a file location
+	} else if (controlKey && (key == 'o' || key == 'O' || keyCode == KeyEvent.VK_O)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F5, true);
+			controlKey = false;
+		} else {
+			currentTab = 0;
+		}
+
+	// Start/stop recording
+	} else if (controlKey && (key == 'r' || key == 'R' || keyCode == KeyEvent.VK_R)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F6, true);
+		} else {
+			currentTab = 0;
+		}
+
+	// Connect/disconnect serial port
+	} else if (controlKey && (key == 'q' || key == 'Q' || keyCode == KeyEvent.VK_Q)) {
+		setupSerial();
+		redrawUI = true;
+		redrawContent = true;
+
 	// Copy keys
 	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == KeyEvent.VK_C)) {
 		if (tabObjects.size() > currentTab) {
@@ -1633,6 +1672,13 @@ void keyPressed() {
 		} else {
 			currentTab = 0;
 		}
+
+	// Tab key - move to next tab
+	} else if (controlKey && (keyCode == KeyEvent.VK_TAB)) {
+		currentTab++;
+		if (currentTab >= tabObjects.size()) currentTab = 0;
+		redrawUI = true;
+		redrawContent = true;
 
 	// For all other keys, send them on to the active tab
 	} else if (coded) {
@@ -1851,7 +1897,7 @@ void serialSend (String message) {
  * message from the live graph tab
  */
 void serialSendDialog() {
-	final String message = showInputDialog("Serial Message:");
+	final String message = myShowInputDialog("Send a Serial Message", "", "");
 	if (message != null){
 		serialSend(message);
 	}
