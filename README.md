@@ -6,6 +6,7 @@
 This project is a Processing-based serial terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. This program is designed as a replacement for the serial monitor contained within the Arduino IDE. The program contains easy-to-use tools to record data received from serial devices, and to plot numerical data on up to 4 separate graphs in real-time. This makes it useful for quickly analysing sensor data from a micro-controller. 
 
 Please let me know if you come across any issues or bugs which need to be fixed!
+
 A full description and set of instructions can be found on my website: [https://wired.chillibasket.com/processing-grapher/](https://wired.chillibasket.com/processing-grapher/)
 </br>
 </br>
@@ -16,8 +17,7 @@ A full description and set of instructions can be found on my website: [https://
 </br>
 </br>
 
-## Features
-1. Easy UI scale and colour theme changing 
+## Features 
 1. Serial terminal monitor
 	1. Connect to any serial port at any baud rate
 	1. Send and receive serial communication
@@ -37,6 +37,7 @@ A full description and set of instructions can be found on my website: [https://
 	1. Add vertical markers/labels to the data
 	1. Apply various filters to remove noise and transform the data
 	1. Save the edited data to a comma delimited file
+1. Easy UI scaling and colour theme switching
 </br>
 </br>
 
@@ -53,7 +54,7 @@ A full description and set of instructions can be found on my website: [https://
 
 ### Using the Program on Linux
 To use the program on Linux, there are two additional steps that need to be taken:
-1. Change the renderer on line 217 to `final String activeRenderer = JAVA2D`. Unfortunately the renderer used on the other platforms (JavaFX) currently has some compatibility issues on Linux.
+1. Change the renderer on line 218 to `final String activeRenderer = JAVA2D`. Unfortunately the renderer used on the other platforms (JavaFX) currently has some compatibility issues on Linux.
 2. If the error message `Permission Denied` appears when trying to connect to a serial port, this means that your current user account doesn't have the permissions set up to access the serial ports. To solve you can either run the program using `sudo`, or you can set up your user so that it has access to the ports using these two commands (replace `<user>` with the account username):
 	- `sudo usermod -a -G dialout <user>`
 	- `sudo usermod -a -G tty <user>` 
@@ -116,7 +117,7 @@ A full set of instructions and documentation can be found on my website at: [htt
     1. ([#36](https://github.com/chillibasket/processing-grapher/issues/36)) Added new buttons to the bottom info bar to quickly connect/disconnect and change the settings of the serial port.
     2. ([#38](https://github.com/chillibasket/processing-grapher/issues/38)) Fixed issue with saving CSV files when the file row count was exceeded.
     3. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Fixed graph bug which was introduced when implementing custom x-axis display.
-    4. Implemented additional keyboard shortcuts: CTRL-TAB to change tab, CTRL-S to save file or set output file, CTRL-Q to connect/disconnect serial port, CTRL-R to start/stop data recording, CTRL-O to open a file, CTRL-M to send a serial message from any tab.
+    4. Implemented additional keyboard shortcuts: `CTRL-TAB` to change tab, `CTRL-S` to save file or set output file, `CTRL-Q` to connect/disconnect serial port, `CTRL-R` to start/stop data recording, `CTRL-O` to open a file, `CTRL-M` to send a serial message from any tab.
     5. Fixed some minor bugs and implemented minor improvements to the user experience (UX).
 1. (2nd September 2022) Version 1.5.0
     1. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Implemented option to use one of the data signals as the x-axis on the "Live Graph" tab.

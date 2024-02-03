@@ -210,6 +210,7 @@ DisposeHandler dh;
 // JavaFX pop-up dialogues
 Stage stage;
 FileChooser fileChooser;
+File currentDirectory = null;
 String userInputString = null;
 int startTime;
 PGraphics mainCanvas;
@@ -534,12 +535,14 @@ void drawProgram() {
 			textAlign(CENTER, CENTER);
 			String frameRateText = "FPS: " + round(frameRate);
 			fill(c_tabbar);
-			rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
+			final int cL = width - round((sidebarWidth + 4 + 175) * uimult + textWidth(frameRateText));
+			final int cR = width - round((sidebarWidth + 2 + 175) * uimult);
+			rect(cL, height - (bottombarHeight * uimult), cR, height);
 			fill(c_idletab_text);
-			text(frameRateText, width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height - 3);
+			text(frameRateText, cL, height - (bottombarHeight * uimult), cR, height - round(4*uimult));
 			if (alertActive && !redrawAlert) {
 				fill(c_white, 80);
-				rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
+				rect(cL, height - (bottombarHeight * uimult), cR, height);
 			}
 		}
 
@@ -2043,6 +2046,9 @@ void selectOutput(final String message, final String callbackMethod) {
 	if (activeRenderer == FX2D) {
 		fileChooser.setTitle(message);
 
+		if (currentDirectory != null)
+			fileChooser.setInitialDirectory(currentDirectory);
+
 		fileChooser.getExtensionFilters().clear();
 		if (message.contains("CSV")) {
 			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Comma Separated", "*.csv"));
@@ -2093,7 +2099,7 @@ void selectInput(final String message, final String callbackMethod) {
 			}
 		});
 	} else {
-		selectInput(message, callbackMethod, null);
+		selectInput(message, callbackMethod, currentDirectory);
 	}
 }
 
@@ -2111,6 +2117,8 @@ void mySelectCallback(File selectedFile, String callbackMethod) {
       Class<?> callbackClass = this.getClass();
       Method selectMethod = callbackClass.getMethod(callbackMethod, new Class[] { File.class });
       selectMethod.invoke(this, new Object[] { selectedFile });
+      if (selectedFile != null)
+      	currentDirectory = selectedFile.getParentFile();
 
     } catch (IllegalAccessException iae) {
       System.err.println(callbackMethod + "() must be public");
