@@ -5,7 +5,8 @@
 # Serial Monitor and Real-time Graphing Program
 This project is a Processing-based serial terminal and graphing program for the analysis and recording of data from serial devices, such as Arduinos. This program is designed as a replacement for the serial monitor contained within the Arduino IDE. The program contains easy-to-use tools to record data received from serial devices, and to plot numerical data on up to 4 separate graphs in real-time. This makes it useful for quickly analysing sensor data from a micro-controller. 
 
-This is still a work in progress; please let me know if you come across any issues or bugs which need to be fixed!
+Please let me know if you come across any issues or bugs which need to be fixed!
+
 A full description and set of instructions can be found on my website: [https://wired.chillibasket.com/processing-grapher/](https://wired.chillibasket.com/processing-grapher/)
 </br>
 </br>
@@ -16,8 +17,7 @@ A full description and set of instructions can be found on my website: [https://
 </br>
 </br>
 
-## Features
-1. Easy UI scale and colour theme changing 
+## Features 
 1. Serial terminal monitor
 	1. Connect to any serial port at any baud rate
 	1. Send and receive serial communication
@@ -26,6 +26,7 @@ A full description and set of instructions can be found on my website: [https://
 1. Live Graphing
 	1. Plot real-time data obtained from serial device on a graph
 	1. Can display data on up to 4 separate graphs
+	1. Plot data with respect to time, or with respect to one of the inputs
 	1. Supports comma delimited numbers only (example: 12,24,-15.4)
 	1. Apply different colours and names to each input
 	1. Record the real-time data as a comma delimited file
@@ -34,7 +35,9 @@ A full description and set of instructions can be found on my website: [https://
 	1. Apply different colours and names to each input
 	1. Supports zooming into sections of the waveforms
 	1. Add vertical markers/labels to the data
-	1. Apply filters to remove noise and transform the data
+	1. Apply various filters to remove noise and transform the data
+	1. Save the edited data to a comma delimited file
+1. Easy UI scaling and colour theme switching
 </br>
 </br>
 
@@ -42,7 +45,7 @@ A full description and set of instructions can be found on my website: [https://
 ## Installation/Setup Guide
 
 ### Basic Usage in the Processing IDE
-1. Download and install the Processing IDE version 3.5.4 from [https://processing.org/](https://processing.org/). Note that the newest version 4.0 is not yet supported.
+1. Download and install the Processing IDE version 3.5.4 from [https://processing.org/](https://processing.org/). Note that the newer versions >4.0 are not yet supported.
 1. Clone or download all files in this repository.
 1. Open the main program file `ProcessingGrapher.pde` in the Processing editor. All the other files should automatically open in separate tabs in the Processing IDE.
 1. Press the `Run` button in the top-left of the Processing editor to start the program.
@@ -51,7 +54,7 @@ A full description and set of instructions can be found on my website: [https://
 
 ### Using the Program on Linux
 To use the program on Linux, there are two additional steps that need to be taken:
-1. Change the renderer on line 217 to `final String activeRenderer = JAVA2D`. Unfortunately the renderer used on the other platforms (JavaFX) currently has some compatibility issues on Linux.
+1. Change the renderer on line 218 to `final String activeRenderer = JAVA2D`. Unfortunately the renderer used on the other platforms (JavaFX) currently has some compatibility issues on Linux.
 2. If the error message `Permission Denied` appears when trying to connect to a serial port, this means that your current user account doesn't have the permissions set up to access the serial ports. To solve you can either run the program using `sudo`, or you can set up your user so that it has access to the ports using these two commands (replace `<user>` with the account username):
 	- `sudo usermod -a -G dialout <user>`
 	- `sudo usermod -a -G tty <user>` 
@@ -81,10 +84,13 @@ It is possible to create a stand-alone version of the program, which does not re
 	1. Make sure that the data consists of numbers being separated by a comma
 	1. For example the message `12,25,16` could be sent using Arduino code:
 		```cpp
-		Serial.print(dataPoint1); Serial.print(",");
-		Serial.print(dataPoint2); Serial.print(",");
+		Serial.print(dataPoint1);
+		Serial.print(",");
+		Serial.print(dataPoint2);
+		Serial.print(",");
 		Serial.println(dataPoint3);
 		```
+	1. Important: the last print command must use `Serial.println()` which sends the special "end of line" character, while the other commands should be `Serial.print()`.
 	1. Go to the "Live Graph" tab of the program. The data should automatically be plotted on the graph.
 	1. To plot different signals on separate graphs, click on the number of graphs (1 to 4) in the "Split" section of the right-hand sidebar.
 	1. You can then press the up or down buttons on each signal in the sidebar to move it to a different graph.
@@ -107,8 +113,14 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (4th February 2024) Version 1.6.0 [Release]
+    1. ([#36](https://github.com/chillibasket/processing-grapher/issues/36)) Added new buttons to the bottom info bar to quickly connect/disconnect and change the settings of the serial port.
+    2. ([#38](https://github.com/chillibasket/processing-grapher/issues/38)) Fixed issue with saving CSV files when the file row count was exceeded.
+    3. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Fixed graph bug which was introduced when implementing custom x-axis display.
+    4. Implemented additional keyboard shortcuts: `CTRL-TAB` to change tab, `CTRL-S` to save file or set output file, `CTRL-Q` to connect/disconnect serial port, `CTRL-R` to start/stop data recording, `CTRL-O` to open a file, `CTRL-M` to send a serial message from any tab.
+    5. Fixed some minor bugs and implemented minor improvements to the user experience (UX).
 1. (2nd September 2022) Version 1.5.0
-	1. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Implemented option to use one of the data signals as the x-axis on the "Live Graph" tab.
+    1. ([#29](https://github.com/chillibasket/processing-grapher/issues/29)) Implemented option to use one of the data signals as the x-axis on the "Live Graph" tab.
 1. (12th June 2022) Version 1.4.0 [Release]
     1. ([#32](https://github.com/chillibasket/processing-grapher/issues/32)) Added an "Enclosed Area" filter option on the "File Graph" tab. If there are any loops/cycles within the data, the filter will calculate the area contained within that enclosed cycle.
     2. ([#33](https://github.com/chillibasket/processing-grapher/issues/33)) Added a "Fourier Transform" (FFT) filter option on the "File Graph" tab. This allows the frequency spectrum of a signal to be analysed.

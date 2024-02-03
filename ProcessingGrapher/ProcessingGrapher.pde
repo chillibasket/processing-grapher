@@ -7,12 +7,12 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      2nd September 2022
- * @version   1.5.0
+ * @date      5 February 2024
+ * @version   1.6.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Copyright (C) 2022 - Simon Bluett <hello@chillibasket.com>
+ * Copyright (C) 2018-2024 - Simon Bluett <hello@chillibasket.com>
  *
  * This file is part of ProcessingGrapher 
  * <https://github.com/chillibasket/processing-grapher>
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.5.0";
+final String versionNumber = "1.6.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -210,6 +210,7 @@ DisposeHandler dh;
 // JavaFX pop-up dialogues
 Stage stage;
 FileChooser fileChooser;
+File currentDirectory = null;
 String userInputString = null;
 int startTime;
 PGraphics mainCanvas;
@@ -523,6 +524,7 @@ void drawProgram() {
 		if (redrawUI){
 			drawTabs(currentTab);
 			drawSidebar();
+			drawInfoBar();
 			redrawUI = false;
 		}
 
@@ -533,12 +535,14 @@ void drawProgram() {
 			textAlign(CENTER, CENTER);
 			String frameRateText = "FPS: " + round(frameRate);
 			fill(c_tabbar);
-			rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
+			final int cL = width - round((sidebarWidth + 4 + 175) * uimult + textWidth(frameRateText));
+			final int cR = width - round((sidebarWidth + 2 + 175) * uimult);
+			rect(cL, height - (bottombarHeight * uimult), cR, height);
 			fill(c_idletab_text);
-			text(frameRateText, width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height - 3);
+			text(frameRateText, cL, height - (bottombarHeight * uimult), cR, height - round(4*uimult));
 			if (alertActive && !redrawAlert) {
 				fill(c_white, 80);
-				rect(width - ((20 + sidebarWidth) * uimult) - textWidth(frameRateText), height - (bottombarHeight * uimult), width - (sidebarWidth * uimult), height);
+				rect(cL, height - (bottombarHeight * uimult), cR, height);
 			}
 		}
 
@@ -667,6 +671,100 @@ void drawSidebar () {
 
 
 /**
+ * Draw the Bottom Bar
+ *
+ * This function draws the right-side menu area
+ * for the current tab and the bottom status bar
+ */
+void drawInfoBar () {
+
+	// Setup drawing parameters
+	rectMode(CORNER);
+	noStroke();
+	textAlign(CENTER, CENTER);
+
+	// Calculate sizing of info bar
+	final int sW = round(sidebarWidth * uimult);
+	final int bW = round(70 * uimult);
+	final int pW = round(70 * uimult);
+	final int cW = round(bottombarHeight * uimult);
+	final int bH = round(bottombarHeight * uimult);
+
+	final int cL = width - sW - pW - cW - bW - round(4*uimult);
+	final int cR = width - sW - pW - bW - round(4*uimult);
+	final int pL = width - sW - pW - bW - round(2*uimult);
+	final int pR = width - sW - bW - round(2*uimult);
+	final int bL = width - sW - bW - round(0*uimult);
+	final int bR = width - sW - round(0*uimult);
+
+	// Bottom info area
+	fill(c_tabbar);
+	rect(0, height - bH, width - sW + 1, bH);
+
+	// Connected/Disconnected
+	if (serialConnected) {
+		fill(c_status_bar);
+		rect(cL, height - bH, cW, bH);
+		fill(c_idletab);
+		circle(cL + (cW / 2) + round(1*uimult), height - (bH / 2) - round(1*uimult), round(6*uimult));
+		circle(cL + (cW / 2) - round(1*uimult), height - (bH / 2) + round(1*uimult), round(6*uimult));
+		stroke(c_idletab);
+		strokeWeight(1 * uimult);
+		line(cL + round(5*uimult), height - round(5*uimult), cR - round(5*uimult), height - bH + round(5*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(1*uimult), height - bH + round(1*uimult), cR - round(1*uimult), height - round(1*uimult));
+		noStroke();
+	} else {
+		fill(c_idletab);
+		rect(cL, height - bH, cW, bH);
+		fill(c_status_bar);
+		circle(cL + (cW / 2) + round(2*uimult), height - (bH / 2) - round(2*uimult), round(6*uimult));
+		circle(cL + (cW / 2) - round(2*uimult), height - (bH / 2) + round(2*uimult), round(6*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(5*uimult), height - round(5*uimult), cR - round(5*uimult), height - bH + round(5*uimult));
+		stroke(c_idletab);
+		strokeWeight(5 * uimult);
+		line(cL + round(2*uimult), height - bH + round(2*uimult), cR - round(2*uimult), height - round(2*uimult));
+		stroke(c_status_bar);
+		strokeWeight(1 * uimult);
+		line(cL + round(7*uimult), height - bH + round(7*uimult), cR - round(7*uimult), height - round(7*uimult));
+		noStroke();
+	}
+
+	// Serial port
+	String[] ports = Serial.list();
+	fill(c_idletab);
+	rect(pL, height - bH, pW, bH);
+	textAlign(CENTER, TOP);
+	textFont(base_font);
+	fill(c_status_bar);
+	String portString = ports[portNumber];
+	if (currentPort != "") portString = currentPort;
+	portString = constrainString(portString, pW * 3 / 4);
+	text(portString, pL + (pW / 2), height - bH + round(2*uimult));
+	
+	// Baud rates
+	fill(c_idletab);
+	rect(bL, height - bH, bW, bH);
+	textAlign(CENTER, TOP);
+	textFont(base_font);
+	fill(c_status_bar);
+	text(str(baudRate), bL + (bW / 2), height - bH + round(2*uimult));
+
+	// Bar outline
+	fill(c_tabbar_h);
+	rect(0, height - bH, width - sW + round(1*uimult), round(1 * uimult));
+
+	if (tabObjects.size() > currentTab) {
+		TabAPI curTab = tabObjects.get(currentTab);
+		curTab.drawInfoBar();
+	} else currentTab = 0;
+}
+
+
+/**
  * Draw the loading screen which is shown during start-up
  */
 void drawLoadingScreen() {
@@ -693,7 +791,7 @@ void drawLoadingScreen() {
 	textSize(int(14 * uimult));
 	text("Loading v" + versionNumber, width / 2, (height / 2) + int(20 * uimult));
 	fill(c_terminal_text);
-	text("(C) Copyright 2018-2022 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
+	text("(C) Copyright 2018-2024 - Simon Bluett", width / 2, (height / 2) + int(60 * uimult));
 	text("Free Software - GNU General Public License v3", width / 2, (height / 2) + int(90 * uimult));
 }
 
@@ -1169,6 +1267,42 @@ void mousePressed(){
 			}
 		}
 
+		// If mouse is over the info bar
+		else if ((mouseY > height - (bottombarHeight * uimult)) && (mouseX < width - (sidebarWidth * uimult))) {
+			// Calculate sizing of info bar
+			final int sW = round(sidebarWidth * uimult);
+			final int bW = round(70 * uimult);
+			final int pW = round(70 * uimult);
+			final int cW = round(bottombarHeight * uimult);
+
+			final int cL = width - sW - pW - cW - bW - round(4*uimult);
+			final int cR = width - sW - pW - bW - round(4*uimult);
+			final int pL = width - sW - pW - bW - round(2*uimult);
+			final int pR = width - sW - bW - round(2*uimult);
+			final int bL = width - sW - bW - round(0*uimult);
+			final int bR = width - sW - round(0*uimult);
+
+			// Connect/disconnect button
+			if ((mouseX >= cL) && (mouseX <= cR)) {
+				setupSerial();
+				redrawUI = true;
+				redrawContent = true;
+			// Port selection button
+			} else if ((mouseX >= pL) && (mouseX <= pR)) {
+				currentTab = 0;
+				tabObjects.get(currentTab).setMenuLevel(1);
+				redrawContent = true;
+				redrawUI = true;
+			// Baud rate selection button
+			} else if ((mouseX >= bL) && (mouseX <= bR)) {
+				currentTab = 0;
+				tabObjects.get(currentTab).setMenuLevel(2);
+				redrawContent = true;
+				redrawUI = true;
+			}
+
+		}
+
 		// If mouse is hovering over the side bar
 		else if ((mouseX > width - (sidebarWidth * uimult)) && (mouseX < width)) {
 			thread("menuClickEvent");
@@ -1476,6 +1610,45 @@ void keyPressed() {
 	} else if (controlKey && (key == '=' || key == '+' || keyCode == KeyEvent.VK_EQUALS)) {
 		if (uimult < 2.0) uiResize(0.1);
 
+	// Send a serial message
+	} else if (controlKey && (key == 'm' || key == 'M' || keyCode == KeyEvent.VK_M) && serialConnected) {
+		thread("serialSendDialog");
+
+	// Save or set output file location
+	} else if (controlKey && (key == 's' || key == 'S' || keyCode == KeyEvent.VK_S)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F4, true);
+			controlKey = false;
+		} else {
+			currentTab = 0;
+		}
+
+	// Open a file location
+	} else if (controlKey && (key == 'o' || key == 'O' || keyCode == KeyEvent.VK_O)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F5, true);
+			controlKey = false;
+		} else {
+			currentTab = 0;
+		}
+
+	// Start/stop recording
+	} else if (controlKey && (key == 'r' || key == 'R' || keyCode == KeyEvent.VK_R)) {
+		if (tabObjects.size() > currentTab) {
+			TabAPI curTab = tabObjects.get(currentTab);
+			curTab.keyboardInput(key, KeyEvent.VK_F6, true);
+		} else {
+			currentTab = 0;
+		}
+
+	// Connect/disconnect serial port
+	} else if (controlKey && (key == 'q' || key == 'Q' || keyCode == KeyEvent.VK_Q)) {
+		setupSerial();
+		redrawUI = true;
+		redrawContent = true;
+
 	// Copy keys
 	} else if (controlKey && (key == 'c' || key == 'C' || keyCode == KeyEvent.VK_C)) {
 		if (tabObjects.size() > currentTab) {
@@ -1502,6 +1675,13 @@ void keyPressed() {
 		} else {
 			currentTab = 0;
 		}
+
+	// Tab key - move to next tab
+	} else if (controlKey && (keyCode == KeyEvent.VK_TAB)) {
+		currentTab++;
+		if (currentTab >= tabObjects.size()) currentTab = 0;
+		redrawUI = true;
+		redrawContent = true;
 
 	// For all other keys, send them on to the active tab
 	} else if (coded) {
@@ -1720,7 +1900,7 @@ void serialSend (String message) {
  * message from the live graph tab
  */
 void serialSendDialog() {
-	final String message = showInputDialog("Serial Message:");
+	final String message = myShowInputDialog("Send a Serial Message", "", "");
 	if (message != null){
 		serialSend(message);
 	}
@@ -1759,6 +1939,9 @@ void checkSerialPortList() {
 				setupSerial();
 				alertMessage("Error\nThe serial port has been disconnected");
 			}
+			//else if (serialConnected) {
+			//	serialSend("1,2,3,4,5");
+			//}
 
 			if (different) {
 				redrawUI = true;
@@ -1863,6 +2046,9 @@ void selectOutput(final String message, final String callbackMethod) {
 	if (activeRenderer == FX2D) {
 		fileChooser.setTitle(message);
 
+		if (currentDirectory != null)
+			fileChooser.setInitialDirectory(currentDirectory);
+
 		fileChooser.getExtensionFilters().clear();
 		if (message.contains("CSV")) {
 			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Comma Separated", "*.csv"));
@@ -1913,7 +2099,7 @@ void selectInput(final String message, final String callbackMethod) {
 			}
 		});
 	} else {
-		selectInput(message, callbackMethod, null);
+		selectInput(message, callbackMethod, currentDirectory);
 	}
 }
 
@@ -1931,6 +2117,8 @@ void mySelectCallback(File selectedFile, String callbackMethod) {
       Class<?> callbackClass = this.getClass();
       Method selectMethod = callbackClass.getMethod(callbackMethod, new Class[] { File.class });
       selectMethod.invoke(this, new Object[] { selectedFile });
+      if (selectedFile != null)
+      	currentDirectory = selectedFile.getParentFile();
 
     } catch (IllegalAccessException iae) {
       System.err.println(callbackMethod + "() must be public");
@@ -2373,7 +2561,8 @@ interface TabAPI {
 	void drawContent();
 	void drawNewData();
 	void drawSidebar();
-	
+	void drawInfoBar();
+
 	// Mouse clicks
 	void menuClick (int xcoord, int ycoord);
 	void contentClick (int xcoord, int ycoord);
@@ -2382,7 +2571,7 @@ interface TabAPI {
 
 	// Keyboard input
 	void keyboardInput(char keyChar, int keyCodeInt, boolean codedKey);
-	
+
 	// Change content area size
 	void changeSize(int newL, int newR, int newT, int newB);
 	
@@ -2393,6 +2582,9 @@ interface TabAPI {
 	// Serial communication
 	void connectionEvent(boolean status);
 	void parsePortData(String inputData, boolean graphable);
+
+	// Set menu settings
+	void setMenuLevel(int newLevel);
 
 	// Exit function
 	boolean checkSafeExit();

@@ -93,11 +93,15 @@ class LiveGraph implements TabAPI {
 		graphB = new Graph(cL, cR, (cT + cB) / 2, cB, 0, 20, 0, 1, "Graph 2");
 		graphC = new Graph((cL + cR) / 2, cR, cT, (cT + cB) / 2, 0, 20, 0, 1, "Graph 3");
 		graphD = new Graph((cL + cR) / 2, cR, (cT + cB) / 2, cB, 0, 20, 0, 1, "Graph 4");
-		graphA.setHighlight(true);
-		graphA.setXaxisName("Time (s)");
-		graphB.setXaxisName("Time (s)");
-		graphC.setXaxisName("Time (s)");
-		graphD.setXaxisName("Time (s)");
+		graphA.scale(uimult);
+		graphB.scale(uimult);
+		graphC.scale(uimult);
+		graphD.scale(uimult);
+		graphA.selected(true);
+		graphA.xAxisTitle("Time (s)");
+		graphB.xAxisTitle("Time (s)");
+		graphC.xAxisTitle("Time (s)");
+		graphD.xAxisTitle("Time (s)");
 
 		graphMode = 1;
 		selectedGraph = 1;
@@ -144,6 +148,16 @@ class LiveGraph implements TabAPI {
 	 */
 	void setVisibility(boolean newState) {
 		tabIsVisible = newState;
+	}
+
+
+	/**
+	 * Set current side menu level
+	 * 
+	 * @param  newLevel The new menu level
+	 */
+	void setMenuLevel(int newLevel) {
+		// Do nothing
 	}
 
 
@@ -248,22 +262,22 @@ class LiveGraph implements TabAPI {
 							if (customXaxis >= 0) xDataValue = (float) dataTable.getDouble(j, customXaxis);
 							float dataPoint = (float) dataTable.getDouble(j, i);
 
-							if (dataPoint != dataPoint) dataPoint = 99999999;
+							if (dataPoint != dataPoint) dataPoint = Float.MAX_VALUE;
 							if (graphAssignment[i] == 2 && graphMode >= 2 && samplesB <= drawFrom) {
 								checkGraphSize(dataPoint, xDataValue, 1);
-								if (customXaxis >= 0) graphB.plotData(dataPoint, xDataValue, i);
+								if (customXaxis >= 0) graphB.plotData(xDataValue, dataPoint, i);
 								else graphB.plotData(dataPoint, i);
 							} else if (graphAssignment[i] == 3 && graphMode >= 3 && samplesC <= drawFrom) {
 								checkGraphSize(dataPoint, xDataValue, 2);
-								if (customXaxis >= 0) graphC.plotData(dataPoint, xDataValue, i);
+								if (customXaxis >= 0) graphC.plotData(xDataValue, dataPoint, i);
 								else graphC.plotData(dataPoint, i);
 							} else if (graphAssignment[i] == 4 && graphMode >= 4 && samplesD <= drawFrom) {
 								checkGraphSize(dataPoint, xDataValue, 3);
-								if (customXaxis >= 0) graphD.plotData(dataPoint, xDataValue, i);
+								if (customXaxis >= 0) graphD.plotData(xDataValue, dataPoint, i);
 								else graphD.plotData(dataPoint, i);
 							} else if (graphAssignment[i] == 1 && samplesA <= drawFrom) {
 								checkGraphSize(dataPoint, xDataValue, 0);
-								if (customXaxis >= 0) graphA.plotData(dataPoint, xDataValue, i);
+								if (customXaxis >= 0) graphA.plotData(xDataValue, dataPoint, i);
 								else graphA.plotData(dataPoint, i);
 							}
 						} catch (Exception e) {
@@ -293,7 +307,7 @@ class LiveGraph implements TabAPI {
 	void checkGraphSize (float dataPoint, float xAxisPoint, int currentGraph) {
 		
 		// If data exceeds graph size, resize the graph
-		if (autoAxis != 0 && dataPoint != 99999999) {
+		if (autoAxis != 0 && dataPoint != Float.MAX_VALUE) {
 
 			// Find minimum point
 			if (dataPoint < newMinimum[currentGraph] || Float.isNaN(newMinimum[currentGraph])) {
@@ -334,21 +348,21 @@ class LiveGraph implements TabAPI {
 			newMaximum[graphIndex] = ceilToSigFig(newMaximum[graphIndex], 1);
 
 			if (autoAxis == 1) {
-				if (currentGraph.getMinY() > newMinimum[graphIndex]) {
-					currentGraph.setMinY(newMinimum[graphIndex]);
+				if (currentGraph.yMin() > newMinimum[graphIndex]) {
+					currentGraph.yMin(newMinimum[graphIndex]);
 					redrawGrid = true;
 				}
-				if (currentGraph.getMaxY() < newMaximum[graphIndex]) {
-					currentGraph.setMaxY(newMaximum[graphIndex]);
+				if (currentGraph.yMax() < newMaximum[graphIndex]) {
+					currentGraph.yMax(newMaximum[graphIndex]);
 					redrawGrid = true;
 				}
 			} else if (autoAxis == 2) {
-				if (currentGraph.getMinY() != newMinimum[graphIndex]) {
-					currentGraph.setMinY(newMinimum[graphIndex]);
+				if (currentGraph.yMin() != newMinimum[graphIndex]) {
+					currentGraph.yMin(newMinimum[graphIndex]);
 					redrawGrid = true;
 				}
-				if (currentGraph.getMaxY() != newMaximum[graphIndex]) {
-					currentGraph.setMaxY(newMaximum[graphIndex]);
+				if (currentGraph.yMax() != newMaximum[graphIndex]) {
+					currentGraph.yMax(newMaximum[graphIndex]);
 					redrawGrid = true;
 				}
 			}
@@ -359,21 +373,21 @@ class LiveGraph implements TabAPI {
 			newXmaximum = ceilToSigFig(newXmaximum, 1);
 
 			if (autoAxis == 1) {
-				if (currentGraph.getMinX() > newXminimum) {
-					currentGraph.setMinX(newXminimum);
+				if (currentGraph.xMin() > newXminimum) {
+					currentGraph.xMin(newXminimum);
 					redrawGrid = true;
 				}
-				if (currentGraph.getMaxX() < newXmaximum) {
-					currentGraph.setMaxX(newXmaximum);
+				if (currentGraph.xMax() < newXmaximum) {
+					currentGraph.xMax(newXmaximum);
 					redrawGrid = true;
 				}
 			} else if (autoAxis == 2) {
-				if (currentGraph.getMinX() != newXminimum) {
-					currentGraph.setMinX(newXminimum);
+				if (currentGraph.xMin() != newXminimum) {
+					currentGraph.xMin(newXminimum);
 					redrawGrid = true;
 				}
-				if (currentGraph.getMaxX() != newXmaximum) {
-					currentGraph.setMaxX(newXmaximum);
+				if (currentGraph.xMax() != newXmaximum) {
+					currentGraph.xMax(newXmaximum);
 					redrawGrid = true;
 				}
 			}
@@ -401,21 +415,25 @@ class LiveGraph implements TabAPI {
 		cR = newR;
 		cT = newT;
 		cB = newB;
+		graphA.scale(uimult);
+		graphB.scale(uimult);
+		graphC.scale(uimult);
+		graphD.scale(uimult);
 
 		if (graphMode == 2) {
-			graphA.changeSize(cL, cR, cT, (cT + cB) / 2);
-			graphB.changeSize(cL, cR, (cT + cB) / 2, cB);
+			graphA.setSize(cL, cR, cT, (cT + cB) / 2);
+			graphB.setSize(cL, cR, (cT + cB) / 2, cB);
 		} else if (graphMode == 3) {
-			graphA.changeSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
-			graphB.changeSize(cL, cR, (cT + cB) / 2, cB);
-			graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
+			graphA.setSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
+			graphB.setSize(cL, cR, (cT + cB) / 2, cB);
+			graphC.setSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
 		} else if (graphMode == 4) {
-			graphA.changeSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
-			graphB.changeSize(cL, (cL + cR) / 2, (cT + cB) / 2, cB);
-			graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
-			graphD.changeSize((cL + cR) / 2, cR, (cT + cB) / 2, cB);
+			graphA.setSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
+			graphB.setSize(cL, (cL + cR) / 2, (cT + cB) / 2, cB);
+			graphC.setSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
+			graphD.setSize((cL + cR) / 2, cR, (cT + cB) / 2, cB);
 		} else {
-			graphA.changeSize(cL, cR, cT, cB);
+			graphA.setSize(cL, cR, cT, cB);
 		}
 		//drawContent();
 	}
@@ -600,14 +618,14 @@ class LiveGraph implements TabAPI {
 					float newXrate = 1000.0 * (frequencyCounter) / float(millis() - frequencyTimer);
 					if (abs(newXrate - xRate) > 2) {
 						xRate = roundToSigFig(newXrate, 2);
-						graphA.setXrate(xRate);
-						graphB.setXrate(xRate);
-						graphC.setXrate(xRate);
-						graphD.setXrate(xRate);
-						sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
-						sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
-						sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
-						sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
+						graphA.frequency(xRate);
+						graphB.frequency(xRate);
+						graphC.frequency(xRate);
+						graphD.frequency(xRate);
+						sampleWindow[0] = int(xRate * abs(graphA.xMax() - graphA.xMin()));
+						sampleWindow[1] = int(xRate * abs(graphB.xMax() - graphB.xMin()));
+						sampleWindow[2] = int(xRate * abs(graphC.xMax() - graphC.xMin()));
+						sampleWindow[3] = int(xRate * abs(graphD.xMax() - graphD.xMin()));
 						redrawContent = true;
 						redrawUI = true;
 					}
@@ -637,6 +655,7 @@ class LiveGraph implements TabAPI {
 			}
 	
 			// --- Data Recording ---
+			lock.lock();
 			TableRow newRow = dataTable.addRow();
 			//float[] newData = new float[dataArray.length];
 
@@ -652,6 +671,7 @@ class LiveGraph implements TabAPI {
 					println(" - When parsing live graph data");
 				}
 			}
+			lock.unlock();
 
 			//graphA.bufferNewData(newData);
 
@@ -671,13 +691,15 @@ class LiveGraph implements TabAPI {
 					int dotPos = outputfile.lastIndexOf(".");
 					String nextoutputfile = outputfile.substring(0, dotPos);
 					nextoutputfile = nextoutputfile + "-" + (fileCounter + 1) + ".csv";
-					if (!dataTable.openCSVoutput(nextoutputfile)) {
-						emergencyOutputSave(true);
-					}
 
 					// Ensure table is empty
-					dataTable = new CustomTable();
+					dataTable.clearRows();
 					drawFrom = 0;
+
+					if (!dataTable.openCSVoutput(nextoutputfile)) {
+						//emergencyOutputSave(true);
+						println("Failed to start recording to a new output file");
+					}
 				}
 			} else if (!isPaused && !lock.isLocked()) {
 				// Remove rows from table which don't need to be shown on the graphs anymore
@@ -764,18 +786,18 @@ class LiveGraph implements TabAPI {
 		else currentGraph = graphA;
 
 		drawHeading("Graph " + selectedGraph + " - Options",                                     iL,                sT + (uH * 3.5),         iW, tH);
-		drawButton("Line", (currentGraph.getGraphType() == "linechart")? c_sidebar_accent:c_sidebar_button, iL,                sT + (uH * 4.5), iW / 3, iH, tH);
-		drawButton("Dots", (currentGraph.getGraphType() == "dotchart")? c_sidebar_accent:c_sidebar_button,  iL + (iW / 3),     sT + (uH * 4.5), iW / 3, iH, tH);
-		drawButton("Bar", (currentGraph.getGraphType() == "barchart")? c_sidebar_accent:c_sidebar_button,   iL + (iW * 2 / 3), sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Line", (currentGraph.graphType() == Graph.LINE_CHART)? c_sidebar_accent:c_sidebar_button, iL,                sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Dots", (currentGraph.graphType() == Graph.DOT_CHART)? c_sidebar_accent:c_sidebar_button,  iL + (iW / 3),     sT + (uH * 4.5), iW / 3, iH, tH);
+		drawButton("Bar", (currentGraph.graphType() == Graph.BAR_CHART)? c_sidebar_accent:c_sidebar_button,   iL + (iW * 2 / 3), sT + (uH * 4.5), iW / 3, iH, tH);
 		drawRectangle(c_sidebar_divider, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.getMinX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (customXaxis >= 0 && autoAxis != 2)? c_sidebar_text:c_idletab_text, iL, sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.xMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (customXaxis >= 0 && autoAxis != 2)? c_sidebar_text:c_idletab_text, iL, sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMaxX()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
-		drawDatabox(str(currentGraph.getMinY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.xMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.yMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.getMaxY()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.yMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 		if (autoAxis == 2) drawButton("Scale: Automatic", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
 		else if (autoAxis == 1) drawButton("Scale: Expand Only", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
 		else drawButton("Scale: Manual", c_sidebar_button, iL, sT + (uH * 7.5), iW, iH, tH);
@@ -835,11 +857,19 @@ class LiveGraph implements TabAPI {
 
 			if (itemCount == 0) drawText("Empty", c_idletab_text, iL + iW / 2, sT + (uH * (tHnow - itemCount - 0.75)), iW / 2, iH * 3 / 4);
 		}
+	}
 
+
+	/**
+	 * Draw the btoom information bar
+	 */
+	void drawInfoBar() {
+		int sW = width - cR;
 		textAlign(LEFT, TOP);
 		textFont(base_font);
 		fill(c_status_bar);
-		text("Output: " + constrainString(outputfile, width - sW - round(30 * uimult) - textWidth("Output: ")), round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
+		text("Output: " + constrainString(outputfile, width - sW - round(175 * uimult) - textWidth("Output: ")), 
+			round(5 * uimult), height - round(bottombarHeight * uimult) + round(2*uimult));
 	}
 
 
@@ -849,10 +879,7 @@ class LiveGraph implements TabAPI {
 	 * @param  key The character of the key that was pressed
 	 */
 	void keyboardInput (char keyChar, int keyCodeInt, boolean codedKey) {
-		if (!codedKey && key == 's' && serialConnected) {
-			thread("serialSendDialog");
-
-		} else if (codedKey) {
+		if (codedKey) {
 			switch (keyCodeInt) {
 				case UP:
 					// Scroll menu bar
@@ -905,6 +932,23 @@ class LiveGraph implements TabAPI {
 						redrawUI = true;
 					}
 					break;
+
+				case KeyEvent.VK_F4:
+					// Set output file
+					if (!recordData) {
+						outputfile = "";
+						selectOutput("Select a location and name for the output *.CSV file", "fileSelected");
+					}
+					break;
+
+				case KeyEvent.VK_F6:
+					// Start/stop recording
+					if(recordData){
+						stopRecording();
+					} else if(outputfile != "" && outputfile != "No File Set"){
+						startRecording();
+					}
+					break;
 			}
 		}
 	}
@@ -919,34 +963,34 @@ class LiveGraph implements TabAPI {
 	void contentClick (int xcoord, int ycoord) {
 		if ((graphMode == 1 || ycoord <= (cT + cB) / 2) && (graphMode < 3 || xcoord <= (cL + cR) / 2)) {
 			selectedGraph = 1;
-			graphA.setHighlight(true);
-			graphB.setHighlight(false);
-			graphC.setHighlight(false);
-			graphD.setHighlight(false);
+			graphA.selected(true);
+			graphB.selected(false);
+			graphC.selected(false);
+			graphD.selected(false);
 			redrawUI = true;
 			redrawContent = true;
 		} else if ((ycoord > (cT + cB) / 2 && graphMode > 1) && (xcoord <= (cL + cR) / 2 || graphMode < 4)) {
 			selectedGraph = 2;
-			graphA.setHighlight(false);
-			graphB.setHighlight(true);
-			graphC.setHighlight(false);
-			graphD.setHighlight(false);
+			graphA.selected(false);
+			graphB.selected(true);
+			graphC.selected(false);
+			graphD.selected(false);
 			redrawUI = true;
 			redrawContent = true;
 		} else if ((ycoord <= (cT + cB) / 2 && graphMode > 2) && (xcoord > (cL + cR) / 2)) {
 			selectedGraph = 3;
-			graphA.setHighlight(false);
-			graphB.setHighlight(false);
-			graphC.setHighlight(true);
-			graphD.setHighlight(false);
+			graphA.selected(false);
+			graphB.selected(false);
+			graphC.selected(true);
+			graphD.selected(false);
 			redrawUI = true;
 			redrawContent = true;
 		} else if ((ycoord > (cT + cB) / 2 && graphMode > 3) && (xcoord > (cL + cR) / 2)) {
 			selectedGraph = 4;
-			graphA.setHighlight(false);
-			graphB.setHighlight(false);
-			graphC.setHighlight(false);
-			graphD.setHighlight(true);
+			graphA.selected(false);
+			graphB.selected(false);
+			graphC.selected(false);
+			graphD.selected(true);
 			redrawUI = true;
 			redrawContent = true;
 		}
@@ -1042,19 +1086,19 @@ class LiveGraph implements TabAPI {
 
 			// Line
 			if (menuXclick(xcoord, iL, iW / 3)) {
-				currentGraph.setGraphType("linechart");
+				currentGraph.graphType(Graph.LINE_CHART);
 				redrawContent = redrawUI = true;
 			}
 
 			// Dot
 			else if (menuXclick(xcoord, iL + (iW / 3), iW / 3)) {
-				currentGraph.setGraphType("dotchart");
+				currentGraph.graphType(Graph.DOT_CHART);
 				redrawContent = redrawUI = true;
 			}
 
 			// Bar
 			else if (menuXclick(xcoord, iL + (iW * 2 / 3), iW / 3)) {
-				currentGraph.setGraphType("barchart");
+				currentGraph.graphType(Graph.BAR_CHART);
 				redrawContent = redrawUI = true;
 			}
 		}
@@ -1069,30 +1113,30 @@ class LiveGraph implements TabAPI {
 
 			// Change X axis minimum value
 			if ((customXaxis >= 0) && (mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
-				ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(currentGraph.getMinX()));
+				ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(currentGraph.xMin()));
 				userInput.setErrorMessage("Error\nInvalid x-axis minimum value entered.\nPlease input a number less than the maximum x-axis value.");
-				if (userInput.checkFloat(userInput.LT, currentGraph.getMaxX())) {
-					graphA.setMinX(userInput.getFloat());
-					graphB.setMinX(userInput.getFloat());
-					graphC.setMinX(userInput.getFloat());
-					graphD.setMinX(userInput.getFloat());
+				if (userInput.checkFloat(userInput.LT, currentGraph.xMax())) {
+					graphA.xMin(userInput.getFloat());
+					graphB.xMin(userInput.getFloat());
+					graphC.xMin(userInput.getFloat());
+					graphD.xMin(userInput.getFloat());
 				} 
 				redrawContent = redrawUI = true;
 			}
 
 			// Change X axis maximum value
 			else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
-				ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.getMaxX()));
+				ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.xMax()));
 				userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nPlease input a number greater than 0.");
 				if (userInput.checkFloat(userInput.GT, 0)) {
 					if (customXaxis >= 0) {
-						graphA.setMaxX(userInput.getFloat());
-						graphB.setMaxX(userInput.getFloat());
-						graphC.setMaxX(userInput.getFloat());
-						graphD.setMaxX(userInput.getFloat());
+						graphA.xMax(userInput.getFloat());
+						graphB.xMax(userInput.getFloat());
+						graphC.xMax(userInput.getFloat());
+						graphD.xMax(userInput.getFloat());
 					} else {
-						currentGraph.setMaxX(userInput.getFloat());
-						sampleWindow[selectedGraph - 1] = int(xRate * abs(currentGraph.getMaxX() - currentGraph.getMinX()));
+						currentGraph.xMax(userInput.getFloat());
+						sampleWindow[selectedGraph - 1] = int(xRate * abs(currentGraph.xMax() - currentGraph.xMin()));
 					}
 				} 
 				redrawContent = redrawUI = true;
@@ -1109,20 +1153,20 @@ class LiveGraph implements TabAPI {
 
 			// Change Y axis minimum value
 			if (menuXclick(xcoord, iL, (iW / 2) - int(6 * uimult))) {
-				ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.getMinY()));
+				ValidateInput userInput = new ValidateInput("Set the Y-axis Minimum Value", "Minimum:", str(currentGraph.yMin()));
 				userInput.setErrorMessage("Error\nInvalid y-axis minimum value entered.\nThe number should be smaller the the maximum value.");
-				if (userInput.checkFloat(userInput.LT, currentGraph.getMaxY())) {
-					currentGraph.setMinY(userInput.getFloat());
+				if (userInput.checkFloat(userInput.LT, currentGraph.yMax())) {
+					currentGraph.yMin(userInput.getFloat());
 				} 
 				redrawContent = redrawUI = true;
 			}
 
 			// Change Y axis maximum value
 			else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
-				ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.getMaxY()));
+				ValidateInput userInput = new ValidateInput("Set the Y-axis Maximum Value", "Maximum:", str(currentGraph.yMax()));
 				userInput.setErrorMessage("Error\nInvalid y-axis maximum value entered.\nThe number should be larger the the minimum value.");
-				if (userInput.checkFloat(userInput.GT, currentGraph.getMinY())) {
-					currentGraph.setMaxY(userInput.getFloat());
+				if (userInput.checkFloat(userInput.GT, currentGraph.yMin())) {
+					currentGraph.yMax(userInput.getFloat());
 				} 
 				redrawContent = redrawUI = true;
 			}
@@ -1173,15 +1217,15 @@ class LiveGraph implements TabAPI {
 			// Graph mode 1
 			if (menuXclick(xcoord, iL + iW - int(80 * uimult), int(20 * uimult))) {
 				graphMode = 1;
-				graphA.changeSize(cL, cR, cT, cB);
+				graphA.setSize(cL, cR, cT, cB);
 				redrawUI = true;
 				redrawContent = true;
 				if (selectedGraph > 1) {
 					selectedGraph = 1;
-					graphA.setHighlight(true);
-					graphB.setHighlight(false);
-					graphC.setHighlight(false);
-					graphD.setHighlight(false);
+					graphA.selected(true);
+					graphB.selected(false);
+					graphC.selected(false);
+					graphD.selected(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
@@ -1192,14 +1236,14 @@ class LiveGraph implements TabAPI {
 				graphMode = 2;
 				redrawUI = true;
 				redrawContent = true;
-				graphA.changeSize(cL, cR, cT, (cT + cB) / 2);
-				graphB.changeSize(cL, cR, (cT + cB) / 2, cB);
+				graphA.setSize(cL, cR, cT, (cT + cB) / 2);
+				graphB.setSize(cL, cR, (cT + cB) / 2, cB);
 				if (selectedGraph > 2) {
 					selectedGraph = 2;
-					graphA.setHighlight(false);
-					graphB.setHighlight(true);
-					graphC.setHighlight(false);
-					graphD.setHighlight(false);
+					graphA.selected(false);
+					graphB.selected(true);
+					graphC.selected(false);
+					graphD.selected(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
@@ -1210,15 +1254,15 @@ class LiveGraph implements TabAPI {
 				graphMode = 3;
 				redrawUI = true;
 				redrawContent = true;
-				graphA.changeSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
-				graphB.changeSize(cL, cR, (cT + cB) / 2, cB);
-				graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
+				graphA.setSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
+				graphB.setSize(cL, cR, (cT + cB) / 2, cB);
+				graphC.setSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
 				if (selectedGraph > 3) {
 					selectedGraph = 3;
-					graphA.setHighlight(false);
-					graphB.setHighlight(false);
-					graphC.setHighlight(true);
-					graphD.setHighlight(false);
+					graphA.selected(false);
+					graphB.selected(false);
+					graphC.selected(true);
+					graphD.selected(false);
 				}
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
@@ -1229,10 +1273,10 @@ class LiveGraph implements TabAPI {
 				graphMode = 4;
 				redrawUI = true;
 				redrawContent = true;
-				graphA.changeSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
-				graphB.changeSize(cL, (cL + cR) / 2, (cT + cB) / 2, cB);
-				graphC.changeSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
-				graphD.changeSize((cL + cR) / 2, cR, (cT + cB) / 2, cB);
+				graphA.setSize(cL, (cL + cR) / 2, cT, (cT + cB) / 2);
+				graphB.setSize(cL, (cL + cR) / 2, (cT + cB) / 2, cB);
+				graphC.setSize((cL + cR) / 2, cR, cT, (cT + cB) / 2);
+				graphD.setSize((cL + cR) / 2, cR, (cT + cB) / 2, cB);
 				for (int i = 0; i < graphAssignment.length; i++) {
 					if (graphAssignment[i] > graphMode + 1) graphAssignment[i] = graphMode + 1;
 				}
@@ -1249,7 +1293,7 @@ class LiveGraph implements TabAPI {
 
 		// Change the input data rate
 		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 12, iL, iW)){
-			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):\n(Leave blank for automatic)", str(graphA.getXrate()));
+			ValidateInput userInput = new ValidateInput("Received Data Update Rate","Frequency (Hz):\n(Leave blank for automatic)", str(graphA.frequency()));
 			userInput.setErrorMessage("Error\nInvalid frequency entered.\nThe rate can only be a number between 0 - 10,000 Hz");
 			if (userInput.isEmpty()) {
 				autoFrequency = true;
@@ -1260,14 +1304,14 @@ class LiveGraph implements TabAPI {
 			} else if (userInput.checkFloat(userInput.GT, 0, userInput.LTE, 10000)) {
 				autoFrequency = false;
 				xRate = userInput.getFloat();
-				graphA.setXrate(xRate);
-				graphB.setXrate(xRate);
-				graphC.setXrate(xRate);
-				graphD.setXrate(xRate);
-				sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
-				sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
-				sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
-				sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
+				graphA.frequency(xRate);
+				graphB.frequency(xRate);
+				graphC.frequency(xRate);
+				graphD.frequency(xRate);
+				sampleWindow[0] = int(xRate * abs(graphA.xMax() - graphA.xMin()));
+				sampleWindow[1] = int(xRate * abs(graphB.xMax() - graphB.xMin()));
+				sampleWindow[2] = int(xRate * abs(graphC.xMax() - graphC.xMin()));
+				sampleWindow[3] = int(xRate * abs(graphD.xMax() - graphD.xMin()));
 
 				redrawContent = true;
 				redrawUI = true;
@@ -1277,22 +1321,22 @@ class LiveGraph implements TabAPI {
 				graphAssignment[customXaxis] = 1;
 				customXaxis = -1;
 				autoAxis = 2;
-				graphA.setMinX(0);
-				graphB.setMinX(0);
-				graphC.setMinX(0);
-				graphD.setMinX(0);
-				graphA.setMaxX(30);
-				graphB.setMaxX(30);
-				graphC.setMaxX(30);
-				graphD.setMaxX(30);
-				sampleWindow[0] = int(xRate * abs(graphA.getMaxX() - graphA.getMinX()));
-				sampleWindow[1] = int(xRate * abs(graphB.getMaxX() - graphB.getMinX()));
-				sampleWindow[2] = int(xRate * abs(graphC.getMaxX() - graphC.getMinX()));
-				sampleWindow[3] = int(xRate * abs(graphD.getMaxX() - graphD.getMinX()));
-				graphA.setXaxisName("Time (s)");
-				graphB.setXaxisName("Time (s)");
-				graphC.setXaxisName("Time (s)");
-				graphD.setXaxisName("Time (s)");
+				graphA.xMin(0);
+				graphB.xMin(0);
+				graphC.xMin(0);
+				graphD.xMin(0);
+				graphA.xMax(30);
+				graphB.xMax(30);
+				graphC.xMax(30);
+				graphD.xMax(30);
+				sampleWindow[0] = int(xRate * abs(graphA.xMax() - graphA.xMin()));
+				sampleWindow[1] = int(xRate * abs(graphB.xMax() - graphB.xMin()));
+				sampleWindow[2] = int(xRate * abs(graphC.xMax() - graphC.xMin()));
+				sampleWindow[3] = int(xRate * abs(graphD.xMax() - graphD.xMin()));
+				graphA.xAxisTitle("Time (s)");
+				graphB.xAxisTitle("Time (s)");
+				graphC.xAxisTitle("Time (s)");
+				graphD.xAxisTitle("Time (s)");
 				redrawContent = true;
 				redrawUI = true;
 			}
@@ -1330,10 +1374,10 @@ class LiveGraph implements TabAPI {
 									sampleWindow[1] = 1000;
 									sampleWindow[2] = 1000;
 									sampleWindow[3] = 1000;
-									graphA.setXaxisName(dataColumns[i]);
-									graphB.setXaxisName(dataColumns[i]);
-									graphC.setXaxisName(dataColumns[i]);
-									graphD.setXaxisName(dataColumns[i]);
+									graphA.xAxisTitle(dataColumns[i]);
+									graphB.xAxisTitle(dataColumns[i]);
+									graphC.xAxisTitle(dataColumns[i]);
+									graphD.xAxisTitle(dataColumns[i]);
 									graphAssignment[i] = -1;
 								}
 								redrawUI = true;
