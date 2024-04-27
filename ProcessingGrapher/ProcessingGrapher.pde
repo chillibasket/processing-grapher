@@ -146,6 +146,8 @@ String[] portList;
 char serialParity = 'N';
 int serialDatabits = 8;
 float serialStopbits = 1.0;
+char separator = ',';
+
 
 /**
  * Class containing all relevant info for a serial port connection
@@ -1291,12 +1293,14 @@ void mousePressed(){
 			} else if ((mouseX >= pL) && (mouseX <= pR)) {
 				currentTab = 0;
 				tabObjects.get(currentTab).setMenuLevel(1);
+				settingsMenuActive = false;
 				redrawContent = true;
 				redrawUI = true;
 			// Baud rate selection button
 			} else if ((mouseX >= bL) && (mouseX <= bR)) {
 				currentTab = 0;
 				tabObjects.get(currentTab).setMenuLevel(2);
+				settingsMenuActive = false;
 				redrawContent = true;
 				redrawUI = true;
 			}
@@ -2083,6 +2087,9 @@ void selectOutput(final String message, final String callbackMethod) {
 void selectInput(final String message, final String callbackMethod) {
 	if (activeRenderer == FX2D) {
 		fileChooser.setTitle(message);
+
+		if (currentDirectory != null)
+			fileChooser.setInitialDirectory(currentDirectory);
 		
 		fileChooser.getExtensionFilters().clear();
 		if (message.contains("CSV")) {
@@ -2510,7 +2517,7 @@ String[] remove(String[] a, int index){
 boolean numberMessage(String msg) {
 	for (int i = 0; i < msg.length() - 1; i++) {
 		final char j = msg.charAt(i);
-		if ((j < 43 && j != ' ') || j > 57 || j == 47) {
+		if (((j < 43 && j != ' ') || j > 57 || j == 47) && (j != separator)) {
 			return false;
 		}
 	}

@@ -608,7 +608,7 @@ class LiveGraph implements TabAPI {
 		// Check that the starts with a number
 		if (graphable) {
 			// Get data
-			String[] dataArray = trim(split(inputData, ','));
+			String[] dataArray = trim(split(inputData, separator));
 			
 			// Check the frequency
 			if (autoFrequency && (frequencyCounter != -1)) {
@@ -1379,6 +1379,7 @@ class LiveGraph implements TabAPI {
 									graphC.xAxisTitle(dataColumns[i]);
 									graphD.xAxisTitle(dataColumns[i]);
 									graphAssignment[i] = -1;
+									drawNewData();
 								}
 								redrawUI = true;
 								redrawContent = true;
