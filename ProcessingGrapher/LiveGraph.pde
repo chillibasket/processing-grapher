@@ -180,7 +180,30 @@ class LiveGraph implements TabAPI {
 			graphD.resetGraph();
 		}
 
-		if (isPaused) {
+		if (dataTable.getRowCount() > 0) {
+			drawNewData();
+		}
+
+		// Show message if no serial device is connected
+		if (!serialConnected) {
+			if (showInstructions) {
+				String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
+								    "2. Each line sent by the device should contain only numbers separated with commas",
+								    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
+				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
+			} else {
+				String messageText = "Serial Port Disconnected";
+				rectMode(CENTER);
+				textAlign(CENTER, TOP);
+				stroke(c_alert_message_box);
+				fill(c_alert_message_box);
+				rect((cR - cL) / 2, cT + (15 * uimult), textWidth(messageText) + (10 * uimult), 20 * uimult);
+				fill(c_sidebar_heading);
+				text(messageText, (cR - cL) / 2, cT + int(5 * uimult));
+			}
+
+		// Show message if device is connected, but graph is paused
+		} else if (isPaused) {
 			String messageText = "Live Graph is Paused";
 			rectMode(CENTER);
 			textAlign(CENTER, TOP);
@@ -191,18 +214,6 @@ class LiveGraph implements TabAPI {
 			text(messageText, (cR - cL) / 2, cT + int(5 * uimult));
 		}
 
-		// Show message if no serial device is connected
-		if (!serialConnected) {
-			if (showInstructions) {
-				String[] message = {"1. In the 'Serial' tab, use the right-hand menu to connect to a serial device",
-								    "2. Each line sent by the device should contain only numbers separated with commas",
-								    "3. The signals/numbers can be displayed in real-time on up to 4 separate graphs"};
-				drawMessageArea("Getting Started", message, cL + 60 * uimult, cR - 60 * uimult, cT + 30 * uimult);
-			}
-
-		} else if (dataTable.getRowCount() > 0) {
-			drawNewData();
-		}
 	}
 
 
@@ -580,8 +591,11 @@ class LiveGraph implements TabAPI {
 		if (!status) {
 			// Stop recording any data
 			if (recordData) stopRecording();
+			frequencyCounter = 0;
+			frequencyTimer = 0;
 
 			// Reset the signal list
+			/*
 			dataTable.clearRows();
 			
 			while (dataColumns.length > 0) {
@@ -593,6 +607,7 @@ class LiveGraph implements TabAPI {
 			frequencyCounter = 0;
 			frequencyTimer = 0;
 			if (tabIsVisible) redrawContent = true;
+			*/
 		}
 	}
 
@@ -792,9 +807,9 @@ class LiveGraph implements TabAPI {
 		drawRectangle(c_sidebar_divider, iL + (iW / 3),     sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 		drawRectangle(c_sidebar_divider, iL + (iW * 2 / 3), sT + (uH * 4.5) + (1 * uimult), 1 * uimult, iH - (2 * uimult));
 
-		drawDatabox(str(currentGraph.xMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (customXaxis >= 0 && autoAxis != 2)? c_sidebar_text:c_idletab_text, iL, sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.xMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), ((autoAxis != 2) && (customXaxis >= 0))? c_sidebar_text:c_idletab_text, iL, sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("x", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 5.5), 12 * uimult,             iH, tH);
-		drawDatabox(str(currentGraph.xMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
+		drawDatabox(str(currentGraph.xMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), ((autoAxis != 2) || (customXaxis < 0))? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 5.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawDatabox(str(currentGraph.yMin()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL,                           sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
 		drawButton("y", c_sidebar_button, iL + (iW / 2) - (6 * uimult), sT + (uH * 6.5), 12 * uimult,             iH, tH);
 		drawDatabox(str(currentGraph.yMax()).replaceAll("[0]+$", "").replaceAll("[.]+$", ""), (autoAxis != 2)? c_sidebar_text:c_idletab_text, iL + (iW / 2) + (6 * uimult), sT + (uH * 6.5), (iW / 2) - (6 * uimult), iH, tH);
@@ -1104,7 +1119,7 @@ class LiveGraph implements TabAPI {
 		}
 
 		// Update X axis scaling
-		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW) && (autoAxis != 2)) {
+		else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 5.5, iL, iW)) {
 			Graph currentGraph;
 			if (selectedGraph == 2) currentGraph = graphB;
 			else if (selectedGraph == 3) currentGraph = graphC;
@@ -1112,7 +1127,7 @@ class LiveGraph implements TabAPI {
 			else currentGraph = graphA;
 
 			// Change X axis minimum value
-			if ((customXaxis >= 0) && (mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
+			if ((autoAxis != 2) && (customXaxis >= 0) && (mouseX > iL) && (mouseX < iL + (iW / 2) - (6 * uimult))) {
 				ValidateInput userInput = new ValidateInput("Set the X-axis Minimum Value", "Minimum:", str(currentGraph.xMin()));
 				userInput.setErrorMessage("Error\nInvalid x-axis minimum value entered.\nPlease input a number less than the maximum x-axis value.");
 				if (userInput.checkFloat(userInput.LT, currentGraph.xMax())) {
@@ -1125,7 +1140,7 @@ class LiveGraph implements TabAPI {
 			}
 
 			// Change X axis maximum value
-			else if (menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
+			else if (((autoAxis != 2) || (customXaxis < 0)) && menuXclick(xcoord, iL + (iW / 2) + int(6 * uimult), (iW / 2) - int(6 * uimult))) {
 				ValidateInput userInput = new ValidateInput("Set the X-axis Maximum Value", "Maximum:", str(currentGraph.xMax()));
 				userInput.setErrorMessage("Error\nInvalid x-axis maximum value entered.\nPlease input a number greater than 0.");
 				if (userInput.checkFloat(userInput.GT, 0)) {

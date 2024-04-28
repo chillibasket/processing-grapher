@@ -55,8 +55,8 @@ class Settings implements TabAPI {
 	final int[] dataBitsList = {5, 6, 7, 8};
 	final String[] stopBitsNames = {"1.0 (Default)", "1.5", "2.0"};
 	final float[] stopBitsList = {1.0, 1.5, 2.0};
-	final String[] separatorNames = {"Comma (Default)", "Semi-colon", "Tab", "Space"};
-	final char[] separatorList = {',', ';', '\t', ' '};
+	final String[] separatorNames = {"Comma (Default)", "Semi-colon [ ; ]", "Tab [ \\t ]", "Colon [ : ]", "Space [   ]", "Underscore [ _ ]", "Vertical Bar [ | ]"};
+	final char[] separatorList = {',', ';', '\t', ':', ' ', '_', '|'};
 
 	/**
 	 * Constructor

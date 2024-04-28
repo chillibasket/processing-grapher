@@ -1294,8 +1294,10 @@ class SerialMonitor implements TabAPI {
 					serialBuffer.clear();
 					serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 					scrollUp = 0;
+					autoScroll = true;
 					serialTextSelection.setVisibility(false);
 					drawNewData = true;
+					redrawUI = true;
 				}
 			}
 

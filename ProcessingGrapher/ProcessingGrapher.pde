@@ -742,8 +742,10 @@ void drawInfoBar () {
 	textAlign(CENTER, TOP);
 	textFont(base_font);
 	fill(c_status_bar);
-	String portString = ports[portNumber];
-	if (currentPort != "") portString = currentPort;
+	String portString = "Invalid";
+	if (portNumber < ports.length) {
+		portString = ports[portNumber];
+	}
 	portString = constrainString(portString, pW * 3 / 4);
 	text(portString, pL + (pW / 2), height - bH + round(2*uimult));
 	
