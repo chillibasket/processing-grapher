@@ -7,8 +7,8 @@
  * @website   https://wired.chillibasket.com/processing-grapher/
  *
  * @copyright GNU General Public License v3
- * @date      5 February 2024
- * @version   1.6.0
+ * @date      28th April 2024
+ * @version   1.7.0
  * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -31,7 +31,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-final String versionNumber = "1.6.0";
+final String versionNumber = "1.7.0";
 
 // Swing for input popups
 import static javax.swing.JOptionPane.*;
@@ -146,6 +146,8 @@ String[] portList;
 char serialParity = 'N';
 int serialDatabits = 8;
 float serialStopbits = 1.0;
+char separator = ',';
+
 
 /**
  * Class containing all relevant info for a serial port connection
@@ -740,8 +742,10 @@ void drawInfoBar () {
 	textAlign(CENTER, TOP);
 	textFont(base_font);
 	fill(c_status_bar);
-	String portString = ports[portNumber];
-	if (currentPort != "") portString = currentPort;
+	String portString = "Invalid";
+	if (portNumber < ports.length) {
+		portString = ports[portNumber];
+	}
 	portString = constrainString(portString, pW * 3 / 4);
 	text(portString, pL + (pW / 2), height - bH + round(2*uimult));
 	
@@ -1291,12 +1295,14 @@ void mousePressed(){
 			} else if ((mouseX >= pL) && (mouseX <= pR)) {
 				currentTab = 0;
 				tabObjects.get(currentTab).setMenuLevel(1);
+				settingsMenuActive = false;
 				redrawContent = true;
 				redrawUI = true;
 			// Baud rate selection button
 			} else if ((mouseX >= bL) && (mouseX <= bR)) {
 				currentTab = 0;
 				tabObjects.get(currentTab).setMenuLevel(2);
+				settingsMenuActive = false;
 				redrawContent = true;
 				redrawUI = true;
 			}
@@ -2083,6 +2089,9 @@ void selectOutput(final String message, final String callbackMethod) {
 void selectInput(final String message, final String callbackMethod) {
 	if (activeRenderer == FX2D) {
 		fileChooser.setTitle(message);
+
+		if (currentDirectory != null)
+			fileChooser.setInitialDirectory(currentDirectory);
 		
 		fileChooser.getExtensionFilters().clear();
 		if (message.contains("CSV")) {
@@ -2510,7 +2519,7 @@ String[] remove(String[] a, int index){
 boolean numberMessage(String msg) {
 	for (int i = 0; i < msg.length() - 1; i++) {
 		final char j = msg.charAt(i);
-		if ((j < 43 && j != ' ') || j > 57 || j == 47) {
+		if (((j < 43 && j != ' ') || j > 57 || j == 47) && (j != separator)) {
 			return false;
 		}
 	}

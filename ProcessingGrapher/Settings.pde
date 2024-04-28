@@ -42,9 +42,11 @@ class Settings implements TabAPI {
 	String name;
 	String outputfile;
 
+	boolean backExit = false;
 	boolean unsavedChanges = false;
 	boolean tabIsVisible = false;
-	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
+	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000};
+	final int[] baudRateListFull = {50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000};
 	final String[] lineEndingNames = {"New Line (Default)", "Carriage Return"};
 	final char[] lineEndingList = {'\n', '\r'};
 	final String[] parityBitsNames = {"None (Default)", "Even", "Odd", "Mark", "Space"};
@@ -53,6 +55,8 @@ class Settings implements TabAPI {
 	final int[] dataBitsList = {5, 6, 7, 8};
 	final String[] stopBitsNames = {"1.0 (Default)", "1.5", "2.0"};
 	final float[] stopBitsList = {1.0, 1.5, 2.0};
+	final String[] separatorNames = {"Comma (Default)", "Semi-colon [ ; ]", "Tab [ \\t ]", "Colon [ : ]", "Space [   ]", "Underscore [ _ ]", "Vertical Bar [ | ]"};
+	final char[] separatorList = {',', ';', '\t', ':', ' ', '_', '|'};
 
 	/**
 	 * Constructor
@@ -108,6 +112,8 @@ class Settings implements TabAPI {
 	 */
 	void setMenuLevel(int newLevel) {
 		menuLevel = newLevel;
+		menuScroll = 0;
+		backExit = true;
 	}
 
 
@@ -229,8 +235,8 @@ class Settings implements TabAPI {
 			entry = xmlFile.getChild("serial-port");
 			try {
 				int value = entry.getInt("baud-rate", 9600);
-				for (int i = 0; i < baudRateList.length; i++) {
-					if (baudRateList[i] == value) baudRate = value;
+				for (int i = 0; i < baudRateListFull.length; i++) {
+					if (baudRateListFull[i] == value) baudRate = value;
 				}
 			} catch (Exception e) {
 				println("Unable to parse user settings - <serial-port: baud-rate>\n" + e);
@@ -273,6 +279,16 @@ class Settings implements TabAPI {
 			} catch (Exception e) {
 				println("Unable to parse user settings - <serial-port: stopbits>\n" + e);
 			}
+
+			try {
+				String value = entry.getString("separator", str(','));
+				char charValue = value.charAt(0);
+				for (int i = 0; i < separatorList.length; i++) {
+					if (separatorList[i] == charValue) separator = charValue;
+				}
+			} catch (Exception e) {
+				println("Unable to parse user settings - <serial-port: separator>\n" + e);
+			}
 		}
 	}
 
@@ -296,6 +312,7 @@ class Settings implements TabAPI {
 		xmlFile.getChild("serial-port").setString("parity", str(serialParity));
 		xmlFile.getChild("serial-port").setInt("databits", serialDatabits);
 		xmlFile.getChild("serial-port").setFloat("stopbits", serialStopbits);
+		xmlFile.getChild("serial-port").setString("separator", str(separator));
 
 		if (saveXML(xmlFile, "data/user-preferences.xml")) {
 			alertMessage("Success\nUser preferences saved");
@@ -324,7 +341,7 @@ class Settings implements TabAPI {
 		int iL = round(sL + (10 * uimult));
 		int iW = round(sW - (20 * uimult));
 		if (menuLevel == 0) menuHeight = round(23 * uH);
-		else if (menuLevel == 1) menuHeight = round((3 + baudRateList.length) * uH);
+		else if (menuLevel == 1) menuHeight = round((3 + baudRateListFull.length) * uH);
 		else if (menuLevel == 2) menuHeight = round((3 + lineEndingList.length) * uH);
 		else if (menuLevel == 3) menuHeight = round((3 + parityBitsList.length) * uH);
 		else if (menuLevel == 4) menuHeight = round((3 + dataBitsList.length) * uH);
@@ -387,26 +404,25 @@ class Settings implements TabAPI {
 			drawDatabox("Parity: " + serialParity, c_serial_items, iL, sT + (uH * 15), iW, iH, tH);
 			drawDatabox("Data Bits: " + serialDatabits, c_serial_items, iL, sT + (uH * 16), iW, iH, tH);
 			drawDatabox("Stop Bits: " + serialStopbits, c_serial_items, iL, sT + (uH * 17), iW, iH, tH);
+			drawDatabox("Separator: [ " + ((separator == '\t')? "\\t":separator) + " ]", c_sidebar_text, iL, sT + (uH * 18), iW, iH, tH);
 
 			// Save preferences
-			drawHeading("User Preferences", iL, sT + (uH * 18.5), iW, tH);
-			if (unsavedChanges) drawButton("Save Settings", c_sidebar_button, iL, sT + (uH * 19.5), iW, iH, tH);
-			else drawDatabox("Save Settings", c_sidebar_button, iL, sT + (uH * 19.5), iW, iH, tH);
+			drawHeading("User Preferences", iL, sT + (uH * 19.5), iW, tH);
+			if (unsavedChanges) drawButton("Save Settings", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
+			else drawDatabox("Save Settings", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
 
 			if (checkDefault()) {
-				drawButton("Reset to Default", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
+				drawButton("Reset to Default", c_sidebar_button, iL, sT + (uH * 21.5), iW, iH, tH);
 			} else {
-				drawDatabox("Reset to Default", c_sidebar_button, iL, sT + (uH * 20.5), iW, iH, tH);
+				drawDatabox("Reset to Default", c_sidebar_button, iL, sT + (uH * 21.5), iW, iH, tH);
 			}
-
-			drawButton("Exit Settings", c_sidebar_button, iL, sT + (uH * 21.5), iW, iH, tH);
 
 		// Baud rate selection
 		} else if (menuLevel == 1) {
 			drawHeading("Select Baud Rate", iL, sT + (uH * 0), iW, tH);
 			float tHnow = 1;
-			for (int i = 0; i < baudRateList.length; i++) {
-				drawButton(str(baudRateList[i]), (baudRate == baudRateList[i])?c_sidebar_accent:c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+			for (int i = 0; i < baudRateListFull.length; i++) {
+				drawButton(str(baudRateListFull[i]), (baudRate == baudRateListFull[i])?c_sidebar_accent:c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 				tHnow += 1;
 			}
 			tHnow += 0.5;
@@ -455,6 +471,17 @@ class Settings implements TabAPI {
 			}
 			tHnow += 0.5;
 			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+
+		// Separator list
+		} else if (menuLevel == 6) {
+			drawHeading("Select Separator", iL, sT + (uH * 0), iW, tH);
+			float tHnow = 1;
+			for (int i = 0; i < separatorNames.length; i++) {
+				drawButton(separatorNames[i], (separator == separatorList[i])?c_sidebar_accent:c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+				tHnow += 1;
+			}
+			tHnow += 0.5;
+			drawButton("Cancel", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
 		}
 	}
 
@@ -476,13 +503,14 @@ class Settings implements TabAPI {
 		if (uimult != 1) return true;
 		if (!showInstructions) return true;
 		if (drawFPS) return true;
-		if (colorScheme != 2) return true;
+		if (colorScheme != 1) return true;
 		if (!serialConnected) {
 			if (baudRate != 9600) return true;
 			if (lineEnding != '\n') return true;
 			if (serialParity != 'N') return true;
 			if (serialDatabits != 8) return true;
 			if (serialStopbits != 1.0) return true;
+			if (separator != ',') return true;
 		}
 		return false;
 	} 
@@ -773,17 +801,24 @@ class Settings implements TabAPI {
 				}
 			}
 
+			// Separator selection
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 18, iL, iW)) {
+				menuLevel = 6;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+
 			// Remember preferences
-			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 19.5, iL, iW)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 20.5, iL, iW)) {
 				if (unsavedChanges) saveSettings();
 			}
 
 			// Reset preferences to default
-			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 20.5, iL, iW)){
+			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 21.5, iL, iW)) {
 				if (checkDefault()) {
 					drawFPS = false;
 					showInstructions = true;
-					colorScheme = 2;
+					colorScheme = 1;
 
 					if (!serialConnected) {
 						baudRate = 9600;
@@ -791,6 +826,7 @@ class Settings implements TabAPI {
 						serialParity = 'N';
 						serialDatabits = 8;
 						serialStopbits = 1.0;
+						separator = ',';
 					}
 
 					unsavedChanges = true;
@@ -800,23 +836,21 @@ class Settings implements TabAPI {
 				}
 			}
 
-			// Exit settings menu
-			else if (menuXYclick(xcoord, ycoord, sT, uH, iH, 21.5, iL, iW)){
-				settingsMenuActive = false;
-				redrawUI = true;
-			}
-
 		// Baud rate menu
 		} else if (menuLevel == 1) {
 			float tHnow = 1;
-			if (baudRateList.length == 0) tHnow++;
+			if (baudRateListFull.length == 0) tHnow++;
 			else {
-				for (int i = 0; i < baudRateList.length; i++) {
+				for (int i = 0; i < baudRateListFull.length; i++) {
 					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
-						if (baudRate != baudRateList[i]) unsavedChanges = true;
-						baudRate = baudRateList[i];
+						if (baudRate != baudRateListFull[i]) unsavedChanges = true;
+						baudRate = baudRateListFull[i];
 						menuLevel = 0;
 						menuScroll = 0;
+						if (backExit) {
+							backExit = false;
+							settingsMenuActive = false;
+						}
 						redrawUI = true;
 					}
 					tHnow++;
@@ -827,6 +861,10 @@ class Settings implements TabAPI {
 			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;
+				if (backExit) {
+					backExit = false;
+					settingsMenuActive = false;
+				}
 				redrawUI = true;
 			}
 
@@ -911,6 +949,30 @@ class Settings implements TabAPI {
 					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 						if (serialStopbits != stopBitsList[i]) unsavedChanges = true;
 						serialStopbits = stopBitsList[i];
+						menuLevel = 0;
+						menuScroll = 0;
+						redrawUI = true;
+					}
+					tHnow++;
+				}
+			}
+			// Cancel button
+			tHnow += 0.5;
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+
+		// Separator menu
+		} else if (menuLevel == 6) {
+			float tHnow = 1;
+			if (separatorNames.length == 0) tHnow++;
+			else {
+				for (int i = 0; i < separatorNames.length; i++) {
+					if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
+						if (separator != separatorList[i]) unsavedChanges = true;
+						separator = separatorList[i];
 						menuLevel = 0;
 						menuScroll = 0;
 						redrawUI = true;

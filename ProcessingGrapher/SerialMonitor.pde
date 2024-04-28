@@ -74,7 +74,7 @@ class SerialMonitor implements TabAPI {
 	color newColor = c_red;
 	int colorSelector = 0;
 
-	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 1000000, 2000000};
+	final int[] baudRateList = {300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000};;
 	SerialMessages serialBuffer;                              //! Ring buffer used to store serial messages
 	//PGraphics serialGraphics;
 
@@ -664,7 +664,7 @@ class SerialMonitor implements TabAPI {
 
 		if (menuLevel == 0)	menuHeight = round((15 + serialTags.size()) * uH);
 		else if (menuLevel == 1) menuHeight = round((3 + ports.length) * uH);
-		else if (menuLevel == 2) menuHeight = round((3 + baudRateList.length) * uH);
+		else if (menuLevel == 2) menuHeight = round((4 + baudRateList.length) * uH);
 		else if (menuLevel == 3) menuHeight = round(9 * uH + iW);
 
 		// Figure out if scrolling of the menu is necessary
@@ -775,7 +775,8 @@ class SerialMonitor implements TabAPI {
 				tHnow += 1;
 			}
 			tHnow += 0.5;
-			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * tHnow), iW, iH, tH);
+			drawButton("More Options", c_sidebar_button, iL, sT + (uH * tHnow), iW, iH, tH);
+			drawButton("Cancel", c_sidebar_accent, iL, sT + (uH * (tHnow + 1)), iW, iH, tH);
 		
 		// Colour picker menu
 		} else if (menuLevel == 3) {
@@ -1293,8 +1294,10 @@ class SerialMonitor implements TabAPI {
 					serialBuffer.clear();
 					serialBuffer.append("--- PROCESSING SERIAL MONITOR ---");
 					scrollUp = 0;
+					autoScroll = true;
 					serialTextSelection.setVisibility(false);
 					drawNewData = true;
+					redrawUI = true;
 				}
 			}
 
@@ -1411,8 +1414,18 @@ class SerialMonitor implements TabAPI {
 				tHnow++;
 			}
 
-			// Cancel button
+			// More options button
 			tHnow += 0.5;
+			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
+				settingsMenuActive = true;
+				settings.setMenuLevel(1);
+				menuLevel = 0;
+				menuScroll = 0;
+				redrawUI = true;
+			}
+
+			// Cancel button
+			tHnow += 1;
 			if (menuXYclick(xcoord, ycoord, sT, uH, iH, tHnow, iL, iW)) {
 				menuLevel = 0;
 				menuScroll = 0;

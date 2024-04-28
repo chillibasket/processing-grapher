@@ -4,5 +4,5 @@
   <color-scheme id="1"/>
   <fps-indicator visible="0"/>
   <usage-instructions visible="1"/>
-  <serial-port baud-rate="115200" databits="8" line-ending="&#10;" parity="N" stopbits="1.0"/>
+  <serial-port baud-rate="9600" databits="8" line-ending="&#10;" parity="N" separator="," stopbits="1.0"/>
 </user-preferences>
