@@ -286,7 +286,7 @@ class FileGraph implements TabAPI {
 					maxy = dataTable.getDouble(0, 0);
 				} else {
 					minx = dataTable.getDouble(0, xData);
-					maxx = dataTable.getDouble(dataTable.getRowCount() - 1, xData);
+					maxx = dataTable.getDouble(0, xData);
 					if (xData == 0) {
 						miny = dataTable.getDouble(0, 1);
 						maxy = dataTable.getDouble(0, 1);
@@ -300,16 +300,16 @@ class FileGraph implements TabAPI {
 				for (TableRow row : dataTable.rows()) {
 
 					if (xData != -1) {
-						if(minx > row.getDouble(xData)) minx = row.getDouble(xData);
-						if(maxx < row.getDouble(xData)) maxx = row.getDouble(xData);
+						if (minx > row.getDouble(xData)) minx = row.getDouble(xData);
+						if (maxx < row.getDouble(xData)) maxx = row.getDouble(xData);
 					} else {
 						maxx += 1.0 / graph.frequency();
 					}
 
-					for(int i = 0; i < dataTable.getColumnCount(); i++){
+					for (int i = 0; i < dataTable.getColumnCount(); i++){
 						if ((i != xData) && (!dataTable.getColumnTitle(i).contains("l:"))) {
-							if(miny > row.getDouble(i)) miny = row.getDouble(i);
-							if(maxy < row.getDouble(i)) maxy = row.getDouble(i);
+							if (miny > row.getDouble(i)) miny = row.getDouble(i);
+							if (maxy < row.getDouble(i)) maxy = row.getDouble(i);
 						}
 					}
 				}
