@@ -113,6 +113,11 @@ A full set of instructions and documentation can be found on my website at: [htt
 </br>
 
 ## Changelog
+1. (28th April 2024) Version 1.7.0 [Release]
+	1. ([#44](https://github.com/chillibasket/processing-grapher/issues/44)) Fixed issue where X-axis data was not being plotted correctly.
+	2. ([#43](https://github.com/chillibasket/processing-grapher/issues/43)) Implemented settings option allowing the serial data separator character to be changed.
+	3. ([#42](https://github.com/chillibasket/processing-grapher/issues/42)) Added extended baud rate selection menu to cover all possible baud rate options.
+	4. Other minor bug fixes and user experience improvements.
 1. (4th February 2024) Version 1.6.0 [Release]
     1. ([#36](https://github.com/chillibasket/processing-grapher/issues/36)) Added new buttons to the bottom info bar to quickly connect/disconnect and change the settings of the serial port.
     2. ([#38](https://github.com/chillibasket/processing-grapher/issues/38)) Fixed issue with saving CSV files when the file row count was exceeded.
