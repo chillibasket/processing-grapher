@@ -45,7 +45,7 @@ A full description and set of instructions can be found on my website: [https://
 ## Installation/Setup Guide
 
 ### Basic Usage in the Processing IDE
-1. Download and install the Processing IDE version 3.5.4 from [https://processing.org/](https://processing.org/). Note that the newer versions >4.0 are not yet supported.
+1. Download and install the Processing IDE version 3.5.4 from [https://processing.org/](https://processing.org/releases). Note that the newer versions >4.0 are not yet supported.
 1. Clone or download all files in this repository.
 1. Open the main program file `ProcessingGrapher.pde` in the Processing editor. All the other files should automatically open in separate tabs in the Processing IDE.
 1. Press the `Run` button in the top-left of the Processing editor to start the program.
